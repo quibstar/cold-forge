@@ -100,6 +100,10 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 
+  # Uploaded logos live on a mounted volume, not inside the release — see
+  # `ColdForge.Uploads` for why `priv` cannot hold them.
+  config :cold_forge, :uploads_dir, System.get_env("UPLOADS_DIR") || "/app/uploads"
+
   # The shared secret in the inbound webhook's URL, where replies arrive.
   # Optional rather than `fetch_env!`: the endpoint already refuses everything
   # without it, so a deploy that hasn't set up inbound mail yet should still

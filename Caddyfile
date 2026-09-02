@@ -1,0 +1,27 @@
+# Caddy gets and renews the certificate on its own; there is no certbot cron to
+# forget about. The only requirement is that PHX_HOST resolves to this machine
+# before the first start.
+{$PHX_HOST} {
+	encode zstd gzip
+
+	# Tracked links, unsubscribes and survey pages are hit by strangers and by
+	# mail scanners, so this host is public by design. Authentication lives in
+	# the application.
+	reverse_proxy app:4000
+
+	header {
+		# The app is only ever framed by itself.
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		# Removes Caddy's own version from responses.
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}

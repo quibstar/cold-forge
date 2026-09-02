@@ -214,6 +214,10 @@ defmodule ColdForgeWeb.AdminLive.Guide do
 
       <.card title="Before your first real send">
         <ul class="list-disc pl-5 space-y-1">
+          <li>
+            Work through <code>DEPLOY.md</code> in the repository — it has the DNS,
+            SES and inbound-mail steps in the order they have to happen.
+          </li>
           <li>Verify your from-address (or its domain) in Amazon SES.</li>
           <li>
             Get out of the SES sandbox — until you do, you can only mail addresses

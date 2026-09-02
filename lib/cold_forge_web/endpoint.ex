@@ -27,6 +27,14 @@ defmodule ColdForgeWeb.Endpoint do
     only: ColdForgeWeb.static_paths(),
     raise_on_missing_only: code_reloading?
 
+  # Uploads are served from their own directory rather than out of `priv`,
+  # which a release stores under a versioned path that changes on every deploy.
+  # Resolved at request time, since the directory is runtime configuration.
+  plug Plug.Static,
+    at: "/uploads",
+    from: {ColdForge.Uploads, :dir, []},
+    gzip: false
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do

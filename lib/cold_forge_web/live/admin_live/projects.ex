@@ -107,9 +107,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
     |> consume_uploaded_entries(:logo, fn %{path: tmp_path}, entry ->
       ext = Path.extname(entry.client_name) |> String.downcase()
       name = "#{Ecto.UUID.generate()}#{ext}"
-      dest_dir = Path.join([:code.priv_dir(:cold_forge), "static", "uploads", "logos"])
-      File.mkdir_p!(dest_dir)
-      File.cp!(tmp_path, Path.join(dest_dir, name))
+      File.cp!(tmp_path, Path.join(ColdForge.Uploads.dir!("logos"), name))
       {:ok, "/uploads/logos/#{name}"}
     end)
     |> List.first()
