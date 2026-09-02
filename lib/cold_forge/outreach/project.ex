@@ -16,6 +16,7 @@ defmodule ColdForge.Outreach.Project do
     field :postal_address, :string
     field :signature, :string
     field :logo_url, :string
+    field :logo_path, :string
     field :brand_color, :string
     field :timezone, :string, default: "America/New_York"
     field :active, :boolean, default: true
@@ -39,6 +40,7 @@ defmodule ColdForge.Outreach.Project do
       :postal_address,
       :signature,
       :logo_url,
+      :logo_path,
       :brand_color,
       :timezone,
       :active
@@ -75,6 +77,22 @@ defmodule ColdForge.Outreach.Project do
     |> String.downcase()
     |> String.replace(~r/[^a-z0-9]+/, "-")
     |> String.trim("-")
+  end
+
+  @doc """
+  Absolute URL for the project's logo, or `nil`.
+
+  An uploaded file wins over a typed URL — if you took the trouble to upload
+  one, that's the one you meant. The result is always absolute: a mail client
+  fetches it from the open internet with no page to resolve a relative path
+  against.
+  """
+  def logo_src(%__MODULE__{} = project, base_url) do
+    cond do
+      project.logo_path not in [nil, ""] -> base_url <> project.logo_path
+      project.logo_url not in [nil, ""] -> project.logo_url
+      true -> nil
+    end
   end
 
   # A logo referenced by a relative path would resolve against the recipient's

@@ -123,6 +123,24 @@ defmodule ColdForge.OutreachTest do
     end
   end
 
+  describe "project branding" do
+    test "requires a hex brand colour", ctx do
+      assert {:error, changeset} = Outreach.update_project(ctx.project, %{brand_color: "teal"})
+      assert "must be a hex colour like #0f766e" in errors_on(changeset).brand_color
+    end
+
+    test "requires an absolute logo URL", ctx do
+      # A relative path would resolve against the recipient's mail client, not
+      # our site — it's a broken image, not a logo.
+      assert {:error, changeset} = Outreach.update_project(ctx.project, %{logo_url: "/logo.png"})
+      assert errors_on(changeset).logo_url != []
+    end
+
+    test "an empty logo URL is allowed", ctx do
+      assert {:ok, _} = Outreach.update_project(ctx.project, %{logo_url: ""})
+    end
+  end
+
   describe "activate_campaign/1" do
     test "refuses a campaign with no emails in it", ctx do
       empty = campaign_fixture(ctx.project, name: "Empty")

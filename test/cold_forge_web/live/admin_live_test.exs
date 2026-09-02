@@ -11,6 +11,7 @@ defmodule ColdForgeWeb.AdminLiveTest do
   import ColdForge.OutreachFixtures
 
   alias ColdForge.Outreach
+  alias ColdForge.Outreach.Project
 
   setup %{conn: conn} do
     project = project_fixture(name: "ExteriorPro")
@@ -137,6 +138,51 @@ defmodule ColdForgeWeb.AdminLiveTest do
       # compliance footer that get added on send.
       assert html =~ "/c/preview0"
       assert html =~ "Unsubscribe"
+    end
+  end
+
+  describe "email preview" do
+    test "previewing a step from the campaign page shows the sent form", ctx do
+      {:ok, view, html} =
+        live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}")
+
+      refute html =~ "Plain-text part"
+
+      html = view |> element("button[phx-click='preview_email']") |> render_click()
+
+      # Merge tags resolved, link tokenised, footer attached — the whole point
+      # of previewing rather than re-reading the body.
+      assert html =~ "Quick question about Northside Siding"
+      assert html =~ "/c/preview0"
+      assert html =~ "Unsubscribe"
+
+      html = view |> element("button[phx-click='close_preview']") |> render_click()
+      refute html =~ "Plain-text part"
+    end
+  end
+
+  describe "project branding" do
+    test "an uploaded logo becomes an absolute URL in the email", ctx do
+      {:ok, project} =
+        Outreach.update_project(ctx.project, %{
+          logo_path: "/uploads/logos/abc.png",
+          brand_color: "#0f766e"
+        })
+
+      # A mail client fetches this from the open internet with no page to
+      # resolve a relative path against.
+      assert Project.logo_src(project, "https://cold.example") ==
+               "https://cold.example/uploads/logos/abc.png"
+    end
+
+    test "an uploaded logo wins over a typed URL", ctx do
+      {:ok, project} =
+        Outreach.update_project(ctx.project, %{
+          logo_url: "https://elsewhere.example/old.png",
+          logo_path: "/uploads/logos/new.png"
+        })
+
+      assert Project.logo_src(project, "https://cold.example") =~ "new.png"
     end
   end
 

@@ -35,3 +35,7 @@ cold_forge-*.tar
 npm-debug.log
 /assets/node_modules/
 
+
+# Logos uploaded through the admin. Content, not source.
+/priv/static/uploads/*
+!/priv/static/uploads/.keep

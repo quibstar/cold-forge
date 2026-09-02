@@ -211,7 +211,7 @@ defmodule ColdForge.Sending.Renderer do
     %{
       subject: subject,
       text: text,
-      html: html_body(text, preview_pixel(base_url), project, branded?)
+      html: html_body(text, preview_pixel(base_url), project, branded?, base_url)
     }
   end
 
@@ -240,10 +240,10 @@ defmodule ColdForge.Sending.Renderer do
   knows who you are.
   """
   def to_html(text, %Message{} = message, base_url, project \\ nil, branded? \\ false) do
-    html_body(text, open_pixel_url(base_url, message), project, branded?)
+    html_body(text, open_pixel_url(base_url, message), project, branded?, base_url)
   end
 
-  defp html_body(text, pixel_url, project, branded?) do
+  defp html_body(text, pixel_url, project, branded?, base_url) do
     paragraphs =
       text
       |> String.split(~r/\n{2,}/)
@@ -258,7 +258,7 @@ defmodule ColdForge.Sending.Renderer do
     pixel = ~s(<img src="#{pixel_url}" width="1" height="1" alt="">)
 
     if branded? and project do
-      branded_html(paragraphs, pixel, project)
+      branded_html(paragraphs, pixel, project, base_url)
     else
       plain_html(paragraphs, pixel)
     end
@@ -273,29 +273,41 @@ defmodule ColdForge.Sending.Renderer do
     """
   end
 
-  # Table-based and inline-styled because mail clients are not browsers —
-  # Outlook ignores most of a stylesheet and flexbox outright.
-  defp branded_html(paragraphs, pixel, %Project{} = project) do
+  # Modelled on the ExteriorPro transactional template, including the two
+  # decisions its own comments argue for: a white header rather than a coloured
+  # band, because the logo carries the brand and a band fights it; and the logo
+  # *above* the name rather than instead of it, because a mark on its own asks
+  # the reader to recognise it.
+  #
+  # Styles are inline and the layout is a plain centered block because mail
+  # clients are not browsers — Outlook drops most of a stylesheet, and there is
+  # no flexbox to rely on. PNG or JPG only: Gmail and Outlook won't render SVG.
+  defp branded_html(paragraphs, pixel, %Project{} = project, base_url) do
     accent = project.brand_color || "#0f766e"
+    logo = Project.logo_src(project, base_url)
 
-    logo =
-      if project.logo_url in [nil, ""] do
-        ~s(<span style="font-size:18px;font-weight:700;color:#fff">#{escape(project.from_name)}</span>)
+    logo_img =
+      if logo do
+        ~s(<img src="#{logo}" alt="#{escape(project.name)}" style="display:block;margin:0 auto 10px;max-height:56px;max-width:200px">)
       else
-        ~s(<img src="#{project.logo_url}" alt="#{escape(project.name)}" height="32" style="height:32px;display:block;border:0">)
+        ""
       end
 
     """
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f5;padding:24px 0">
-      <tr><td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background:#fff;border-radius:8px;overflow:hidden">
-          <tr><td style="background:#{accent};padding:20px 24px">#{logo}</td></tr>
-          <tr><td style="padding:24px;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">
-            #{paragraphs}
-          </td></tr>
-        </table>
-      </td></tr>
-    </table>
+    <div style="background-color:#e8e8ea;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;color:#1a1a1a">
+      <div style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden">
+        <div style="padding:40px 32px 0;text-align:center">
+          #{logo_img}
+          <p style="margin:0;font-size:20px;font-weight:700;letter-spacing:-0.3px;color:#{accent}">#{escape(project.name)}</p>
+        </div>
+        <div style="padding:24px 32px 32px;color:#333333;font-size:15px;line-height:1.7">
+          #{paragraphs}
+        </div>
+        <div style="background-color:#fafafb;padding:24px 32px;text-align:center;font-size:12px;color:#888888;border-top:1px solid #ececef">
+          <p style="margin:4px 0"><strong>#{escape(project.name)}</strong></p>
+        </div>
+      </div>
+    </div>
     #{pixel}
     """
   end

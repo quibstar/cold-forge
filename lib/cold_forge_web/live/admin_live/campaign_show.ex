@@ -41,6 +41,8 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
     socket
     |> assign(:page_title, socket.assigns.campaign.name)
     |> assign(:breadcrumbs, project_crumbs(socket))
+    |> assign(:preview_step, nil)
+    |> assign_preview_prospect()
   end
 
   defp apply_action(socket, :new_email, _params) do
@@ -140,6 +142,14 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
       {:error, changeset} ->
         {:noreply, assign(socket, :form, to_form(changeset))}
     end
+  end
+
+  def handle_event("preview_email", %{"id" => id}, socket) do
+    {:noreply, assign(socket, :preview_step, Outreach.get_step!(id))}
+  end
+
+  def handle_event("close_preview", _params, socket) do
+    {:noreply, assign(socket, :preview_step, nil)}
   end
 
   def handle_event("delete_email", %{"id" => id}, socket) do
@@ -287,6 +297,13 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
                 </span>
               </div>
               <div class="flex gap-1 shrink-0">
+                <button
+                  phx-click="preview_email"
+                  phx-value-id={step.id}
+                  class="btn btn-xs btn-ghost"
+                >
+                  Preview
+                </button>
                 <.link
                   navigate={~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/emails/#{step.id}"}
                   class="btn btn-xs btn-ghost"
@@ -393,6 +410,38 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
             </label>
           </div>
         </div>
+      </div>
+    </div>
+
+    <%!-- A modal rather than its own page: previewing is a glance you take
+    while reading the campaign, and losing your place in the list to take it
+    would be the wrong trade. --%>
+    <div
+      :if={@preview_step}
+      class="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:pt-[6vh]"
+    >
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" phx-click="close_preview" />
+      <div
+        class="relative w-full max-w-3xl"
+        phx-window-keydown="close_preview"
+        phx-key="Escape"
+      >
+        <.email_preview
+          id="step-preview"
+          subject={@preview_step.subject}
+          body={@preview_step.body}
+          branded={@campaign.branded}
+          prospect={@preview_prospect}
+          project={@current_project}
+          class=""
+        />
+        <button
+          phx-click="close_preview"
+          class="btn btn-sm btn-circle absolute right-2 top-2"
+          aria-label="Close preview"
+        >
+          <.icon name="hero-x-mark" class="size-4" />
+        </button>
       </div>
     </div>
     """

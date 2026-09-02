@@ -9,9 +9,20 @@ defmodule ColdForgeWeb.AdminLive.Projects do
   alias ColdForge.Outreach
   alias ColdForge.Outreach.Project
 
+  # 2 MB is generous for a logo and well under what a mail client will happily
+  # inline. PNG and JPG only — Gmail and Outlook don't render SVG.
+  @logo_max_bytes 2_000_000
+
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :projects, Outreach.list_projects())}
+    {:ok,
+     socket
+     |> assign(:projects, Outreach.list_projects())
+     |> allow_upload(:logo,
+       accept: ~w(.png .jpg .jpeg),
+       max_entries: 1,
+       max_file_size: @logo_max_bytes
+     )}
   end
 
   @impl true
@@ -57,7 +68,22 @@ defmodule ColdForgeWeb.AdminLive.Projects do
   end
 
   def handle_event("save", %{"project" => params}, socket) do
+    params =
+      case consume_logo(socket) do
+        nil -> params
+        path -> Map.put(params, "logo_path", path)
+      end
+
     save(socket, socket.assigns.live_action, params)
+  end
+
+  def handle_event("remove_logo", _params, socket) do
+    {:ok, project} = Outreach.update_project(socket.assigns.project, %{logo_path: nil})
+
+    {:noreply,
+     socket
+     |> assign(:project, project)
+     |> assign_form(Outreach.change_project(project))}
   end
 
   def handle_event("toggle_active", %{"id" => id}, socket) do
@@ -66,6 +92,28 @@ defmodule ColdForgeWeb.AdminLive.Projects do
 
     {:noreply, assign(socket, :projects, Outreach.list_projects())}
   end
+
+  # Written under priv/static so a mail client can fetch it without a session.
+  # The name carries a random suffix rather than the original filename: two
+  # projects uploading "logo.png" must not collide, and a filename from an
+  # upload is not something to trust as a path.
+  defp consume_logo(socket) do
+    socket
+    |> consume_uploaded_entries(:logo, fn %{path: tmp_path}, entry ->
+      ext = Path.extname(entry.client_name) |> String.downcase()
+      name = "#{Ecto.UUID.generate()}#{ext}"
+      dest_dir = Path.join([:code.priv_dir(:cold_forge), "static", "uploads", "logos"])
+      File.mkdir_p!(dest_dir)
+      File.cp!(tmp_path, Path.join(dest_dir, name))
+      {:ok, "/uploads/logos/#{name}"}
+    end)
+    |> List.first()
+  end
+
+  defp logo_error(:too_large), do: "That image is over 2 MB."
+  defp logo_error(:not_accepted), do: "PNG or JPG only."
+  defp logo_error(:too_many_files), do: "One logo at a time."
+  defp logo_error(error), do: to_string(error)
 
   defp save(socket, :new, params) do
     case Outreach.create_project(params) do
@@ -218,18 +266,58 @@ defmodule ColdForgeWeb.AdminLive.Projects do
             the branding that works — a sign-off from a person, not a letterhead.
           </p>
 
+          <div>
+            <label class="text-sm font-medium">Logo</label>
+
+            <div :if={@project && @project.logo_path} class="flex items-center gap-3 mt-2">
+              <%!-- On a white swatch because that's the header it lands on in
+              the email, not the admin's background. --%>
+              <div class="bg-white rounded-lg p-2 border border-base-300">
+                <img src={@project.logo_path} alt="" class="max-h-12 max-w-[10rem]" />
+              </div>
+              <button type="button" phx-click="remove_logo" class="btn btn-xs btn-ghost text-error">
+                Remove
+              </button>
+            </div>
+
+            <label
+              class="flex items-center justify-center gap-2 border-2 border-dashed border-base-300 rounded-lg py-6 mt-2 cursor-pointer hover:border-primary/50 transition-colors"
+              phx-drop-target={@uploads.logo.ref}
+            >
+              <.icon name="hero-arrow-up-tray" class="size-5 text-base-content/40" />
+              <span class="text-sm text-base-content/60">
+                {if @project && @project.logo_path, do: "Replace logo", else: "Upload a logo"}
+              </span>
+              <.live_file_input upload={@uploads.logo} class="sr-only" />
+            </label>
+
+            <div :for={entry <- @uploads.logo.entries} class="mt-2 text-sm">
+              <div class="flex items-center justify-between">
+                <span class="truncate">{entry.client_name}</span>
+                <span class="text-base-content/50">{entry.progress}%</span>
+              </div>
+              <p :for={err <- upload_errors(@uploads.logo, entry)} class="text-error text-xs mt-1">
+                {logo_error(err)}
+              </p>
+            </div>
+
+            <p class="text-xs text-base-content/50 mt-2">
+              PNG or JPG, up to 2 MB. Not SVG — Gmail and Outlook won't render it.
+            </p>
+          </div>
+
           <div class="grid gap-4 sm:grid-cols-2">
             <.input
               field={@form[:logo_url]}
-              label="Logo URL"
+              label="…or a logo URL"
               placeholder="https://exteriorpro.io/logo.png"
             />
             <.input field={@form[:brand_color]} label="Brand colour" placeholder="#0f766e" />
           </div>
           <p class="text-xs text-base-content/50 -mt-2">
-            Used only by blasts with branded HTML turned on. Drips stay plain —
-            a designed template is the clearest signal that mail was sent in bulk,
-            and it costs you the Primary tab.
+            Used only by campaigns with branded HTML turned on. Cold campaigns stay
+            plain — a designed template is the clearest signal that mail was sent in
+            bulk, and it costs you the Primary tab. An uploaded logo wins over a URL.
           </p>
 
           <div class="flex justify-end gap-2 pt-2">
