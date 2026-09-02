@@ -1,8 +1,10 @@
 # Before the first real send
 
 None of this depends on the deploy, and two items have lead times measured in
-days — start them before touching the server. Server runbook:
-`../deploy/README.md`.
+days — start them before touching the server.
+
+Click-by-click version, with the live values for this domain already filled in:
+`aws-and-dns-setup.md`. Server runbook: `../deploy/README.md`.
 
 ## 1. The domain
 
