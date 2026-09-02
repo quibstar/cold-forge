@@ -1,0 +1,11 @@
+{
+  "name": "cold-forge-browser-tests",
+  "private": true,
+  "description": "Smoke tests for the behaviour that only exists in a browser.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}

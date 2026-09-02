@@ -93,7 +93,14 @@ defmodule ColdForge.MixProject do
         "esbuild cold_forge --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      # Kept out of `precommit`: it drives a real browser and starts a server,
+      # so it costs seconds rather than milliseconds. Run it when you touch CSS
+      # or client-side JS — the two things `mix test` cannot see.
+      "test.browser": [
+        "run priv/repo/seeds.exs",
+        "cmd --cd test/browser npx playwright test"
+      ]
     ]
   end
 end

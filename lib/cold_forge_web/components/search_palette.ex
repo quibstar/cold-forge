@@ -228,10 +228,14 @@ defmodule ColdForgeWeb.SearchPalette do
             this._onKey = (e) => {
               if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
                 e.preventDefault()
-                this.pushEventTo(this.el, "open", {})
-                // The input is always in the DOM — only the wrapper's class
-                // changes — so it can be focused without waiting for a render.
-                document.getElementById("palette-input")?.focus()
+                // Focus in the reply callback, not straight after the push:
+                // opening is a server round trip, and focusing before its diff
+                // lands means the patch takes the focus straight back off.
+                this.pushEventTo(this.el, "open", {}, () => {
+                  requestAnimationFrame(() => {
+                    document.getElementById("palette-input")?.focus()
+                  })
+                })
               }
             }
             document.addEventListener("keydown", this._onKey)

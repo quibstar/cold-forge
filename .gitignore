@@ -39,3 +39,8 @@ npm-debug.log
 # Logos uploaded through the admin. Content, not source.
 /priv/static/uploads/*
 !/priv/static/uploads/.keep
+
+# Browser smoke tests: Playwright's own browsers and run artefacts.
+/test/browser/node_modules/
+/test/browser/test-results/
+/test/browser/playwright-report/
