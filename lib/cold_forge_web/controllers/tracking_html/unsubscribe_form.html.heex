@@ -1,0 +1,13 @@
+<.unsub_shell title="Unsubscribe">
+  <p class="text-base-content/70">
+    Confirm you'd like to stop receiving emails at <span class="font-medium text-base-content">{@email}</span>.
+  </p>
+
+  <.form id="unsubscribe-form" for={%{}} action={~p"/u/#{@token}"} method="post" class="mt-6">
+    <button type="submit" class="btn btn-primary w-full">Unsubscribe me</button>
+  </.form>
+
+  <p class="mt-4 text-xs text-base-content/50">
+    You won't hear from us again after this.
+  </p>
+</.unsub_shell>

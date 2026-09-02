@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cold_forge",
+      "runtimeExecutable": "mix",
+      "runtimeArgs": [
+        "phx.server"
+      ],
+      "port": 4000,
+      "autoPort": true
+    }
+  ]
+}

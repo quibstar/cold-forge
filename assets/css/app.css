@@ -1,0 +1,154 @@
+/* See the Tailwind configuration guide for advanced usage
+   https://tailwindcss.com/docs/configuration */
+
+@import "tailwindcss" source(none);
+@import "phoenix-colocated/cold_forge/colocated.css";
+@source "../css";
+@source "../js";
+@source "../../lib/cold_forge_web";
+/* Required for Tailwind to automatically pick up changes in colocated CSS files in dev */
+@source "../../_build/dev/phoenix-colocated/cold_forge/*/";
+
+/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
+   The heroicons installation itself is managed by your mix.exs */
+@plugin "../vendor/heroicons";
+
+/* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
+   curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
+   Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
+@plugin "../vendor/daisyui" {
+  themes: false;
+}
+
+/* daisyUI theme plugin. You can update this file by fetching the latest version with:
+  curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
+  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
+  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+/* Themes ported from ExteriorPro so the two admins read as the same product.
+   The contrast notes are theirs and still apply — the original teal was a tint
+   rather than a colour you could read text in. */
+@plugin "../vendor/daisyui-theme" {
+  name: "dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: "dark";
+
+  --color-base-100: oklch(13% 0.028 261.692);
+  --color-base-200: oklch(21% 0.034 264.665);
+  --color-base-300: oklch(27% 0.033 256.848);
+  --color-base-content: oklch(100% 0 0);
+
+  /* teal-600 */
+  --color-primary: oklch(60% 0.1 190);
+  --color-primary-content: oklch(100% 0 0);
+
+  /* Lifted from 52%, which was 3.8:1 against this theme's own background. */
+  --color-secondary: oklch(58% 0.1 190);
+  --color-secondary-content: oklch(97% 0.014 190);
+
+  /* teal-500 */
+  --color-accent: oklch(66% 0.12 190);
+  --color-accent-content: oklch(100% 0 0);
+
+  --color-neutral: oklch(14% 0 0);
+  --color-neutral-content: oklch(98% 0 0);
+
+  --color-info: oklch(54% 0.245 262.881);
+  --color-info-content: oklch(97% 0.014 254.604);
+  --color-success: oklch(69% 0.17 162.48);
+  --color-success-content: oklch(97% 0.021 166.113);
+  --color-warning: oklch(76% 0.188 70.08);
+  --color-warning-content: oklch(98% 0.016 73.684);
+  --color-error: oklch(57% 0.245 27.325);
+  --color-error-content: oklch(97% 0.014 343.198);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 1;
+}
+
+@plugin "../vendor/daisyui-theme" {
+  name: "light";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(98% 0 0);
+  --color-base-300: oklch(95% 0 0);
+  --color-base-content: oklch(21% 0.006 285.885);
+
+  --color-primary: var(--color-brand);
+  --color-primary-content: oklch(100% 0 0);
+
+  /* Deeper than primary, so the two still say different things. */
+  --color-secondary: oklch(44% 0.09 190);
+  --color-secondary-content: oklch(94% 0.028 190);
+
+  /* Leans cyan — at the lightness this has to reach to be readable, a same-hue
+     accent is indistinguishable from primary. */
+  --color-accent: oklch(52% 0.13 205);
+  --color-accent-content: oklch(100% 0 0);
+
+  --color-neutral: oklch(14% 0.005 285.823);
+  --color-neutral-content: oklch(92% 0.004 286.32);
+
+  --color-info: oklch(54% 0.245 262.881);
+  --color-info-content: oklch(100% 0 0);
+  --color-success: oklch(62% 0.194 149.214);
+  --color-success-content: oklch(100% 0 0);
+  --color-warning: oklch(82% 0.189 84.429);
+  --color-warning-content: oklch(100% 0 0);
+  --color-error: oklch(63% 0.237 25.331);
+  --color-error-content: oklch(100% 0 0);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.28125rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@theme {
+  --color-brand: oklch(50% 0.1 190);
+  --color-brand-light: oklch(80% 0.12 190);
+}
+
+/* The wordmark takes the readable cut, not the theme's primary. */
+.logo-color {
+  color: var(--color-brand);
+}
+
+/* Admin sidebar: off-canvas drawer on mobile, fixed from lg up. JS toggles the
+   `open` class rather than a data attribute so the overlay and the panel can
+   share one trigger. */
+#admin-sidebar {
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+}
+#admin-sidebar.open {
+  transform: translateX(0);
+}
+#sidebar-overlay {
+  display: none;
+}
+#sidebar-overlay.open {
+  display: block;
+}
+@media (min-width: 1024px) {
+  #admin-sidebar {
+    transform: translateX(0);
+  }
+  #sidebar-overlay,
+  #sidebar-overlay.open {
+    display: none;
+  }
+}
