@@ -96,10 +96,7 @@ defmodule ColdForgeWeb.AdminLiveTest do
     test "finds a prospect from anywhere, not just its own project", ctx do
       {:ok, view, _html} = live(ctx.conn, ~p"/admin/suppressions")
 
-      html =
-        view
-        |> element("header button[phx-target='#search-palette']", "Search")
-        |> render_click()
+      html = view |> element("header button", "Search") |> render_click()
 
       assert html =~ "Search everything"
 
@@ -157,7 +154,7 @@ defmodule ColdForgeWeb.AdminLiveTest do
       assert html =~ "Unsubscribe"
 
       html = view |> element("button[phx-click='close_preview']") |> render_click()
-      refute html =~ "Plain-text part"
+      refute html =~ "modal-open"
     end
   end
 

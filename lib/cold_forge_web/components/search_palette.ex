@@ -127,17 +127,13 @@ defmodule ColdForgeWeb.SearchPalette do
   def render(assigns) do
     ~H"""
     <div id={@id} phx-hook=".CmdK">
-      <div
-        :if={@open}
-        class="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:pt-[12vh]"
-      >
+      <%!-- daisyUI's modal, opened by `modal-open` rather than a native
+      `<dialog>`: visibility is server state here, and a dialog would need a
+      hook to call showModal() every time that state changed. `modal-top`
+      because a command palette belongs near the top, not centred. --%>
+      <div class={["modal modal-top justify-items-center sm:pt-[12vh]", @open && "modal-open"]}>
         <div
-          class="absolute inset-0 bg-black/40 backdrop-blur-sm"
-          phx-click="close"
-          phx-target={@myself}
-        />
-        <div
-          class="relative w-full max-w-xl overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-2xl"
+          class="modal-box w-full max-w-xl p-0 overflow-hidden"
           phx-window-keydown="close"
           phx-key="Escape"
           phx-target={@myself}
@@ -155,7 +151,6 @@ defmodule ColdForgeWeb.SearchPalette do
               value={@q}
               autocomplete="off"
               phx-debounce="150"
-              phx-mounted={JS.focus()}
               placeholder={search_placeholder(@entity)}
               class="w-full bg-transparent py-3.5 text-sm outline-none placeholder:text-base-content/40"
             />
@@ -220,6 +215,12 @@ defmodule ColdForgeWeb.SearchPalette do
             </div>
           </div>
         </div>
+
+        <%!-- A form rather than a div so a click on the backdrop closes it and
+        a screen reader announces it as dismissible. --%>
+        <form method="dialog" class="modal-backdrop" phx-click="close" phx-target={@myself}>
+          <button type="button">close</button>
+        </form>
       </div>
       <script :type={Phoenix.LiveView.ColocatedHook} name=".CmdK">
         export default {
@@ -228,6 +229,9 @@ defmodule ColdForgeWeb.SearchPalette do
               if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
                 e.preventDefault()
                 this.pushEventTo(this.el, "open", {})
+                // The input is always in the DOM — only the wrapper's class
+                // changes — so it can be focused without waiting for a render.
+                document.getElementById("palette-input")?.focus()
               }
             }
             document.addEventListener("keydown", this._onKey)

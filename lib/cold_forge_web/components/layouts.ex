@@ -236,8 +236,7 @@ defmodule ColdForgeWeb.Layouts do
           context, so a modal inside it could never cover the sidebar. --%>
           <button
             type="button"
-            phx-click="open"
-            phx-target="#search-palette"
+            phx-click={JS.push("open", target: "#search-palette") |> JS.focus(to: "#palette-input")}
             class="hidden sm:flex items-center gap-2 rounded-lg border border-base-300 px-3 py-1.5 text-sm text-base-content/50 hover:border-base-content/30 hover:text-base-content/80 transition-colors shrink-0"
           >
             <.icon name="hero-magnifying-glass" class="size-4" />
@@ -249,8 +248,7 @@ defmodule ColdForgeWeb.Layouts do
 
           <button
             type="button"
-            phx-click="open"
-            phx-target="#search-palette"
+            phx-click={JS.push("open", target: "#search-palette") |> JS.focus(to: "#palette-input")}
             class="sm:hidden flex items-center justify-center size-9 rounded-lg hover:bg-base-200 cursor-pointer shrink-0"
             aria-label="Search"
           >

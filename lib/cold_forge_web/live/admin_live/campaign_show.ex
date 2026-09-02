@@ -42,6 +42,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
     |> assign(:page_title, socket.assigns.campaign.name)
     |> assign(:breadcrumbs, project_crumbs(socket))
     |> assign(:preview_step, nil)
+    |> assign(:previewing, false)
     |> assign_preview_prospect()
   end
 
@@ -147,11 +148,17 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   end
 
   def handle_event("preview_email", %{"id" => id}, socket) do
-    {:noreply, assign(socket, :preview_step, Outreach.get_step!(id))}
+    {:noreply,
+     socket
+     |> assign(:preview_step, Outreach.get_step!(id))
+     |> assign(:previewing, true)}
   end
 
+  # `preview_step` deliberately survives closing: clearing it would empty the
+  # box before it has finished fading, which reads as a glitch rather than a
+  # dismissal.
   def handle_event("close_preview", _params, socket) do
-    {:noreply, assign(socket, :preview_step, nil)}
+    {:noreply, assign(socket, :previewing, false)}
   end
 
   def handle_event("delete_email", %{"id" => id}, socket) do
@@ -444,14 +451,18 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
 
     <%!-- A modal rather than its own page: previewing is a glance you take
     while reading the campaign, and losing your place in the list to take it
-    would be the wrong trade. --%>
+    would be the wrong trade.
+
+    daisyUI's modal, toggled by `modal-open` rather than a native `<dialog>` —
+    visibility is server state, and a dialog would need a hook to call
+    showModal() each time it changed. The step stays assigned after closing so
+    there is still something to look at while it fades out. --%>
     <div
       :if={@preview_step}
-      class="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:pt-[6vh]"
+      class={["modal modal-top justify-items-center sm:pt-[6vh]", @previewing && "modal-open"]}
     >
-      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" phx-click="close_preview" />
       <div
-        class="relative w-full max-w-3xl"
+        class="modal-box w-full max-w-3xl p-0 relative"
         phx-window-keydown="close_preview"
         phx-key="Escape"
       >
@@ -466,7 +477,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
           full_page_url={
             ~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/emails/#{@preview_step.id}/preview"
           }
-          class=""
+          class="shadow-none"
         />
         <button
           phx-click="close_preview"
@@ -476,6 +487,10 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
           <.icon name="hero-x-mark" class="size-4" />
         </button>
       </div>
+
+      <form method="dialog" class="modal-backdrop" phx-click="close_preview">
+        <button type="button">close</button>
+      </form>
     </div>
     """
   end
