@@ -47,6 +47,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
 
   defp apply_action(socket, :new_email, _params) do
     socket
+    |> assign(:surveys, ColdForge.Survey.list_surveys(socket.assigns.project_id))
     |> assign(:page_title, "New email")
     |> assign(:breadcrumbs, campaign_crumbs(socket))
     |> assign(:step, %CampaignStep{})
@@ -58,6 +59,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
     step = Outreach.get_step!(step_id)
 
     socket
+    |> assign(:surveys, ColdForge.Survey.list_surveys(socket.assigns.project_id))
     |> assign(:page_title, "Email #{step.position}")
     |> assign(:breadcrumbs, campaign_crumbs(socket))
     |> assign(:step, step)
@@ -528,11 +530,34 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
               placeholder="Hi {{first_name|there}},&#10;&#10;..."
             />
 
+            <div>
+              <label class="text-sm font-medium">Survey</label>
+              <select name="campaign_step[survey_id]" class="select w-full mt-1">
+                <option value="">— none —</option>
+                <option
+                  :for={survey <- @surveys}
+                  value={survey.id}
+                  selected={to_string(@form[:survey_id].value) == to_string(survey.id)}
+                >
+                  {survey.name}
+                </option>
+              </select>
+              <p class="text-xs text-base-content/50 mt-1">
+                Put <code class="text-primary">{"{{survey}}"}</code>
+                in the body where it should appear. The first question renders with
+                one-click answers; the rest are asked on the page they land on.
+                <.link navigate={~p"/admin/p/#{@project_id}/surveys"} class="link">
+                  Manage surveys
+                </.link>
+              </p>
+            </div>
+
             <div class="text-xs text-base-content/50 space-y-1">
               <p>
                 <code>{"{{first_name}}"}</code>
                 <code>{"{{company}}"}</code>
                 <code>{"{{title}}"}</code>
+                <code>{"{{industry}}"}</code>
                 — and <code>{"{{first_name|there}}"}</code>
                 falls back when it's blank.
               </p>

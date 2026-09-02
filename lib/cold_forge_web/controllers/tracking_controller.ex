@@ -10,7 +10,7 @@ defmodule ColdForgeWeb.TrackingController do
 
   use ColdForgeWeb, :controller
 
-  alias ColdForge.{Outreach, Tracking}
+  alias ColdForge.{Outreach, Survey, Tracking}
 
   # A 1x1 transparent GIF, served for the open pixel. Inlined rather than read
   # from priv so the response never touches the filesystem.
@@ -99,6 +99,70 @@ defmodule ColdForgeWeb.TrackingController do
           page_title: "Unsubscribed",
           email: prospect.email
         )
+    end
+  end
+
+  @doc """
+  `GET /a/:token` — the answer page, with the option they clicked pre-selected.
+
+  Deliberately does not record anything. Mail scanners at Gmail, Outlook and
+  every corporate security appliance fetch the URLs in an email to check them;
+  a link that answered on being fetched would fill the results with responses
+  nobody gave, which is worse than no research at all.
+  """
+  def answer_form(conn, %{"token" => token}) do
+    case Survey.get_answer_link(token) do
+      nil ->
+        render(conn, :answer_invalid, layout: false, page_title: "Question")
+
+      link ->
+        %{questions: questions, responses: responses} = Survey.questionnaire(link)
+
+        render(conn, :answer_form,
+          layout: false,
+          page_title: "One quick question",
+          link: link,
+          questions: questions,
+          responses: responses,
+          survey: link.question.survey
+        )
+    end
+  end
+
+  @doc """
+  `POST /a/:token` — records the answers.
+
+  Answering counts as engagement, so this may also stop the campaign the person
+  is in, depending on the campaign's setting.
+  """
+  def answer(conn, %{"token" => token} = params) do
+    case Survey.get_answer_link(token) do
+      nil ->
+        render(conn, :answer_invalid, layout: false, page_title: "Question")
+
+      link ->
+        {:ok, saved} = Survey.record_answers(link, params["answers"] || %{})
+
+        if saved == [] do
+          %{questions: questions, responses: responses} = Survey.questionnaire(link)
+
+          conn
+          |> put_flash(:error, "Pick an option or write something first.")
+          |> render(:answer_form,
+            layout: false,
+            page_title: "One quick question",
+            link: link,
+            questions: questions,
+            responses: responses,
+            survey: link.question.survey
+          )
+        else
+          render(conn, :answer_done,
+            layout: false,
+            page_title: "Thank you",
+            survey: link.question.survey
+          )
+        end
     end
   end
 

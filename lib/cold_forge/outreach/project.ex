@@ -14,6 +14,7 @@ defmodule ColdForge.Outreach.Project do
     field :reply_to, :string
     field :landing_url, :string
     field :postal_address, :string
+    field :industry, :string
     field :signature, :string
     field :logo_url, :string
     field :logo_path, :string
@@ -38,6 +39,7 @@ defmodule ColdForge.Outreach.Project do
       :reply_to,
       :landing_url,
       :postal_address,
+      :industry,
       :signature,
       :logo_url,
       :logo_path,

@@ -44,7 +44,8 @@ defmodule ColdForge.Workers.SendMessage do
       true ->
         case Sending.deliver_step(prospect, step, project,
                enrollment_id: enrollment.id,
-               branded: enrollment.campaign.branded
+               branded: enrollment.campaign.branded,
+               question: ColdForge.Survey.email_question(step.survey_id)
              ) do
           {:ok, _message} ->
             {:ok, _} = Sending.advance_enrollment(enrollment)

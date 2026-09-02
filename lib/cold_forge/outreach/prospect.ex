@@ -15,6 +15,7 @@ defmodule ColdForge.Outreach.Prospect do
     field :last_name, :string
     field :company, :string
     field :title, :string
+    field :industry, :string
     field :phone, :string
     field :website, :string
     field :custom_fields, :map, default: %{}
@@ -44,6 +45,7 @@ defmodule ColdForge.Outreach.Prospect do
       :last_name,
       :company,
       :title,
+      :industry,
       :phone,
       :website,
       :custom_fields,

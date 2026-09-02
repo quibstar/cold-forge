@@ -1,0 +1,10 @@
+<.unsub_shell title="Thank you">
+  <p class="text-base-content/70">
+    {if @survey.thank_you not in [nil, ""],
+      do: @survey.thank_you,
+      else: "That's recorded — genuinely useful, and it took you one click."}
+  </p>
+  <p class="mt-3 text-base-content/70">
+    You won't get the rest of this email sequence.
+  </p>
+</.unsub_shell>

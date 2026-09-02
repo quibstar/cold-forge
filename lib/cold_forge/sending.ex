@@ -31,6 +31,7 @@ defmodule ColdForge.Sending do
       ) do
     enrollment_id = opts[:enrollment_id]
     branded? = Keyword.get(opts, :branded, false)
+    question = opts[:question]
 
     with :ok <- check_sendable(prospect, project) do
       base_url = base_url()
@@ -52,6 +53,9 @@ defmodule ColdForge.Sending do
 
         final_body =
           rendered.body
+          # Before rewrite_links: the /a/ URLs it produces point back at Cold
+          # Forge, and rewrite_links leaves our own links alone.
+          |> Renderer.render_survey(message, question, prospect, base_url)
           |> Renderer.rewrite_links(message, base_url)
           |> Renderer.append_footer(prospect, project, base_url)
 

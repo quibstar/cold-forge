@@ -19,6 +19,7 @@ defmodule ColdForge.Outreach.Campaign do
     field :name, :string
     field :status, :string, default: "draft"
     field :branded, :boolean, default: false
+    field :stop_on_answer, :boolean, default: true
     field :send_window_start, :integer, default: 8
     field :send_window_end, :integer, default: 17
     field :send_days, {:array, :integer}, default: [1, 2, 3, 4, 5]
@@ -41,6 +42,7 @@ defmodule ColdForge.Outreach.Campaign do
       :name,
       :status,
       :branded,
+      :stop_on_answer,
       :send_window_start,
       :send_window_end,
       :send_days,

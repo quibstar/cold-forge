@@ -66,6 +66,9 @@ defmodule ColdForgeWeb.Router do
     get "/o/:token", TrackingController, :open
     get "/u/:token", TrackingController, :unsubscribe_form
     post "/u/:token", TrackingController, :unsubscribe
+
+    get "/a/:token", TrackingController, :answer_form
+    post "/a/:token", TrackingController, :answer
   end
 
   ## Admin — the whole application. Cold Forge has exactly one operator, so the
@@ -102,6 +105,16 @@ defmodule ColdForgeWeb.Router do
       live "/p/:project_id/prospects/new", AdminLive.Prospects, :new
       live "/p/:project_id/prospects/import", AdminLive.Import, :new
       live "/p/:project_id/prospects/:id/edit", AdminLive.Prospects, :edit
+
+      live "/p/:project_id/surveys", AdminLive.Surveys, :index
+      live "/p/:project_id/surveys/new", AdminLive.Surveys, :new
+      live "/p/:project_id/surveys/:id", AdminLive.SurveyShow, :show
+      live "/p/:project_id/surveys/:id/edit", AdminLive.SurveyShow, :edit
+      live "/p/:project_id/surveys/:id/questions/new", AdminLive.SurveyShow, :new_question
+
+      live "/p/:project_id/surveys/:id/questions/:question_id",
+           AdminLive.SurveyShow,
+           :edit_question
 
       live "/p/:project_id/activity", AdminLive.Messages, :index
       live "/p/:project_id/activity/:id", AdminLive.Messages, :show

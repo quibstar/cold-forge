@@ -14,6 +14,7 @@ defmodule ColdForge.Outreach.Enrollment do
     field :next_send_at, :utc_datetime
     field :stopped_reason, :string
     field :completed_at, :utc_datetime
+    field :answered_at, :utc_datetime
 
     belongs_to :campaign, ColdForge.Outreach.Campaign
     belongs_to :prospect, ColdForge.Outreach.Prospect
@@ -34,7 +35,8 @@ defmodule ColdForge.Outreach.Enrollment do
       :current_position,
       :next_send_at,
       :stopped_reason,
-      :completed_at
+      :completed_at,
+      :answered_at
     ])
     |> validate_required([:campaign_id, :prospect_id])
     |> validate_inclusion(:status, @statuses)

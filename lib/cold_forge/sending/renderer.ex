@@ -21,9 +21,15 @@ defmodule ColdForge.Sending.Renderer do
 
   alias ColdForge.Outreach.{Message, Project, Prospect, CampaignStep}
   alias ColdForge.Repo
+  alias ColdForge.Survey.Question
   alias ColdForge.Tracking.TrackedLink
 
   @tag_pattern ~r/\{\{\s*([a-zA-Z0-9_]+)\s*(?:\|([^}]*))?\}\}/
+
+  # Tags that a later pass fills in. They have no value at merge time, and the
+  # merge pass replaces anything it doesn't recognise with the empty string — so
+  # without this list it deletes them before their own pass ever runs.
+  @deferred_tags ~w(survey unsubscribe_url)
 
   @doc """
   Applies merge tags to a step's subject and body. URLs are still raw at this
@@ -58,6 +64,10 @@ defmodule ColdForge.Sending.Renderer do
       "email" => prospect.email,
       "company" => prospect.company,
       "title" => prospect.title,
+      # Prospect first: "I work with roofing contractors" only lands if it's
+      # their industry. The project's value is a fallback so the line still
+      # reads when a row is thin.
+      "industry" => first_present([prospect.industry, project.industry]),
       "phone" => prospect.phone,
       "website" => prospect.website,
       "sender_name" => project.from_name,
@@ -68,24 +78,36 @@ defmodule ColdForge.Sending.Renderer do
     })
   end
 
+  defp first_present(values) do
+    Enum.find(values, fn v -> is_binary(v) and String.trim(v) != "" end)
+  end
+
   defp apply_tags(nil, _values), do: ""
 
   defp apply_tags(text, values) do
-    Regex.replace(@tag_pattern, text, fn _match, key, fallback ->
-      case Map.get(values, key) do
-        value when is_binary(value) ->
-          case String.trim(value) do
-            "" -> fallback
-            trimmed -> trimmed
-          end
-
-        nil ->
-          fallback
-
-        value ->
-          to_string(value)
+    Regex.replace(@tag_pattern, text, fn match, key, fallback ->
+      if key in @deferred_tags do
+        match
+      else
+        resolve_tag(values, key, fallback)
       end
     end)
+  end
+
+  defp resolve_tag(values, key, fallback) do
+    case Map.get(values, key) do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> fallback
+          trimmed -> trimmed
+        end
+
+      nil ->
+        fallback
+
+      value ->
+        to_string(value)
+    end
   end
 
   @doc """
@@ -168,6 +190,48 @@ defmodule ColdForge.Sending.Renderer do
 
   def open_pixel_url(base_url, %Message{} = message),
     do: "#{base_url}/o/#{message.open_token}.png"
+
+  @doc """
+  Replaces `{{survey}}` with the campaign's first question and, where the kind
+  allows it, a one-click link per answer.
+
+  The links only *propose* an answer — `/a/:token` lands on a page that
+  pre-selects it and asks the person to confirm. A link that committed on being
+  fetched would be answered by every mail scanner that checks the URL.
+  """
+  def render_survey(body, %Message{} = message, question, prospect, base_url) do
+    cond do
+      not String.contains?(body, "{{survey}}") ->
+        body
+
+      is_nil(question) ->
+        # The tag is in the body but the campaign has no survey. Leaving
+        # "{{survey}}" in an email is worse than leaving a gap.
+        String.replace(body, "{{survey}}", "")
+
+      true ->
+        String.replace(body, "{{survey}}", question_block(message, question, prospect, base_url))
+    end
+  end
+
+  # `clickable_answers/1` decides what can be a one-click link: a pick-one or a
+  # numeric scale, but never a pick-any — one click can't express "these three",
+  # and recording it as if it could would corrupt the result.
+  defp question_block(message, question, prospect, base_url) do
+    case Question.clickable_answers(question) do
+      [] ->
+        {:ok, link} = ColdForge.Survey.build_open_link(message, question, prospect)
+        "#{question.prompt}\n\n  #{base_url}/a/#{link.token}"
+
+      answers ->
+        links =
+          message
+          |> ColdForge.Survey.build_answer_links(question, prospect, answers)
+          |> Enum.map_join("\n", fn {answer, token} -> "  #{answer}: #{base_url}/a/#{token}" end)
+
+        "#{question.prompt}\n\n#{links}"
+    end
+  end
 
   @doc """
   The project's sign-off, added unless the body already ends with one.

@@ -1,0 +1,102 @@
+<.unsub_shell title={@survey.name}>
+  <p :if={Phoenix.Flash.get(@flash, :error)} class="alert alert-error text-sm mb-4">
+    {Phoenix.Flash.get(@flash, :error)}
+  </p>
+
+  <p :if={@survey.intro not in [nil, ""]} class="text-base-content/70">{@survey.intro}</p>
+
+  <.form
+    for={%{}}
+    action={~p"/a/#{@link.token}"}
+    method="post"
+    id="answer-form"
+    class="space-y-6 mt-4"
+  >
+    <div :for={question <- @questions}>
+      <p class="font-medium text-base-content">{question.prompt}</p>
+
+      <%!-- The option they clicked in the email is pre-selected, so confirming
+      is one click. The click itself never counted — a mail scanner fetching the
+      link would otherwise have answered for them. --%>
+      <div :if={question.kind == "choice"} class="mt-3 space-y-2">
+        <label
+          :for={option <- question.options}
+          class="flex items-center gap-3 cursor-pointer rounded-lg border border-base-300 px-3 py-2 hover:border-primary/50"
+        >
+          <input
+            type="radio"
+            name={"answers[#{question.id}][choice]"}
+            value={option}
+            checked={chosen?(question, option, @link, @responses)}
+            class="radio radio-sm radio-primary"
+          />
+          <span class="text-sm">{option}</span>
+        </label>
+      </div>
+
+      <div :if={question.kind == "multi"} class="mt-3 space-y-2">
+        <label
+          :for={option <- question.options}
+          class="flex items-center gap-3 cursor-pointer rounded-lg border border-base-300 px-3 py-2 hover:border-primary/50"
+        >
+          <input
+            type="checkbox"
+            name={"answers[#{question.id}][choices][]"}
+            value={option}
+            checked={chosen?(question, option, @link, @responses)}
+            class="checkbox checkbox-sm checkbox-primary"
+          />
+          <span class="text-sm">{option}</span>
+        </label>
+      </div>
+
+      <%!-- Radios rather than a slider: a slider has a default position, which
+      is an answer nobody gave. --%>
+      <div :if={question.kind in ["rating", "nps"]} class="mt-3">
+        <div class="flex flex-wrap gap-1">
+          <label :for={n <- scale_values(question)} class="cursor-pointer">
+            <input
+              type="radio"
+              name={"answers[#{question.id}][number]"}
+              value={n}
+              checked={numbered?(question, n, @link, @responses)}
+              class="peer sr-only"
+            />
+            <span class="flex items-center justify-center size-9 rounded-lg border border-base-300 text-sm peer-checked:bg-primary peer-checked:text-primary-content peer-checked:border-primary hover:border-primary/50">
+              {n}
+            </span>
+          </label>
+        </div>
+        <div class="flex justify-between text-xs text-base-content/40 mt-1">
+          <span>{low_label(question)}</span>
+          <span>{high_label(question)}</span>
+        </div>
+      </div>
+
+      <textarea
+        :if={question.kind == "text"}
+        name={"answers[#{question.id}][text]"}
+        rows="4"
+        placeholder="Type your answer…"
+        class="textarea w-full mt-3"
+      >{answered_text(question, @responses)}</textarea>
+    </div>
+
+    <%!-- One free-text box against the first question regardless of its kind:
+    the tally tells you what people picked, this tells you why. --%>
+    <div :if={@questions != [] and hd(@questions).kind != "text"}>
+      <label class="text-sm text-base-content/60">Anything you'd add? (optional)</label>
+      <textarea
+        name={"answers[#{hd(@questions).id}][text]"}
+        rows="3"
+        class="textarea w-full mt-1"
+      >{answered_text(hd(@questions), @responses)}</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary w-full">Send my answer</button>
+  </.form>
+
+  <p class="mt-4 text-xs text-base-content/50">
+    That's the whole thing — no account, no follow-up unless you want one.
+  </p>
+</.unsub_shell>

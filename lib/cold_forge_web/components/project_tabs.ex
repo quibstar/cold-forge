@@ -1,6 +1,6 @@
 defmodule ColdForgeWeb.ProjectTabs do
   @moduledoc """
-  The three things a project contains: its campaigns, its people, and what has
+  What a project contains: its campaigns, its surveys, its people, and what has
   actually gone out.
 
   Rendered at the top of each of those screens so a project reads as one place
@@ -41,6 +41,7 @@ defmodule ColdForgeWeb.ProjectTabs do
   defp tabs(project) do
     [
       {"Campaigns", ~p"/admin/p/#{project.id}", "hero-paper-airplane"},
+      {"Surveys", ~p"/admin/p/#{project.id}/surveys", "hero-clipboard-document-list"},
       {"Prospects", ~p"/admin/p/#{project.id}/prospects", "hero-users"},
       {"Activity", ~p"/admin/p/#{project.id}/activity", "hero-envelope"}
     ]
