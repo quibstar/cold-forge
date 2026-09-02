@@ -248,6 +248,82 @@ defmodule ColdForge.SurveyTest do
     end
   end
 
+  describe "editing questions through the survey form" do
+    test "adds, reorders and removes in one save", ctx do
+      {:ok, survey} =
+        Survey.update_survey(ctx.survey, %{
+          "name" => "What hurts",
+          "questions" => %{
+            "0" => %{
+              "position" => "1",
+              "kind" => "choice",
+              "prompt" => "First",
+              "options" => "A\nB"
+            },
+            "1" => %{"position" => "2", "kind" => "text", "prompt" => "Second"}
+          },
+          "questions_order" => ["0", "1"]
+        })
+
+      assert [%{position: 1, prompt: "First"}, %{position: 2, prompt: "Second"}] =
+               Survey.list_questions(survey.id)
+    end
+
+    test "removing the first question renumbers the rest", ctx do
+      {:ok, survey} =
+        Survey.update_survey(ctx.survey, %{
+          "questions" => %{
+            "0" => %{"position" => "1", "kind" => "text", "prompt" => "One"},
+            "1" => %{"position" => "2", "kind" => "text", "prompt" => "Two"},
+            "2" => %{"position" => "3", "kind" => "text", "prompt" => "Three"}
+          },
+          "questions_order" => ["0", "1", "2"]
+        })
+
+      questions = Survey.list_questions(survey.id)
+
+      params =
+        questions
+        |> Enum.with_index()
+        |> Map.new(fn {q, i} ->
+          {to_string(i),
+           %{
+             "id" => to_string(q.id),
+             "position" => to_string(i + 1),
+             "kind" => q.kind,
+             "prompt" => q.prompt
+           }}
+        end)
+
+      {:ok, survey} =
+        Survey.update_survey(survey, %{
+          "questions" => params,
+          "questions_order" => ["0", "1", "2"],
+          "questions_delete" => ["0"]
+        })
+
+      # The survivors keep their order; the email asks whichever is first.
+      assert ["Two", "Three"] = Enum.map(Survey.list_questions(survey.id), & &1.prompt)
+    end
+
+    test "rejects a pick-one with fewer than two options", ctx do
+      assert {:error, changeset} =
+               Survey.update_survey(ctx.survey, %{
+                 "questions" => %{
+                   "0" => %{
+                     "position" => "1",
+                     "kind" => "choice",
+                     "prompt" => "?",
+                     "options" => "A"
+                   }
+                 },
+                 "questions_order" => ["0"]
+               })
+
+      assert [%{options: ["needs at least two options"]}] = errors_on(changeset).questions
+    end
+  end
+
   describe "surveys are reusable" do
     test "the same survey answered from two campaigns pools its results", ctx do
       q = question(ctx.survey, %{"kind" => "choice", "prompt" => "?", "options" => "A\nB"})

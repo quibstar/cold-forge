@@ -79,7 +79,11 @@ defmodule ColdForge.Survey.Question do
     question
     |> cast(split_options(attrs), [:survey_id, :position, :kind, :prompt, :options])
     |> update_change(:options, &clean_options/1)
-    |> validate_required([:survey_id, :position, :prompt])
+    # Neither `:survey_id` nor `:position`: both are supplied by the survey when
+    # a question is cast through its association, and `:position` specifically
+    # is written *after* this changeset runs, so requiring it here would fail
+    # every nested insert. The database keeps both NOT NULL.
+    |> validate_required([:prompt])
     |> validate_inclusion(:kind, @kinds)
     |> validate_options()
     |> unique_constraint([:survey_id, :position])

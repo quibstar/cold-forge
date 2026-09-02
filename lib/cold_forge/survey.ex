@@ -34,13 +34,24 @@ defmodule ColdForge.Survey do
     %Sheet{} |> Sheet.changeset(attrs) |> Repo.insert()
   end
 
-  def update_survey(%Sheet{} = survey, attrs) do
-    survey |> Sheet.changeset(attrs) |> Repo.update()
+  def update_survey(%Sheet{id: id}, attrs) do
+    # Re-read rather than casting onto the struct handed in. That struct may
+    # carry questions produced by a previous `cast_assoc`, and Ecto refuses to
+    # cast an association twice off the same data — it can't track the changes.
+    # A plain (or even forced) preload doesn't clear that state; a fresh load
+    # does.
+    Sheet
+    |> Repo.get!(id)
+    |> Repo.preload(:questions)
+    |> Sheet.changeset(attrs)
+    |> Repo.update()
   end
 
   def delete_survey(%Sheet{} = survey), do: Repo.delete(survey)
 
-  def change_survey(%Sheet{} = survey, attrs \\ %{}), do: Sheet.changeset(survey, attrs)
+  def change_survey(%Sheet{} = survey, attrs \\ %{}) do
+    survey |> Repo.preload(:questions) |> Sheet.changeset(attrs)
+  end
 
   ## Questions
 

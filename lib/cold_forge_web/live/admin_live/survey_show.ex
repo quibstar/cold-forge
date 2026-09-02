@@ -4,7 +4,11 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
 
   Results sit next to the question that produced them. Reading a tally in a
   separate reports screen means holding the wording in your head while you look
-  at the numbers, and the wording is usually why the numbers came out that way.
+  at the numbers, and the wording is usually why the numbers came out the way
+  they did.
+
+  Editing is one form for the whole survey rather than a page per question —
+  the questions are read together, so they're written together.
   """
   use ColdForgeWeb, :live_view
 
@@ -42,30 +46,6 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
     |> assign(:breadcrumbs, survey_crumbs(socket))
   end
 
-  defp apply_action(socket, :new_question, _params) do
-    socket
-    |> assign(:page_title, "New question")
-    |> assign(
-      :breadcrumbs,
-      survey_crumbs(socket) ++ [{socket.assigns.survey.name, survey_path(socket.assigns)}]
-    )
-    |> assign(:question, %Question{})
-    |> assign(:form, question_form(%Question{}))
-  end
-
-  defp apply_action(socket, :edit_question, %{"question_id" => id}) do
-    question = Survey.get_question!(id)
-
-    socket
-    |> assign(:page_title, "Question #{question.position}")
-    |> assign(
-      :breadcrumbs,
-      survey_crumbs(socket) ++ [{socket.assigns.survey.name, survey_path(socket.assigns)}]
-    )
-    |> assign(:question, question)
-    |> assign(:form, question_form(question))
-  end
-
   defp apply_action(socket, :edit, _params) do
     socket
     |> assign(:page_title, "Edit survey")
@@ -86,58 +66,17 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
   defp survey_path(%{project_id: project_id, survey_id: survey_id}),
     do: ~p"/admin/p/#{project_id}/surveys/#{survey_id}"
 
-  # Options are edited as one-per-line text — how you actually think about a
-  # short list, rather than a repeating form field group.
-  defp question_form(%Question{} = question) do
-    to_form(
-      %{
-        "kind" => question.kind || "choice",
-        "prompt" => question.prompt || "",
-        "options" => Enum.join(question.options || [], "\n")
-      },
-      as: :question
-    )
-  end
-
   @impl true
-  def handle_event("validate_question", %{"question" => params}, socket) do
-    {:noreply, assign(socket, :form, to_form(params, as: :question))}
+  def handle_event("validate", %{"survey" => params}, socket) do
+    changeset =
+      socket.assigns.survey
+      |> Survey.change_survey(params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :form, to_form(changeset))}
   end
 
-  def handle_event("save_question", %{"question" => params}, socket) do
-    attrs = %{
-      "kind" => params["kind"],
-      "prompt" => params["prompt"],
-      "options" => params["options"] || ""
-    }
-
-    result =
-      case socket.assigns.live_action do
-        :new_question -> Survey.create_question(socket.assigns.survey, attrs)
-        :edit_question -> Survey.update_question(socket.assigns.question, attrs)
-      end
-
-    case result do
-      {:ok, _question} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Question saved.")
-         |> push_navigate(to: survey_path(socket.assigns))}
-
-      {:error, changeset} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, error_summary(changeset))
-         |> assign(:form, to_form(params, as: :question))}
-    end
-  end
-
-  def handle_event("delete_question", %{"id" => id}, socket) do
-    {:ok, :ok} = id |> Survey.get_question!() |> Survey.delete_question()
-    {:noreply, socket |> put_flash(:info, "Question removed.") |> load()}
-  end
-
-  def handle_event("save_survey", %{"survey" => params}, socket) do
+  def handle_event("save", %{"survey" => params}, socket) do
     case Survey.update_survey(socket.assigns.survey, params) do
       {:ok, _survey} ->
         {:noreply,
@@ -150,12 +89,6 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
     end
   end
 
-  defp error_summary(%Ecto.Changeset{} = changeset) do
-    changeset
-    |> Ecto.Changeset.traverse_errors(fn {msg, _opts} -> msg end)
-    |> Enum.map_join("; ", fn {field, msgs} -> "#{field} #{Enum.join(msgs, ", ")}" end)
-  end
-
   @impl true
   def render(%{live_action: :show} = assigns) do
     ~H"""
@@ -163,18 +96,12 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
       <span class="text-sm text-base-content/60">
         {length(@questions)} {if length(@questions) == 1, do: "question", else: "questions"} · {@answered} answered
       </span>
-      <div class="ml-auto flex gap-2">
+      <div class="ml-auto">
         <.link
           navigate={~p"/admin/p/#{@project_id}/surveys/#{@survey_id}/edit"}
-          class="btn btn-sm btn-ghost"
-        >
-          Edit survey
-        </.link>
-        <.link
-          navigate={~p"/admin/p/#{@project_id}/surveys/#{@survey_id}/questions/new"}
           class="btn btn-sm btn-primary"
         >
-          <.icon name="hero-plus" class="size-4" /> Add question
+          <.icon name="hero-pencil-square" class="size-4" /> Edit survey
         </.link>
       </div>
     </div>
@@ -187,38 +114,24 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
           Keep it short. The first question goes in the email as one-click
           answers, so make it the one you most want answered.
         </p>
+        <.link
+          navigate={~p"/admin/p/#{@project_id}/surveys/#{@survey_id}/edit"}
+          class="btn btn-primary mt-4"
+        >
+          Write the questions
+        </.link>
       </div>
     </div>
 
     <div class="space-y-3">
       <div :for={q <- @questions} class="card bg-base-100 shadow-sm">
         <div class="card-body">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="flex items-center gap-2 text-xs text-base-content/50">
-                <span class="badge badge-sm badge-ghost">{Question.kind_label(q.kind)}</span>
-                <span :if={q.position == 1}>asked in the email</span>
-                <span :if={q.position > 1}>asked on the answer page</span>
-              </div>
-              <div class="font-medium mt-1">{q.prompt}</div>
-            </div>
-            <div class="flex gap-1 shrink-0">
-              <.link
-                navigate={~p"/admin/p/#{@project_id}/surveys/#{@survey_id}/questions/#{q.id}"}
-                class="btn btn-xs btn-ghost"
-              >
-                Edit
-              </.link>
-              <button
-                phx-click="delete_question"
-                phx-value-id={q.id}
-                data-confirm="Delete this question and every answer to it?"
-                class="btn btn-xs btn-ghost text-error"
-              >
-                Delete
-              </button>
-            </div>
+          <div class="flex items-center gap-2 text-xs text-base-content/50">
+            <span class="badge badge-sm badge-ghost">{Question.kind_label(q.kind)}</span>
+            <span :if={first?(q, @questions)}>asked in the email</span>
+            <span :if={not first?(q, @questions)}>asked on the answer page</span>
           </div>
+          <div class="font-medium mt-1">{q.prompt}</div>
 
           <.question_results question={q} results={@results[q.id]} />
         </div>
@@ -227,87 +140,121 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
     """
   end
 
-  def render(%{live_action: :edit} = assigns) do
-    ~H"""
-    <div class="card bg-base-100 shadow-sm">
-      <div class="card-body">
-        <.form for={@form} phx-submit="save_survey" id="survey-edit-form" class="space-y-4">
-          <.input field={@form[:name]} label="Survey name" />
-          <.input type="textarea" field={@form[:intro]} label="Intro" rows="2" />
-          <.input type="textarea" field={@form[:thank_you]} label="Thank-you message" rows="2" />
-
-          <div class="flex justify-end gap-2 pt-2">
-            <.link navigate={survey_path(assigns)} class="btn btn-ghost">Cancel</.link>
-            <button type="submit" class="btn btn-primary">Save</button>
-          </div>
-        </.form>
-      </div>
-    </div>
-    """
-  end
-
   def render(assigns) do
     ~H"""
-    <div class="card bg-base-100 shadow-sm">
-      <div class="card-body">
-        <.form
-          for={@form}
-          phx-change="validate_question"
-          phx-submit="save_question"
-          id="question-form"
-          class="space-y-4"
-        >
-          <div>
-            <label class="text-sm font-medium">Answer type</label>
-            <select name="question[kind]" class="select w-full mt-1">
-              <option
-                :for={kind <- Question.kinds()}
-                value={kind}
-                selected={@form[:kind].value == kind}
-              >
-                {Question.kind_label(kind)}
-              </option>
-            </select>
-          </div>
+    <.form for={@form} phx-change="validate" phx-submit="save" id="survey-form" class="space-y-4">
+      <div class="card bg-base-100 shadow-sm">
+        <div class="card-body">
+          <.input field={@form[:name]} label="Survey name" />
+          <.input type="textarea" field={@form[:intro]} label="Intro" rows="2" />
+          <p class="text-xs text-base-content/50 -mt-2">
+            Shown above the questions. The email got them to click; this is the line
+            that explains what they clicked into.
+          </p>
+          <.input type="textarea" field={@form[:thank_you]} label="Thank-you message" rows="2" />
+        </div>
+      </div>
 
-          <.input
-            field={@form[:prompt]}
-            label="Question"
-            placeholder="What eats the most time in a week?"
-          />
+      <%!-- Dynamic rows through `sort_param`/`drop_param`: the hidden ordering
+      input carries each row's index, so a question can be added or removed
+      without a round trip per question — and the list itself is the order,
+      which is why positions are renumbered from it on save. --%>
+      <.inputs_for :let={qf} field={@form[:questions]}>
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <input type="hidden" name="survey[questions_order][]" value={qf.index} />
+            <%!-- Position comes from the row's own index rather than being
+            renumbered in the changeset, which can't be done without re-putting
+            the relation and tripping Ecto's replace checks. --%>
+            <input type="hidden" name={qf[:position].name} value={qf.index + 1} />
 
-          <%!-- Only the list kinds use options; a rating builds its own scale,
-          and showing an empty options box next to one invites confusion. --%>
-          <div :if={@form[:kind].value in ["choice", "multi"]}>
-            <label class="text-sm font-medium">Options, one per line</label>
-            <textarea name="question[options]" rows="6" class="textarea w-full mt-1">{@form[:options].value}</textarea>
-            <p class="text-xs text-base-content/50 mt-1">
-              Two to eight. A long list gets skipped — and if this is the first
-              question, each option becomes a one-click link in the email.
+            <div class="flex items-center justify-between gap-3">
+              <span class="badge badge-sm badge-ghost">
+                {if qf.index == 0, do: "asked in the email", else: "asked on the answer page"}
+              </span>
+              <label class="btn btn-xs btn-ghost text-error cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="survey[questions_delete][]"
+                  value={qf.index}
+                  class="hidden"
+                /> Remove
+              </label>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-3 mt-2">
+              <div>
+                <label class="text-sm font-medium">Answer type</label>
+                <select name={qf[:kind].name} class="select w-full mt-1">
+                  <option
+                    :for={kind <- Question.kinds()}
+                    value={kind}
+                    selected={to_string(qf[:kind].value) == kind}
+                  >
+                    {Question.kind_label(kind)}
+                  </option>
+                </select>
+              </div>
+              <div class="sm:col-span-2">
+                <.input field={qf[:prompt]} label="Question" placeholder="What eats the most time?" />
+              </div>
+            </div>
+
+            <%!-- Only the list kinds use options; a rating builds its own scale,
+            and an empty options box beside one invites confusion. --%>
+            <div :if={to_string(qf[:kind].value) in ["choice", "multi"]} class="mt-2">
+              <label class="text-sm font-medium">Options, one per line</label>
+              <textarea name={qf[:options].name} rows="5" class="textarea w-full mt-1">{options_text(qf[:options].value)}</textarea>
+              <p class="text-xs text-base-content/50 mt-1">
+                Two to eight. If this is the first question, each option becomes a
+                one-click link in the email.
+              </p>
+            </div>
+
+            <p
+              :if={to_string(qf[:kind].value) in ["rating", "nps"]}
+              class="text-xs text-base-content/50 mt-2"
+            >
+              {scale_note(to_string(qf[:kind].value))} Each number becomes a one-click
+              link when this is the first question.
+            </p>
+
+            <p
+              :if={to_string(qf[:kind].value) == "text"}
+              class="text-xs text-base-content/50 mt-2"
+            >
+              Free text can't be answered in one click, so the email carries a plain
+              link to the survey instead.
             </p>
           </div>
+        </div>
+      </.inputs_for>
 
-          <p :if={@form[:kind].value in ["rating", "nps"]} class="text-xs text-base-content/50">
-            {scale_note(@form[:kind].value)} Each number becomes a one-click link when
-            this is the first question.
-          </p>
+      <label class="btn btn-outline w-full cursor-pointer">
+        <input type="checkbox" name="survey[questions_order][]" class="hidden" />
+        <.icon name="hero-plus" class="size-4" /> Add a question
+      </label>
 
-          <p :if={@form[:kind].value == "text"} class="text-xs text-base-content/50">
-            Free text can't be answered in one click, so the email carries a plain
-            link to the survey instead.
-          </p>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <.link navigate={survey_path(assigns)} class="btn btn-ghost">Cancel</.link>
-            <button type="submit" class="btn btn-primary" phx-disable-with="Saving…">
-              Save question
-            </button>
-          </div>
-        </.form>
+      <div class="flex justify-end gap-2">
+        <.link navigate={survey_path(assigns)} class="btn btn-ghost">Cancel</.link>
+        <button type="submit" class="btn btn-primary" phx-disable-with="Saving…">
+          Save survey
+        </button>
       </div>
-    </div>
+    </.form>
     """
   end
+
+  # Options come back as a list once saved and as a raw string mid-edit, so the
+  # textarea has to render both.
+  defp options_text(value) when is_list(value), do: Enum.join(value, "\n")
+  defp options_text(value) when is_binary(value), do: value
+  defp options_text(_), do: ""
+
+  # Positions order the questions but need not be a dense 1..n run — deleting a
+  # row can leave a gap until the next save. "First" is therefore first in the
+  # ordered list, not position 1.
+  defp first?(question, questions), do: question.id == List.first(questions).id
 
   defp scale_note("rating"), do: "Answered on a 1–5 scale."
   defp scale_note("nps"), do: "Answered 0–10, the standard recommend-score scale."
