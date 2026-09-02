@@ -11,35 +11,35 @@ defmodule ColdForge.OutreachTest do
 
   setup do
     project = project_fixture()
-    sequence = sequence_fixture(project)
-    step_fixture(sequence)
-    %{project: project, sequence: Outreach.get_sequence!(sequence.id)}
+    campaign = campaign_fixture(project)
+    step_fixture(campaign)
+    %{project: project, campaign: Outreach.get_campaign!(campaign.id)}
   end
 
   describe "enroll_prospect/2" do
     test "schedules the first step inside the send window", ctx do
       prospect = prospect_fixture(ctx.project)
 
-      {:ok, enrollment} = Outreach.enroll_prospect(ctx.sequence, prospect)
+      {:ok, enrollment} = Outreach.enroll_prospect(ctx.campaign, prospect)
 
       assert enrollment.status == "active"
       assert enrollment.current_position == 0
 
       local = DateTime.shift_zone!(enrollment.next_send_at, ctx.project.timezone)
-      assert local.hour >= ctx.sequence.send_window_start
-      assert local.hour < ctx.sequence.send_window_end
-      assert Date.day_of_week(DateTime.to_date(local)) in ctx.sequence.send_days
+      assert local.hour >= ctx.campaign.send_window_start
+      assert local.hour < ctx.campaign.send_window_end
+      assert Date.day_of_week(DateTime.to_date(local)) in ctx.campaign.send_days
     end
 
     test "refuses a suppressed address", ctx do
       prospect = prospect_fixture(ctx.project)
       Outreach.suppress(prospect.email, "manual")
 
-      assert {:error, :suppressed} = Outreach.enroll_prospect(ctx.sequence, prospect)
+      assert {:error, :suppressed} = Outreach.enroll_prospect(ctx.campaign, prospect)
     end
 
-    test "refuses a sequence with no steps", ctx do
-      empty = sequence_fixture(ctx.project, name: "Empty")
+    test "refuses a campaign with no steps", ctx do
+      empty = campaign_fixture(ctx.project, name: "Empty")
       prospect = prospect_fixture(ctx.project)
 
       assert {:error, :no_steps} = Outreach.enroll_prospect(empty, prospect)
@@ -48,9 +48,9 @@ defmodule ColdForge.OutreachTest do
     test "will not enroll the same prospect twice", ctx do
       prospect = prospect_fixture(ctx.project)
 
-      assert {:ok, _} = Outreach.enroll_prospect(ctx.sequence, prospect)
-      assert {:error, changeset} = Outreach.enroll_prospect(ctx.sequence, prospect)
-      assert "is already enrolled in this sequence" in errors_on(changeset).sequence_id
+      assert {:ok, _} = Outreach.enroll_prospect(ctx.campaign, prospect)
+      assert {:error, changeset} = Outreach.enroll_prospect(ctx.campaign, prospect)
+      assert "is already enrolled in this campaign" in errors_on(changeset).campaign_id
     end
   end
 
@@ -60,16 +60,16 @@ defmodule ColdForge.OutreachTest do
       blocked = prospect_fixture(ctx.project)
       Outreach.suppress(blocked.email, "manual")
 
-      {:ok, result} = Outreach.enroll_prospects(ctx.sequence, [ok.id, blocked.id])
+      {:ok, result} = Outreach.enroll_prospects(ctx.campaign, [ok.id, blocked.id])
 
       assert result == %{enrolled: 1, skipped: 1}
     end
   end
 
   describe "unsubscribe_prospect/1" do
-    test "suppresses globally and stops every sequence they're in", ctx do
+    test "suppresses globally and stops every campaign they're in", ctx do
       prospect = prospect_fixture(ctx.project)
-      {:ok, enrollment} = Outreach.enroll_prospect(ctx.sequence, prospect)
+      {:ok, enrollment} = Outreach.enroll_prospect(ctx.campaign, prospect)
 
       {:ok, prospect} = Outreach.unsubscribe_prospect(prospect)
 
@@ -90,16 +90,16 @@ defmodule ColdForge.OutreachTest do
 
       {:ok, _} = Outreach.unsubscribe_prospect(prospect)
 
-      other_sequence = sequence_fixture(other_project)
-      step_fixture(other_sequence)
-      assert {:error, :suppressed} = Outreach.enroll_prospect(other_sequence, other)
+      other_campaign = campaign_fixture(other_project)
+      step_fixture(other_campaign)
+      assert {:error, :suppressed} = Outreach.enroll_prospect(other_campaign, other)
     end
   end
 
   describe "mark_replied/1" do
     test "stops the drip so a conversation isn't interrupted by a follow-up", ctx do
       prospect = prospect_fixture(ctx.project)
-      {:ok, enrollment} = Outreach.enroll_prospect(ctx.sequence, prospect)
+      {:ok, enrollment} = Outreach.enroll_prospect(ctx.campaign, prospect)
 
       {:ok, prospect} = Outreach.mark_replied(prospect)
 
@@ -112,9 +112,9 @@ defmodule ColdForge.OutreachTest do
 
   describe "delete_step/1" do
     test "closes the gap so positions stay a dense run", ctx do
-      one = hd(ctx.sequence.steps)
-      two = step_fixture(ctx.sequence, %{"subject" => "Two"})
-      three = step_fixture(ctx.sequence, %{"subject" => "Three"})
+      one = hd(ctx.campaign.steps)
+      two = step_fixture(ctx.campaign, %{"subject" => "Two"})
+      three = step_fixture(ctx.campaign, %{"subject" => "Three"})
 
       {:ok, :ok} = Outreach.delete_step(two)
 
@@ -123,15 +123,15 @@ defmodule ColdForge.OutreachTest do
     end
   end
 
-  describe "activate_sequence/1" do
-    test "refuses a sequence with no emails in it", ctx do
-      empty = sequence_fixture(ctx.project, name: "Empty")
-      assert {:error, :no_steps} = Outreach.activate_sequence(empty)
+  describe "activate_campaign/1" do
+    test "refuses a campaign with no emails in it", ctx do
+      empty = campaign_fixture(ctx.project, name: "Empty")
+      assert {:error, :no_steps} = Outreach.activate_campaign(empty)
     end
 
     test "activates once there's a step", ctx do
-      assert {:ok, sequence} = Outreach.activate_sequence(ctx.sequence)
-      assert sequence.status == "active"
+      assert {:ok, campaign} = Outreach.activate_campaign(ctx.campaign)
+      assert campaign.status == "active"
     end
   end
 end

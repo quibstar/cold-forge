@@ -7,6 +7,8 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
   """
   use ColdForgeWeb, :live_view
 
+  import ColdForgeWeb.ProjectTabs
+
   alias ColdForge.Outreach
   alias ColdForge.Outreach.Prospect
 
@@ -29,15 +31,15 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
   defp apply_action(socket, :index, _params) do
     socket
-    |> assign(:page_title, "Prospects")
-    |> assign(:page_subtitle, socket.assigns.current_project.name)
+    |> assign(:page_title, socket.assigns.current_project.name)
+    |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:prospect, nil)
   end
 
   defp apply_action(socket, :new, _params) do
     socket
     |> assign(:page_title, "New prospect")
-    |> assign(:page_subtitle, socket.assigns.current_project.name)
+    |> assign(:breadcrumbs, prospect_crumbs(socket))
     |> assign(:prospect, %Prospect{})
     |> assign_form(Outreach.change_prospect(%Prospect{}))
   end
@@ -47,13 +49,20 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
     socket
     |> assign(:page_title, Prospect.display_name(prospect))
-    |> assign(:page_subtitle, prospect.email)
+    |> assign(:breadcrumbs, prospect_crumbs(socket))
     |> assign(:prospect, prospect)
     |> assign(:messages, Outreach.list_messages_for_prospect(prospect.id))
     |> assign_form(Outreach.change_prospect(prospect))
   end
 
   defp assign_form(socket, changeset), do: assign(socket, :form, to_form(changeset))
+
+  defp prospect_crumbs(socket) do
+    [
+      {"Projects", ~p"/admin/projects"},
+      {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}/prospects"}
+    ]
+  end
 
   defp load_prospects(socket) do
     prospects =
@@ -103,7 +112,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
     {:noreply,
      socket
-     |> put_flash(:info, "Marked as replied. Their sequences have stopped.")
+     |> put_flash(:info, "Marked as replied. Their campaigns have stopped.")
      |> load_prospects()}
   end
 
@@ -141,6 +150,8 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
   @impl true
   def render(%{live_action: :index} = assigns) do
     ~H"""
+    <.project_tabs project={@current_project} current_path={@current_path} />
+
     <div class="flex flex-col sm:flex-row gap-3 sm:items-end justify-between mb-4">
       <form id="prospect-filters" phx-change="filter" class="flex gap-2 flex-1 max-w-lg">
         <input
@@ -213,7 +224,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
                   phx-click="mark_replied"
                   phx-value-id={p.id}
                   class="btn btn-xs btn-ghost"
-                  title="Stop their sequences — they got back to you"
+                  title="Stop their campaigns — they got back to you"
                 >
                   Replied
                 </button>

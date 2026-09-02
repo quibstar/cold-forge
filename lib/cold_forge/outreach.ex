@@ -1,6 +1,6 @@
 defmodule ColdForge.Outreach do
   @moduledoc """
-  Projects, prospects, sequences and enrollments — everything the operator
+  Projects, prospects, campaigns and enrollments — everything the operator
   edits directly. Actually putting mail on the wire is `ColdForge.Sending`.
   """
 
@@ -14,8 +14,8 @@ defmodule ColdForge.Outreach do
     Message,
     Project,
     Prospect,
-    Sequence,
-    SequenceStep,
+    Campaign,
+    CampaignStep,
     Suppression
   }
 
@@ -136,7 +136,7 @@ defmodule ColdForge.Outreach do
 
   @doc """
   Marks a prospect unsubscribed and adds them to the global suppression list,
-  then stops every sequence they're in. This is what the `/u/:token` link runs.
+  then stops every campaign they're in. This is what the `/u/:token` link runs.
   """
   def unsubscribe_prospect(%Prospect{} = prospect) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
@@ -154,7 +154,7 @@ defmodule ColdForge.Outreach do
     end)
   end
 
-  @doc "Marks a prospect as having replied and stops their sequences."
+  @doc "Marks a prospect as having replied and stops their campaigns."
   def mark_replied(%Prospect{} = prospect) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
@@ -169,7 +169,7 @@ defmodule ColdForge.Outreach do
     end)
   end
 
-  @doc "Marks a prospect as bounced, suppresses them, and stops their sequences."
+  @doc "Marks a prospect as bounced, suppresses them, and stops their campaigns."
   def mark_bounced(%Prospect{} = prospect, notes \\ nil) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
@@ -191,45 +191,45 @@ defmodule ColdForge.Outreach do
     |> Repo.update_all(set: [status: "stopped", stopped_reason: reason, next_send_at: nil])
   end
 
-  ## Sequences
+  ## Campaigns
 
-  def list_sequences(project_id) do
-    Sequence
+  def list_campaigns(project_id) do
+    Campaign
     |> where([s], s.project_id == ^project_id)
     |> order_by([s], desc: s.inserted_at)
     |> Repo.all()
   end
 
-  def get_sequence!(id), do: Sequence |> Repo.get!(id) |> Repo.preload([:steps, :project])
+  def get_campaign!(id), do: Campaign |> Repo.get!(id) |> Repo.preload([:steps, :project])
 
-  def create_sequence(attrs) do
-    %Sequence{} |> Sequence.changeset(attrs) |> Repo.insert()
+  def create_campaign(attrs) do
+    %Campaign{} |> Campaign.changeset(attrs) |> Repo.insert()
   end
 
-  def update_sequence(%Sequence{} = sequence, attrs) do
-    sequence |> Sequence.changeset(attrs) |> Repo.update()
+  def update_campaign(%Campaign{} = campaign, attrs) do
+    campaign |> Campaign.changeset(attrs) |> Repo.update()
   end
 
-  def delete_sequence(%Sequence{} = sequence), do: Repo.delete(sequence)
+  def delete_campaign(%Campaign{} = campaign), do: Repo.delete(campaign)
 
-  def change_sequence(%Sequence{} = sequence, attrs \\ %{}),
-    do: Sequence.changeset(sequence, attrs)
+  def change_campaign(%Campaign{} = campaign, attrs \\ %{}),
+    do: Campaign.changeset(campaign, attrs)
 
   @doc """
-  Activating is guarded: a sequence with no steps would enroll people and then
+  Activating is guarded: a campaign with no steps would enroll people and then
   silently never mail them, which looks identical to a broken scheduler.
   """
-  def activate_sequence(%Sequence{} = sequence) do
-    sequence = Repo.preload(sequence, :steps)
+  def activate_campaign(%Campaign{} = campaign) do
+    campaign = Repo.preload(campaign, :steps)
 
-    if sequence.steps == [] do
+    if campaign.steps == [] do
       {:error, :no_steps}
     else
-      update_sequence(sequence, %{status: "active"})
+      update_campaign(campaign, %{status: "active"})
     end
   end
 
-  def pause_sequence(%Sequence{} = sequence), do: update_sequence(sequence, %{status: "paused"})
+  def pause_campaign(%Campaign{} = campaign), do: update_campaign(campaign, %{status: "paused"})
 
   @doc """
   Activates a campaign and enrolls the chosen recipients in one go.
@@ -238,19 +238,19 @@ defmodule ColdForge.Outreach do
   the daily cap meaningful: a campaign to 2,000 people at 50/day goes out over
   forty days rather than torching the sending domain in an hour.
   """
-  def send_campaign(%Sequence{} = sequence, prospect_ids) do
-    with {:ok, sequence} <- activate_sequence(sequence),
-         {:ok, result} <- enroll_prospects(sequence, prospect_ids) do
+  def send_campaign(%Campaign{} = campaign, prospect_ids) do
+    with {:ok, campaign} <- activate_campaign(campaign),
+         {:ok, result} <- enroll_prospects(campaign, prospect_ids) do
       {:ok, result}
     end
   end
 
   @doc "Sent/opened/clicked for one campaign — the numbers on its own page."
-  def campaign_stats(sequence_id) do
+  def campaign_stats(campaign_id) do
     base =
       from(m in Message,
         join: e in assoc(m, :enrollment),
-        where: e.sequence_id == ^sequence_id
+        where: e.campaign_id == ^campaign_id
       )
 
     sent = Repo.one(from [m, _e] in base, where: m.status == "sent", select: count(m.id))
@@ -269,49 +269,49 @@ defmodule ColdForge.Outreach do
     %{sent: sent, opened: opened, clicked: clicked}
   end
 
-  ## Sequence steps
+  ## Campaign steps
 
-  def get_step!(id), do: Repo.get!(SequenceStep, id)
+  def get_step!(id), do: Repo.get!(CampaignStep, id)
 
-  @doc "Appends a step to the end of a sequence."
-  def create_step(%Sequence{} = sequence, attrs) do
-    position = next_step_position(sequence.id)
+  @doc "Appends a step to the end of a campaign."
+  def create_step(%Campaign{} = campaign, attrs) do
+    position = next_step_position(campaign.id)
 
-    %SequenceStep{}
-    |> SequenceStep.changeset(
-      Map.merge(attrs, %{"sequence_id" => sequence.id, "position" => position})
+    %CampaignStep{}
+    |> CampaignStep.changeset(
+      Map.merge(attrs, %{"campaign_id" => campaign.id, "position" => position})
     )
     |> Repo.insert()
   end
 
-  defp next_step_position(sequence_id) do
+  defp next_step_position(campaign_id) do
     max =
-      SequenceStep
-      |> where([s], s.sequence_id == ^sequence_id)
+      CampaignStep
+      |> where([s], s.campaign_id == ^campaign_id)
       |> select([s], max(s.position))
       |> Repo.one()
 
     (max || 0) + 1
   end
 
-  def update_step(%SequenceStep{} = step, attrs) do
-    step |> SequenceStep.changeset(attrs) |> Repo.update()
+  def update_step(%CampaignStep{} = step, attrs) do
+    step |> CampaignStep.changeset(attrs) |> Repo.update()
   end
 
-  def change_step(%SequenceStep{} = step, attrs \\ %{}),
-    do: SequenceStep.changeset(step, attrs)
+  def change_step(%CampaignStep{} = step, attrs \\ %{}),
+    do: CampaignStep.changeset(step, attrs)
 
   @doc """
   Deletes a step and closes the gap in `position`, so positions stay a dense
-  1..n run. The unique index on (sequence_id, position) means the renumber has
+  1..n run. The unique index on (campaign_id, position) means the renumber has
   to happen in one statement rather than row by row.
   """
-  def delete_step(%SequenceStep{} = step) do
+  def delete_step(%CampaignStep{} = step) do
     Repo.transaction(fn ->
       Repo.delete!(step)
 
-      from(s in SequenceStep,
-        where: s.sequence_id == ^step.sequence_id and s.position > ^step.position
+      from(s in CampaignStep,
+        where: s.campaign_id == ^step.campaign_id and s.position > ^step.position
       )
       |> Repo.update_all(inc: [position: -1])
 
@@ -322,14 +322,14 @@ defmodule ColdForge.Outreach do
   ## Enrollments
 
   @doc """
-  Enrolls prospects into a sequence, skipping anyone who can't be mailed.
+  Enrolls prospects into a campaign, skipping anyone who can't be mailed.
 
   Returns `{:ok, %{enrolled: n, skipped: n}}`. Skipping rather than erroring is
   deliberate: enrolling a 500-row list shouldn't fail because three of them
   unsubscribed last month.
   """
-  def enroll_prospects(%Sequence{} = sequence, prospect_ids) when is_list(prospect_ids) do
-    sequence = Repo.preload(sequence, :project)
+  def enroll_prospects(%Campaign{} = campaign, prospect_ids) when is_list(prospect_ids) do
+    campaign = Repo.preload(campaign, :project)
 
     prospects =
       Prospect
@@ -338,7 +338,7 @@ defmodule ColdForge.Outreach do
 
     {enrolled, skipped} =
       Enum.reduce(prospects, {0, 0}, fn prospect, {ok, skip} ->
-        case enroll_prospect(sequence, prospect) do
+        case enroll_prospect(campaign, prospect) do
           {:ok, _} -> {ok + 1, skip}
           _ -> {ok, skip + 1}
         end
@@ -351,8 +351,8 @@ defmodule ColdForge.Outreach do
   Enrolls one prospect. The first step's send time is computed now so the
   scheduler only ever has to compare `next_send_at` against the clock.
   """
-  def enroll_prospect(%Sequence{} = sequence, %Prospect{} = prospect) do
-    sequence = Repo.preload(sequence, [:project, :steps])
+  def enroll_prospect(%Campaign{} = campaign, %Prospect{} = prospect) do
+    campaign = Repo.preload(campaign, [:project, :steps])
 
     cond do
       not Prospect.mailable?(prospect) ->
@@ -361,22 +361,22 @@ defmodule ColdForge.Outreach do
       suppressed?(prospect.email) ->
         {:error, :suppressed}
 
-      sequence.steps == [] ->
+      campaign.steps == [] ->
         {:error, :no_steps}
 
       true ->
-        first_step = List.first(sequence.steps)
+        first_step = List.first(campaign.steps)
 
         send_at =
           Window.next_open_slot(
-            sequence,
-            sequence.project,
+            campaign,
+            campaign.project,
             DateTime.utc_now() |> DateTime.add(first_step.delay_days, :day)
           )
 
         %Enrollment{}
         |> Enrollment.changeset(%{
-          sequence_id: sequence.id,
+          campaign_id: campaign.id,
           prospect_id: prospect.id,
           status: "active",
           current_position: 0,
@@ -386,16 +386,16 @@ defmodule ColdForge.Outreach do
     end
   end
 
-  def list_enrollments(sequence_id) do
+  def list_enrollments(campaign_id) do
     Enrollment
-    |> where([e], e.sequence_id == ^sequence_id)
+    |> where([e], e.campaign_id == ^campaign_id)
     |> order_by([e], asc: e.next_send_at)
     |> preload(:prospect)
     |> Repo.all()
   end
 
   def get_enrollment!(id),
-    do: Enrollment |> Repo.get!(id) |> Repo.preload([:prospect, sequence: [:project, :steps]])
+    do: Enrollment |> Repo.get!(id) |> Repo.preload([:prospect, campaign: [:project, :steps]])
 
   def stop_enrollment(%Enrollment{} = enrollment, reason \\ "manual") do
     enrollment
@@ -403,9 +403,9 @@ defmodule ColdForge.Outreach do
     |> Repo.update()
   end
 
-  def count_enrollments_by_status(sequence_id) do
+  def count_enrollments_by_status(campaign_id) do
     Enrollment
-    |> where([e], e.sequence_id == ^sequence_id)
+    |> where([e], e.campaign_id == ^campaign_id)
     |> group_by([e], e.status)
     |> select([e], {e.status, count(e.id)})
     |> Repo.all()
@@ -456,10 +456,10 @@ defmodule ColdForge.Outreach do
     |> Repo.all()
   end
 
-  def search_sequences(q, limit \\ 8) do
+  def search_campaigns(q, limit \\ 8) do
     like = "%#{String.trim(q)}%"
 
-    Sequence
+    Campaign
     |> where([s], ilike(s.name, ^like))
     |> order_by([s], asc: s.name)
     |> limit(^limit)

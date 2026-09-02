@@ -89,20 +89,22 @@ defmodule ColdForgeWeb.Router do
       live "/suppressions", AdminLive.Suppressions, :index
       live "/guide", AdminLive.Guide, :index
 
-      live "/p/:project_id/prospects", AdminLive.Prospects, :index
-      live "/p/:project_id/prospects/new", AdminLive.Prospects, :new
-      live "/p/:project_id/prospects/import", AdminLive.Import, :new
-      live "/p/:project_id/prospects/:id/edit", AdminLive.Prospects, :edit
-
-      live "/p/:project_id/campaigns", AdminLive.Campaigns, :index
+      # A project is one place with three views. Campaigns is the project root
+      # rather than a `/campaigns` child, because it's what you came for.
+      live "/p/:project_id", AdminLive.Campaigns, :index
       live "/p/:project_id/campaigns/new", AdminLive.Campaigns, :new
       live "/p/:project_id/campaigns/:id", AdminLive.CampaignShow, :show
       live "/p/:project_id/campaigns/:id/people", AdminLive.CampaignShow, :people
       live "/p/:project_id/campaigns/:id/emails/new", AdminLive.CampaignShow, :new_email
       live "/p/:project_id/campaigns/:id/emails/:step_id", AdminLive.CampaignShow, :edit_email
 
-      live "/p/:project_id/messages", AdminLive.Messages, :index
-      live "/p/:project_id/messages/:id", AdminLive.Messages, :show
+      live "/p/:project_id/prospects", AdminLive.Prospects, :index
+      live "/p/:project_id/prospects/new", AdminLive.Prospects, :new
+      live "/p/:project_id/prospects/import", AdminLive.Import, :new
+      live "/p/:project_id/prospects/:id/edit", AdminLive.Prospects, :edit
+
+      live "/p/:project_id/activity", AdminLive.Messages, :index
+      live "/p/:project_id/activity/:id", AdminLive.Messages, :show
     end
   end
 

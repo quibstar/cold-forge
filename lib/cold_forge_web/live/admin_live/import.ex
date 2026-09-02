@@ -36,7 +36,11 @@ defmodule ColdForgeWeb.AdminLive.Import do
 
   @impl true
   def handle_params(_params, _uri, socket) do
-    {:noreply, assign(socket, :page_subtitle, socket.assigns.current_project.name)}
+    {:noreply,
+     assign(socket, :breadcrumbs, [
+       {"Projects", ~p"/admin/projects"},
+       {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}/prospects"}
+     ])}
   end
 
   @impl true

@@ -8,6 +8,8 @@ defmodule ColdForgeWeb.AdminLive.Messages do
   """
   use ColdForgeWeb, :live_view
 
+  import ColdForgeWeb.ProjectTabs
+
   alias ColdForge.{Outreach, Tracking}
   alias ColdForge.Outreach.Prospect
 
@@ -23,8 +25,8 @@ defmodule ColdForgeWeb.AdminLive.Messages do
 
   defp apply_action(socket, :index, _params) do
     socket
-    |> assign(:page_title, "Activity")
-    |> assign(:page_subtitle, socket.assigns.current_project.name)
+    |> assign(:page_title, socket.assigns.current_project.name)
+    |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:messages, Outreach.list_messages(socket.assigns.project_id))
   end
 
@@ -33,7 +35,10 @@ defmodule ColdForgeWeb.AdminLive.Messages do
 
     socket
     |> assign(:page_title, message.subject)
-    |> assign(:page_subtitle, message.prospect.email)
+    |> assign(:breadcrumbs, [
+      {"Projects", ~p"/admin/projects"},
+      {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}/activity"}
+    ])
     |> assign(:message, message)
     |> assign(:clicks, Tracking.list_clicks(message.id))
   end
@@ -41,6 +46,8 @@ defmodule ColdForgeWeb.AdminLive.Messages do
   @impl true
   def render(%{live_action: :index} = assigns) do
     ~H"""
+    <.project_tabs project={@current_project} current_path={@current_path} />
+
     <div class="card bg-base-100 shadow-sm">
       <div class="overflow-x-auto">
         <table class="table">
@@ -63,7 +70,7 @@ defmodule ColdForgeWeb.AdminLive.Messages do
             <tr :for={m <- @messages}>
               <td class="text-sm">
                 <.link
-                  navigate={~p"/admin/p/#{@project_id}/messages/#{m.id}"}
+                  navigate={~p"/admin/p/#{@project_id}/activity/#{m.id}"}
                   class="font-medium hover:text-primary"
                 >
                   {Prospect.display_name(m.prospect)}

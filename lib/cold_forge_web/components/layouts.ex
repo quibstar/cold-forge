@@ -87,6 +87,7 @@ defmodule ColdForgeWeb.Layouts do
       |> assign_new(:current_scope, fn -> nil end)
       |> assign_new(:current_path, fn -> nil end)
       |> assign_new(:current_project, fn -> nil end)
+      |> assign_new(:breadcrumbs, fn -> [] end)
       |> assign_new(:page_title, fn -> nil end)
       |> assign_new(:page_subtitle, fn -> nil end)
 
@@ -156,34 +157,6 @@ defmodule ColdForgeWeb.Layouts do
           >
             How this works
           </.nav_link>
-
-          <%!-- Prospects, sequences and activity are meaningless without a
-          project to scope them to, so this section only appears once one is
-          selected — rather than showing links that 404. --%>
-          <div :if={@current_project}>
-            <.nav_section>{@current_project.name}</.nav_section>
-            <.nav_link
-              navigate={~p"/admin/p/#{@current_project.id}/campaigns"}
-              icon="hero-paper-airplane"
-              active={nav_active(@current_path, "/admin/p/#{@current_project.id}/campaigns")}
-            >
-              Campaigns
-            </.nav_link>
-            <.nav_link
-              navigate={~p"/admin/p/#{@current_project.id}/prospects"}
-              icon="hero-users"
-              active={nav_active(@current_path, "/admin/p/#{@current_project.id}/prospects")}
-            >
-              Prospects
-            </.nav_link>
-            <.nav_link
-              navigate={~p"/admin/p/#{@current_project.id}/messages"}
-              icon="hero-envelope"
-              active={nav_active(@current_path, "/admin/p/#{@current_project.id}/messages")}
-            >
-              Activity
-            </.nav_link>
-          </div>
         </nav>
 
         <%!-- `dropdown-top` so the menu opens upward — this sits at the very
@@ -261,9 +234,21 @@ defmodule ColdForgeWeb.Layouts do
           </button>
 
           <div :if={@page_title} class="min-w-0">
+            <%!-- Breadcrumbs replace the subtitle when present: on a nested
+            screen, where you are is more useful than a description of it. --%>
+            <nav
+              :if={@breadcrumbs != []}
+              aria-label="Breadcrumb"
+              class="flex items-center gap-1 text-xs text-base-content/50 mb-0.5"
+            >
+              <span :for={{label, path} <- @breadcrumbs} class="flex items-center gap-1 min-w-0">
+                <.link navigate={path} class="hover:text-base-content truncate">{label}</.link>
+                <.icon name="hero-chevron-right" class="size-3 shrink-0" />
+              </span>
+            </nav>
             <h1 class="text-2xl font-bold text-base-content truncate">{@page_title}</h1>
             <p
-              :if={@page_subtitle not in [nil, ""]}
+              :if={@breadcrumbs == [] and @page_subtitle not in [nil, ""]}
               class="text-sm text-base-content/60 mt-0.5 truncate"
             >
               {@page_subtitle}
@@ -318,16 +303,6 @@ defmodule ColdForgeWeb.Layouts do
   defp nav_active(current, "/admin"), do: current == "/admin"
   defp nav_active(current, "/admin/projects"), do: String.starts_with?(current, "/admin/projects")
   defp nav_active(current, path), do: String.starts_with?(current, path)
-
-  slot :inner_block, required: true
-
-  defp nav_section(assigns) do
-    ~H"""
-    <p class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">
-      {render_slot(@inner_block)}
-    </p>
-    """
-  end
 
   attr :navigate, :string, required: true
   attr :icon, :string, required: true

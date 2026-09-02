@@ -1,6 +1,6 @@
 defmodule ColdForge.Sending.Renderer do
   @moduledoc """
-  Turns a sequence step into the exact text a prospect receives.
+  Turns a campaign step into the exact text a prospect receives.
 
   Three passes, in order:
 
@@ -19,7 +19,7 @@ defmodule ColdForge.Sending.Renderer do
   paragraph-wrapped version of the same words.
   """
 
-  alias ColdForge.Outreach.{Message, Project, Prospect, SequenceStep}
+  alias ColdForge.Outreach.{Message, Project, Prospect, CampaignStep}
   alias ColdForge.Repo
   alias ColdForge.Tracking.TrackedLink
 
@@ -29,7 +29,7 @@ defmodule ColdForge.Sending.Renderer do
   Applies merge tags to a step's subject and body. URLs are still raw at this
   point — they can't be tokenised until the message row exists.
   """
-  def render_step(%SequenceStep{} = step, %Prospect{} = prospect, %Project{} = project) do
+  def render_step(%CampaignStep{} = step, %Prospect{} = prospect, %Project{} = project) do
     values = merge_values(prospect, project)
 
     %{

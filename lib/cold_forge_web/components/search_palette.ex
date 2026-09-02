@@ -1,6 +1,6 @@
 defmodule ColdForgeWeb.SearchPalette do
   @moduledoc """
-  A ⌘K / Ctrl-K command palette: find a prospect, sequence or project from
+  A ⌘K / Ctrl-K command palette: find a prospect, campaign or project from
   anywhere and jump straight to it.
 
   Search is deliberately *not* scoped to the project you're currently looking
@@ -95,7 +95,7 @@ defmodule ColdForgeWeb.SearchPalette do
 
   defp items_for(:campaigns, q, limit) do
     q
-    |> Outreach.search_sequences(limit)
+    |> Outreach.search_campaigns(limit)
     |> Enum.map(
       &%{
         title: &1.name,
@@ -112,7 +112,7 @@ defmodule ColdForgeWeb.SearchPalette do
       &%{
         title: &1.name,
         subtitle: &1.from_email,
-        path: ~p"/admin/p/#{&1.id}/prospects"
+        path: ~p"/admin/p/#{&1.id}"
       }
     )
   end

@@ -57,12 +57,12 @@ if Outreach.list_prospects(project.id) == [] do
   end
 end
 
-if Outreach.list_sequences(project.id) == [] do
-  {:ok, sequence} =
-    Outreach.create_sequence(%{project_id: project.id, name: "Roofers — intro"})
+if Outreach.list_campaigns(project.id) == [] do
+  {:ok, campaign} =
+    Outreach.create_campaign(%{project_id: project.id, name: "Roofers — intro"})
 
   {:ok, _} =
-    Outreach.create_step(sequence, %{
+    Outreach.create_step(campaign, %{
       "delay_days" => 0,
       "subject" => "Quick question about {{company}}",
       "body" => """
@@ -80,7 +80,7 @@ if Outreach.list_sequences(project.id) == [] do
     })
 
   {:ok, _} =
-    Outreach.create_step(sequence, %{
+    Outreach.create_step(campaign, %{
       "delay_days" => 3,
       "subject" => "Re: {{company}}",
       "body" => """
@@ -95,7 +95,7 @@ if Outreach.list_sequences(project.id) == [] do
       """
     })
 
-  IO.puts("Seeded sequence \"#{sequence.name}\" with 2 steps")
+  IO.puts("Seeded campaign \"#{campaign.name}\" with 2 steps")
 end
 
 IO.puts("Seed complete.")

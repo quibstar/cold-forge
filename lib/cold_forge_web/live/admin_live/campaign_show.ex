@@ -11,7 +11,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   import ColdForgeWeb.EmailPreview
 
   alias ColdForge.{Outreach, Sending}
-  alias ColdForge.Outreach.{Prospect, SequenceStep}
+  alias ColdForge.Outreach.{Prospect, CampaignStep}
 
   @impl true
   def mount(%{"project_id" => project_id, "id" => id}, _session, socket) do
@@ -23,7 +23,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   end
 
   defp load(socket) do
-    campaign = Outreach.get_sequence!(socket.assigns.campaign_id)
+    campaign = Outreach.get_campaign!(socket.assigns.campaign_id)
 
     socket
     |> assign(:campaign, campaign)
@@ -40,15 +40,15 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   defp apply_action(socket, :show, _params) do
     socket
     |> assign(:page_title, socket.assigns.campaign.name)
-    |> assign(:page_subtitle, socket.assigns.current_project.name)
+    |> assign(:breadcrumbs, project_crumbs(socket))
   end
 
   defp apply_action(socket, :new_email, _params) do
     socket
     |> assign(:page_title, "New email")
-    |> assign(:page_subtitle, socket.assigns.campaign.name)
-    |> assign(:step, %SequenceStep{})
-    |> assign(:form, to_form(Outreach.change_step(%SequenceStep{})))
+    |> assign(:breadcrumbs, campaign_crumbs(socket))
+    |> assign(:step, %CampaignStep{})
+    |> assign(:form, to_form(Outreach.change_step(%CampaignStep{})))
     |> assign_preview_prospect()
   end
 
@@ -57,7 +57,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
 
     socket
     |> assign(:page_title, "Email #{step.position}")
-    |> assign(:page_subtitle, socket.assigns.campaign.name)
+    |> assign(:breadcrumbs, campaign_crumbs(socket))
     |> assign(:step, step)
     |> assign(:form, to_form(Outreach.change_step(step)))
     |> assign_preview_prospect()
@@ -73,9 +73,20 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
 
     socket
     |> assign(:page_title, "Add people")
-    |> assign(:page_subtitle, socket.assigns.campaign.name)
+    |> assign(:breadcrumbs, campaign_crumbs(socket))
     |> assign(:candidates, candidates)
     |> assign(:selected, MapSet.new(candidates, & &1.id))
+  end
+
+  defp project_crumbs(socket) do
+    [
+      {"Projects", ~p"/admin/projects"},
+      {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}"}
+    ]
+  end
+
+  defp campaign_crumbs(socket) do
+    project_crumbs(socket) ++ [{socket.assigns.campaign.name, campaign_path(socket.assigns)}]
   end
 
   # The preview needs somebody to render against. A real prospect is the honest
@@ -103,7 +114,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   ## Emails
 
   @impl true
-  def handle_event("validate", %{"sequence_step" => params}, socket) do
+  def handle_event("validate", %{"campaign_step" => params}, socket) do
     changeset =
       socket.assigns.step
       |> Outreach.change_step(params)
@@ -112,7 +123,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
     {:noreply, assign(socket, :form, to_form(changeset))}
   end
 
-  def handle_event("save_email", %{"sequence_step" => params}, socket) do
+  def handle_event("save_email", %{"campaign_step" => params}, socket) do
     result =
       case socket.assigns.live_action do
         :new_email -> Outreach.create_step(socket.assigns.campaign, params)
@@ -198,7 +209,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   ## Running
 
   def handle_event("start", _params, socket) do
-    case Outreach.activate_sequence(socket.assigns.campaign) do
+    case Outreach.activate_campaign(socket.assigns.campaign) do
       {:ok, _} ->
         {:noreply, socket |> put_flash(:info, "Campaign is running.") |> load()}
 
@@ -211,13 +222,13 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   end
 
   def handle_event("pause", _params, socket) do
-    {:ok, _} = Outreach.pause_sequence(socket.assigns.campaign)
+    {:ok, _} = Outreach.pause_campaign(socket.assigns.campaign)
     {:noreply, socket |> put_flash(:info, "Paused.") |> load()}
   end
 
   def handle_event("toggle_branding", _params, socket) do
     {:ok, _} =
-      Outreach.update_sequence(socket.assigns.campaign, %{
+      Outreach.update_campaign(socket.assigns.campaign, %{
         branded: not socket.assigns.campaign.branded
       })
 

@@ -14,14 +14,14 @@ defmodule ColdForgeWeb.AdminLiveTest do
 
   setup %{conn: conn} do
     project = project_fixture(name: "ExteriorPro")
-    sequence = sequence_fixture(project)
-    step = step_fixture(sequence)
+    campaign = campaign_fixture(project)
+    step = step_fixture(campaign)
     prospect = prospect_fixture(project, first_name: "Dana", company: "Northside Siding")
 
     %{
       conn: log_in_user(conn, user_fixture()),
       project: project,
-      sequence: sequence,
+      campaign: campaign,
       step: step,
       prospect: prospect
     }
@@ -49,13 +49,13 @@ defmodule ColdForgeWeb.AdminLiveTest do
       ~p"/admin/p/#{ctx.project.id}/prospects/new",
       ~p"/admin/p/#{ctx.project.id}/prospects/#{ctx.prospect.id}/edit",
       ~p"/admin/p/#{ctx.project.id}/prospects/import",
-      ~p"/admin/p/#{ctx.project.id}/campaigns",
+      ~p"/admin/p/#{ctx.project.id}",
       ~p"/admin/p/#{ctx.project.id}/campaigns/new",
-      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}",
-      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}/people",
-      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}/emails/new",
-      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}/emails/#{ctx.step.id}",
-      ~p"/admin/p/#{ctx.project.id}/messages"
+      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}",
+      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/people",
+      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/emails/new",
+      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/emails/#{ctx.step.id}",
+      ~p"/admin/p/#{ctx.project.id}/activity"
     ]
 
     for path <- paths do
@@ -63,12 +63,32 @@ defmodule ColdForgeWeb.AdminLiveTest do
     end
   end
 
-  test "the per-project nav section only appears once a project is in scope", ctx do
-    {:ok, _view, html} = live(ctx.conn, ~p"/admin/projects")
-    refute html =~ ~s|href="/admin/p/#{ctx.project.id}/campaigns"|
+  describe "navigating into a project" do
+    test "the projects list links into each project", ctx do
+      {:ok, _view, html} = live(ctx.conn, ~p"/admin/projects")
+      assert html =~ ~s|href="/admin/p/#{ctx.project.id}"|
+    end
 
-    {:ok, _view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects")
-    assert html =~ ~s|href="/admin/p/#{ctx.project.id}/campaigns"|
+    test "a project shows its three tabs", ctx do
+      {:ok, _view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}")
+
+      assert html =~ ~s|href="/admin/p/#{ctx.project.id}"|
+      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/prospects"|
+      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/activity"|
+    end
+
+    test "the trail down to an email says where you are", ctx do
+      {:ok, _view, html} =
+        live(
+          ctx.conn,
+          ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/emails/#{ctx.step.id}"
+        )
+
+      assert html =~ "Projects"
+      assert html =~ ctx.project.name
+      assert html =~ ctx.campaign.name
+      assert html =~ "Email 1"
+    end
   end
 
   describe "search palette" do
@@ -94,20 +114,20 @@ defmodule ColdForgeWeb.AdminLiveTest do
 
   describe "campaign editor" do
     test "refuses to start a campaign with no emails", ctx do
-      empty = sequence_fixture(ctx.project, name: "Empty")
+      empty = campaign_fixture(ctx.project, name: "Empty")
       {:ok, view, _html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/campaigns/#{empty.id}")
 
       html = view |> element("button", "Start") |> render_click()
 
       assert html =~ "Write at least one email"
-      assert Outreach.get_sequence!(empty.id).status == "draft"
+      assert Outreach.get_campaign!(empty.id).status == "draft"
     end
 
     test "previews the email as it will actually be sent", ctx do
       {:ok, _view, html} =
         live(
           ctx.conn,
-          ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}/emails/#{ctx.step.id}"
+          ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/emails/#{ctx.step.id}"
         )
 
       # Merge tags resolved, not shown raw.

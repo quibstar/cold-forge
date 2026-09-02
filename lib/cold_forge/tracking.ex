@@ -78,7 +78,7 @@ defmodule ColdForge.Tracking do
 
   Opens are the least trustworthy signal here — image proxies at Gmail and
   Outlook fetch the pixel before a human sees anything — so the count is kept
-  but never used to stop or branch a sequence.
+  but never used to stop or branch a campaign.
   """
   def record_open(token) when is_binary(token) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)

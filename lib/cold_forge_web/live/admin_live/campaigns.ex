@@ -8,8 +8,10 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
   """
   use ColdForgeWeb, :live_view
 
+  import ColdForgeWeb.ProjectTabs
+
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.Sequence
+  alias ColdForge.Outreach.Campaign
   alias ColdForge.Repo
 
   @impl true
@@ -25,12 +27,12 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
   defp apply_action(socket, :index, _params) do
     campaigns =
       socket.assigns.project_id
-      |> Outreach.list_sequences()
+      |> Outreach.list_campaigns()
       |> Repo.preload(:steps)
 
     socket
-    |> assign(:page_title, "Campaigns")
-    |> assign(:page_subtitle, socket.assigns.current_project.name)
+    |> assign(:page_title, socket.assigns.current_project.name)
+    |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:campaigns, campaigns)
     |> assign(:stats, Map.new(campaigns, &{&1.id, Outreach.campaign_stats(&1.id)}))
     |> assign(:people, Map.new(campaigns, &{&1.id, Outreach.count_enrollments_by_status(&1.id)}))
@@ -39,24 +41,27 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
   defp apply_action(socket, :new, _params) do
     socket
     |> assign(:page_title, "New campaign")
-    |> assign(:page_subtitle, socket.assigns.current_project.name)
-    |> assign(:form, to_form(Outreach.change_sequence(%Sequence{})))
+    |> assign(:breadcrumbs, [
+      {"Projects", ~p"/admin/projects"},
+      {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}"}
+    ])
+    |> assign(:form, to_form(Outreach.change_campaign(%Campaign{})))
   end
 
   @impl true
-  def handle_event("validate", %{"sequence" => params}, socket) do
+  def handle_event("validate", %{"campaign" => params}, socket) do
     changeset =
-      %Sequence{}
-      |> Outreach.change_sequence(params)
+      %Campaign{}
+      |> Outreach.change_campaign(params)
       |> Map.put(:action, :validate)
 
     {:noreply, assign(socket, :form, to_form(changeset))}
   end
 
-  def handle_event("save", %{"sequence" => params}, socket) do
+  def handle_event("save", %{"campaign" => params}, socket) do
     params = Map.put(params, "project_id", socket.assigns.project_id)
 
-    case Outreach.create_sequence(params) do
+    case Outreach.create_campaign(params) do
       {:ok, campaign} ->
         {:noreply,
          push_navigate(socket,
@@ -71,6 +76,8 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
   @impl true
   def render(%{live_action: :index} = assigns) do
     ~H"""
+    <.project_tabs project={@current_project} current_path={@current_path} />
+
     <div class="flex justify-end mb-4">
       <.link navigate={~p"/admin/p/#{@project_id}/campaigns/new"} class="btn btn-primary btn-sm">
         <.icon name="hero-plus" class="size-4" /> New campaign
@@ -84,7 +91,7 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
         <p class="text-base-content/60 max-w-md">
           A campaign is a set of emails and the people who get them. Write one
           email for a single send, or several with delays for a follow-up
-          sequence.
+          campaign.
         </p>
         <.link navigate={~p"/admin/p/#{@project_id}/campaigns/new"} class="btn btn-primary mt-4">
           Create one
@@ -178,7 +185,7 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
                   <label :for={{label, num} <- days()} class="flex items-center gap-1.5 text-sm">
                     <input
                       type="checkbox"
-                      name="sequence[send_days][]"
+                      name="campaign[send_days][]"
                       value={num}
                       checked={num in (Phoenix.HTML.Form.input_value(@form, :send_days) || [])}
                       class="checkbox checkbox-sm"
@@ -196,7 +203,7 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
           </details>
 
           <div class="flex justify-end gap-2 pt-2">
-            <.link navigate={~p"/admin/p/#{@project_id}/campaigns"} class="btn btn-ghost">
+            <.link navigate={~p"/admin/p/#{@project_id}"} class="btn btn-ghost">
               Cancel
             </.link>
             <button type="submit" class="btn btn-primary" phx-disable-with="Creating…">

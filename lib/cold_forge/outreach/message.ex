@@ -23,7 +23,7 @@ defmodule ColdForge.Outreach.Message do
     belongs_to :project, ColdForge.Outreach.Project
     belongs_to :prospect, ColdForge.Outreach.Prospect
     belongs_to :enrollment, ColdForge.Outreach.Enrollment
-    belongs_to :sequence_step, ColdForge.Outreach.SequenceStep
+    belongs_to :campaign_step, ColdForge.Outreach.CampaignStep
     has_many :tracked_links, ColdForge.Tracking.TrackedLink
 
     timestamps(type: :utc_datetime)
@@ -38,7 +38,7 @@ defmodule ColdForge.Outreach.Message do
       :project_id,
       :prospect_id,
       :enrollment_id,
-      :sequence_step_id,
+      :campaign_step_id,
       :subject,
       :body,
       :status,

@@ -24,16 +24,16 @@ defmodule ColdForge.Workers.SendMessage do
         :ok
 
       enrollment ->
-        send_for(Repo.preload(enrollment, [:prospect, sequence: [:project, :steps]]))
+        send_for(Repo.preload(enrollment, [:prospect, campaign: [:project, :steps]]))
     end
   end
 
   defp send_for(%Enrollment{status: status}) when status != "active", do: :ok
 
   defp send_for(%Enrollment{} = enrollment) do
-    project = enrollment.sequence.project
+    project = enrollment.campaign.project
     prospect = enrollment.prospect
-    step = Enum.find(enrollment.sequence.steps, &(&1.position == enrollment.current_position + 1))
+    step = Enum.find(enrollment.campaign.steps, &(&1.position == enrollment.current_position + 1))
 
     cond do
       is_nil(step) ->
@@ -44,7 +44,7 @@ defmodule ColdForge.Workers.SendMessage do
       true ->
         case Sending.deliver_step(prospect, step, project,
                enrollment_id: enrollment.id,
-               branded: enrollment.sequence.branded
+               branded: enrollment.campaign.branded
              ) do
           {:ok, _message} ->
             {:ok, _} = Sending.advance_enrollment(enrollment)

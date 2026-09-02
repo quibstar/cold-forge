@@ -11,7 +11,7 @@ defmodule ColdForge.Sending do
 
   alias ColdForge.Mailer
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.{Enrollment, Message, Project, Prospect, SequenceStep}
+  alias ColdForge.Outreach.{Enrollment, Message, Project, Prospect, CampaignStep}
   alias ColdForge.Repo
   alias ColdForge.Sending.Renderer
 
@@ -25,7 +25,7 @@ defmodule ColdForge.Sending do
   """
   def deliver_step(
         %Prospect{} = prospect,
-        %SequenceStep{} = step,
+        %CampaignStep{} = step,
         %Project{} = project,
         opts \\ []
       ) do
@@ -43,7 +43,7 @@ defmodule ColdForge.Sending do
             project_id: project.id,
             prospect_id: prospect.id,
             enrollment_id: enrollment_id,
-            sequence_step_id: step.id,
+            campaign_step_id: step.id,
             subject: rendered.subject,
             body: rendered.body,
             status: "pending"
@@ -183,15 +183,15 @@ defmodule ColdForge.Sending do
   out. Called after a successful send.
   """
   def advance_enrollment(%Enrollment{} = enrollment) do
-    enrollment = Repo.preload(enrollment, sequence: [:project, :steps])
+    enrollment = Repo.preload(enrollment, campaign: [:project, :steps])
     next_position = enrollment.current_position + 1
-    next_step = Enum.find(enrollment.sequence.steps, &(&1.position == next_position + 1))
+    next_step = Enum.find(enrollment.campaign.steps, &(&1.position == next_position + 1))
 
     if next_step do
       send_at =
         ColdForge.Sending.Window.next_open_slot(
-          enrollment.sequence,
-          enrollment.sequence.project,
+          enrollment.campaign,
+          enrollment.campaign.project,
           DateTime.utc_now() |> DateTime.add(next_step.delay_days, :day)
         )
 

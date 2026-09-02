@@ -13,16 +13,16 @@ defmodule ColdForge.Workers.SendMessageTest do
 
   setup do
     project = project_fixture()
-    sequence = sequence_fixture(project)
-    step_fixture(sequence, %{"subject" => "One"})
-    step_fixture(sequence, %{"subject" => "Two", "delay_days" => 3})
-    {:ok, _} = Outreach.activate_sequence(Outreach.get_sequence!(sequence.id))
+    campaign = campaign_fixture(project)
+    step_fixture(campaign, %{"subject" => "One"})
+    step_fixture(campaign, %{"subject" => "Two", "delay_days" => 3})
+    {:ok, _} = Outreach.activate_campaign(Outreach.get_campaign!(campaign.id))
 
-    sequence = Outreach.get_sequence!(sequence.id)
+    campaign = Outreach.get_campaign!(campaign.id)
     prospect = prospect_fixture(project)
-    {:ok, enrollment} = Outreach.enroll_prospect(sequence, prospect)
+    {:ok, enrollment} = Outreach.enroll_prospect(campaign, prospect)
 
-    %{project: project, sequence: sequence, prospect: prospect, enrollment: enrollment}
+    %{project: project, campaign: campaign, prospect: prospect, enrollment: enrollment}
   end
 
   test "sends the current step and advances to the next", ctx do

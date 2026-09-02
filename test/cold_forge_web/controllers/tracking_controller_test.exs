@@ -14,8 +14,8 @@ defmodule ColdForgeWeb.TrackingControllerTest do
 
   setup do
     project = project_fixture()
-    sequence = sequence_fixture(project)
-    step = step_fixture(sequence)
+    campaign = campaign_fixture(project)
+    step = step_fixture(campaign)
     prospect = prospect_fixture(project)
 
     {:ok, message} = Sending.deliver_step(prospect, step, project)

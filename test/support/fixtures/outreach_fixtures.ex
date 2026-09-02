@@ -1,5 +1,5 @@
 defmodule ColdForge.OutreachFixtures do
-  @moduledoc "Fixtures for projects, prospects, sequences and steps."
+  @moduledoc "Fixtures for projects, prospects, campaigns and steps."
 
   alias ColdForge.Outreach
 
@@ -34,19 +34,19 @@ defmodule ColdForge.OutreachFixtures do
     prospect
   end
 
-  def sequence_fixture(project, attrs \\ %{}) do
-    {:ok, sequence} =
+  def campaign_fixture(project, attrs \\ %{}) do
+    {:ok, campaign} =
       attrs
       |> Enum.into(%{project_id: project.id, name: "Intro"})
-      |> Outreach.create_sequence()
+      |> Outreach.create_campaign()
 
-    sequence
+    campaign
   end
 
-  def step_fixture(sequence, attrs \\ %{}) do
+  def step_fixture(campaign, attrs \\ %{}) do
     {:ok, step} =
       Outreach.create_step(
-        sequence,
+        campaign,
         Enum.into(attrs, %{
           "subject" => "Quick question about {{company}}",
           "body" => "Hi {{first_name|there}},\n\nDemo: {{link}}\n\n{{sender_name}}",

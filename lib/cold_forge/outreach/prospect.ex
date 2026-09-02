@@ -2,7 +2,7 @@ defmodule ColdForge.Outreach.Prospect do
   @moduledoc """
   Someone we might email. Status tracks the terminal outcomes that should stop
   outreach — replied, bounced, unsubscribed — so the scheduler can skip them
-  without consulting every sequence they're in.
+  without consulting every campaign they're in.
   """
   use Ecto.Schema
   import Ecto.Changeset

@@ -17,6 +17,7 @@ defmodule ColdForgeWeb.AdminLive.Nav do
     socket =
       socket
       |> assign_current_project(params)
+      |> Phoenix.Component.assign_new(:breadcrumbs, fn -> [] end)
       |> attach_hook(:track_path, :handle_params, &track_path/3)
 
     {:cont, socket}

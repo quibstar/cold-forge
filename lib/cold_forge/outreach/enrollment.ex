@@ -1,6 +1,6 @@
 defmodule ColdForge.Outreach.Enrollment do
   @moduledoc """
-  A prospect's progress through one sequence. `next_send_at` is the scheduler's
+  A prospect's progress through one campaign. `next_send_at` is the scheduler's
   only input — everything else about pacing is decided when it's written.
   """
   use Ecto.Schema
@@ -15,7 +15,7 @@ defmodule ColdForge.Outreach.Enrollment do
     field :stopped_reason, :string
     field :completed_at, :utc_datetime
 
-    belongs_to :sequence, ColdForge.Outreach.Sequence
+    belongs_to :campaign, ColdForge.Outreach.Campaign
     belongs_to :prospect, ColdForge.Outreach.Prospect
     has_many :messages, ColdForge.Outreach.Message
 
@@ -28,7 +28,7 @@ defmodule ColdForge.Outreach.Enrollment do
   def changeset(enrollment, attrs) do
     enrollment
     |> cast(attrs, [
-      :sequence_id,
+      :campaign_id,
       :prospect_id,
       :status,
       :current_position,
@@ -36,12 +36,12 @@ defmodule ColdForge.Outreach.Enrollment do
       :stopped_reason,
       :completed_at
     ])
-    |> validate_required([:sequence_id, :prospect_id])
+    |> validate_required([:campaign_id, :prospect_id])
     |> validate_inclusion(:status, @statuses)
-    |> unique_constraint([:sequence_id, :prospect_id],
-      message: "is already enrolled in this sequence"
+    |> unique_constraint([:campaign_id, :prospect_id],
+      message: "is already enrolled in this campaign"
     )
-    |> foreign_key_constraint(:sequence_id)
+    |> foreign_key_constraint(:campaign_id)
     |> foreign_key_constraint(:prospect_id)
   end
 end

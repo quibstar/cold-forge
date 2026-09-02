@@ -11,7 +11,7 @@ defmodule ColdForge.CampaignTest do
 
   alias ColdForge.Outreach
   alias ColdForge.Outreach.Enrollment
-  alias ColdForge.Workers.{SendMessage, SequenceScheduler}
+  alias ColdForge.Workers.{SendMessage, CampaignScheduler}
 
   setup do
     %{project: project_fixture()}
@@ -19,9 +19,9 @@ defmodule ColdForge.CampaignTest do
 
   describe "a one-email campaign" do
     setup ctx do
-      campaign = sequence_fixture(ctx.project, name: "Spring case study")
+      campaign = campaign_fixture(ctx.project, name: "Spring case study")
       step_fixture(campaign)
-      %{campaign: Outreach.get_sequence!(campaign.id)}
+      %{campaign: Outreach.get_campaign!(campaign.id)}
     end
 
     test "sends once and finishes", ctx do
@@ -52,9 +52,9 @@ defmodule ColdForge.CampaignTest do
 
   describe "send_campaign/2" do
     setup ctx do
-      campaign = sequence_fixture(ctx.project)
+      campaign = campaign_fixture(ctx.project)
       step_fixture(campaign)
-      %{campaign: Outreach.get_sequence!(campaign.id)}
+      %{campaign: Outreach.get_campaign!(campaign.id)}
     end
 
     test "activates and enrolls the chosen people", ctx do
@@ -64,7 +64,7 @@ defmodule ColdForge.CampaignTest do
       {:ok, result} = Outreach.send_campaign(ctx.campaign, [a.id, b.id])
 
       assert result == %{enrolled: 2, skipped: 0}
-      assert Outreach.get_sequence!(ctx.campaign.id).status == "active"
+      assert Outreach.get_campaign!(ctx.campaign.id).status == "active"
     end
 
     test "skips anyone suppressed rather than mailing them", ctx do
@@ -78,15 +78,15 @@ defmodule ColdForge.CampaignTest do
     end
 
     test "refuses a campaign with no emails in it", ctx do
-      empty = sequence_fixture(ctx.project, name: "Empty")
+      empty = campaign_fixture(ctx.project, name: "Empty")
       prospect = prospect_fixture(ctx.project)
 
       assert {:error, :no_steps} = Outreach.send_campaign(empty, [prospect.id])
     end
 
     test "the daily cap paces a big list instead of sending it at once", ctx do
-      {:ok, campaign} = Outreach.update_sequence(ctx.campaign, %{daily_cap: 2})
-      campaign = Outreach.get_sequence!(campaign.id)
+      {:ok, campaign} = Outreach.update_campaign(ctx.campaign, %{daily_cap: 2})
+      campaign = Outreach.get_campaign!(campaign.id)
 
       ids = for _ <- 1..5, do: prospect_fixture(ctx.project).id
       {:ok, %{enrolled: 5}} = Outreach.send_campaign(campaign, ids)
@@ -100,20 +100,20 @@ defmodule ColdForge.CampaignTest do
         ]
       )
 
-      assert :ok = perform_job(SequenceScheduler, %{})
+      assert :ok = perform_job(CampaignScheduler, %{})
       assert length(all_enqueued(worker: SendMessage)) == 2
     end
   end
 
   describe "campaign_stats/1" do
     test "counts only this campaign's messages", ctx do
-      campaign = sequence_fixture(ctx.project, name: "Counted")
+      campaign = campaign_fixture(ctx.project, name: "Counted")
       step_fixture(campaign)
-      campaign = Outreach.get_sequence!(campaign.id)
+      campaign = Outreach.get_campaign!(campaign.id)
 
-      other = sequence_fixture(ctx.project, name: "Other")
+      other = campaign_fixture(ctx.project, name: "Other")
       step_fixture(other)
-      other = Outreach.get_sequence!(other.id)
+      other = Outreach.get_campaign!(other.id)
 
       {:ok, _} = Outreach.send_campaign(campaign, [prospect_fixture(ctx.project).id])
       {:ok, _} = Outreach.send_campaign(other, [prospect_fixture(ctx.project).id])
@@ -127,9 +127,9 @@ defmodule ColdForge.CampaignTest do
     end
 
     test "counts an open and a click against the right campaign", ctx do
-      campaign = sequence_fixture(ctx.project)
+      campaign = campaign_fixture(ctx.project)
       step_fixture(campaign)
-      campaign = Outreach.get_sequence!(campaign.id)
+      campaign = Outreach.get_campaign!(campaign.id)
 
       {:ok, _} = Outreach.send_campaign(campaign, [prospect_fixture(ctx.project).id])
       [enrollment] = Outreach.list_enrollments(campaign.id)
@@ -147,10 +147,10 @@ defmodule ColdForge.CampaignTest do
 
   describe "a multi-email campaign" do
     test "waits the delay before the follow-up", ctx do
-      campaign = sequence_fixture(ctx.project)
+      campaign = campaign_fixture(ctx.project)
       step_fixture(campaign, %{"subject" => "One"})
       step_fixture(campaign, %{"subject" => "Two", "delay_days" => 3})
-      campaign = Outreach.get_sequence!(campaign.id)
+      campaign = Outreach.get_campaign!(campaign.id)
 
       {:ok, _} = Outreach.send_campaign(campaign, [prospect_fixture(ctx.project).id])
       [enrollment] = Outreach.list_enrollments(campaign.id)

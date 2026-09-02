@@ -21,7 +21,7 @@ defmodule ColdForge.Outreach.Project do
     field :active, :boolean, default: true
 
     has_many :prospects, ColdForge.Outreach.Prospect
-    has_many :sequences, ColdForge.Outreach.Sequence
+    has_many :campaigns, ColdForge.Outreach.Campaign
 
     timestamps(type: :utc_datetime)
   end

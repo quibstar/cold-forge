@@ -73,7 +73,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
         {:noreply,
          socket
          |> put_flash(:info, "Project created.")
-         |> push_navigate(to: ~p"/admin/p/#{project.id}/prospects")}
+         |> push_navigate(to: ~p"/admin/p/#{project.id}")}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -121,7 +121,9 @@ defmodule ColdForgeWeb.AdminLive.Projects do
             </tr>
             <tr :for={project <- @projects}>
               <td>
-                <div class="font-medium">{project.name}</div>
+                <.link navigate={~p"/admin/p/#{project.id}"} class="font-medium hover:text-primary">
+                  {project.name}
+                </.link>
                 <div class="text-xs text-base-content/50">/{project.slug}</div>
               </td>
               <td class="text-sm">

@@ -12,9 +12,9 @@ defmodule ColdForge.SendingTest do
 
   setup do
     project = project_fixture()
-    sequence = sequence_fixture(project)
-    step = step_fixture(sequence)
-    %{project: project, sequence: sequence, step: step}
+    campaign = campaign_fixture(project)
+    step = step_fixture(campaign)
+    %{project: project, campaign: campaign, step: step}
   end
 
   describe "deliver_step/4" do
@@ -52,7 +52,7 @@ defmodule ColdForge.SendingTest do
 
     test "rewrites a URL that is a prefix of another without mangling it", ctx do
       step =
-        step_fixture(ctx.sequence, %{
+        step_fixture(ctx.campaign, %{
           "subject" => "Two links",
           "body" => "Site: https://exteriorpro.io and demo: https://exteriorpro.io/demo"
         })

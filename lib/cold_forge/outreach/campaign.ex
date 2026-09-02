@@ -1,4 +1,4 @@
-defmodule ColdForge.Outreach.Sequence do
+defmodule ColdForge.Outreach.Campaign do
   @moduledoc """
   A campaign: an ordered set of emails plus the window they're allowed to go
   out in.
@@ -15,7 +15,7 @@ defmodule ColdForge.Outreach.Sequence do
 
   @statuses ~w(draft active paused archived)
 
-  schema "sequences" do
+  schema "campaigns" do
     field :name, :string
     field :status, :string, default: "draft"
     field :branded, :boolean, default: false
@@ -25,7 +25,7 @@ defmodule ColdForge.Outreach.Sequence do
     field :daily_cap, :integer, default: 50
 
     belongs_to :project, ColdForge.Outreach.Project
-    has_many :steps, ColdForge.Outreach.SequenceStep, preload_order: [asc: :position]
+    has_many :steps, ColdForge.Outreach.CampaignStep, preload_order: [asc: :position]
     has_many :enrollments, ColdForge.Outreach.Enrollment
 
     timestamps(type: :utc_datetime)
@@ -34,8 +34,8 @@ defmodule ColdForge.Outreach.Sequence do
   def statuses, do: @statuses
 
   @doc false
-  def changeset(sequence, attrs) do
-    sequence
+  def changeset(campaign, attrs) do
+    campaign
     |> cast(attrs, [
       :project_id,
       :name,
