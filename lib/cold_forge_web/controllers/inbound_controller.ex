@@ -19,19 +19,32 @@ defmodule ColdForgeWeb.InboundController do
   alias ColdForge.{Inbox, SNS}
 
   def create(conn, %{"token" => token} = params) do
-    if ColdForgeWeb.WebhookAuth.authorized?(token) do
+    with true <- ColdForgeWeb.WebhookAuth.authorized?(token),
+         verdict when verdict in [:ok, :not_signed] <- SNS.Signature.verify(params) do
       params |> SNS.unwrap() |> dispatch(conn)
     else
-      conn |> put_status(:unauthorized) |> json(%{error: "unauthorized"})
+      false ->
+        conn |> put_status(:unauthorized) |> json(%{error: "unauthorized"})
+
+      {:error, reason} ->
+        Logger.warning("rejected SNS inbound payload: #{inspect(reason)}")
+        conn |> put_status(:forbidden) |> json(%{error: "bad signature"})
     end
   end
 
   # SES delivers over SNS, which wraps the real payload in its own envelope.
   # Without unwrapping, every field parses to nil and the reply is silently
   # dropped as unmatched.
-  defp dispatch({:confirmation, url}, conn) do
-    Logger.info("SNS subscription confirmation received — confirm in the console: #{url}")
-    json(conn, %{status: "confirmation_pending"})
+  defp dispatch({:confirmation, url, topic_arn}, conn) do
+    case SNS.confirm(url, topic_arn) do
+      :ok ->
+        Logger.info("confirmed SNS inbound subscription on #{topic_arn}")
+        json(conn, %{status: "confirmed"})
+
+      {:error, reason} ->
+        Logger.warning("could not confirm SNS subscription (#{inspect(reason)}): #{url}")
+        json(conn, %{status: "confirmation_pending"})
+    end
   end
 
   defp dispatch({:unsubscribe_confirmation, _url}, conn) do

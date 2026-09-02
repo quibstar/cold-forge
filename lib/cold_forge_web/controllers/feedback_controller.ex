@@ -18,19 +18,33 @@ defmodule ColdForgeWeb.FeedbackController do
   alias ColdForge.{Feedback, SNS}
 
   def create(conn, %{"token" => token} = params) do
-    if ColdForgeWeb.WebhookAuth.authorized?(token) do
+    with true <- ColdForgeWeb.WebhookAuth.authorized?(token),
+         verdict when verdict in [:ok, :not_signed] <- SNS.Signature.verify(params) do
       handle(SNS.unwrap(params), conn)
     else
-      conn |> put_status(:unauthorized) |> json(%{error: "unauthorized"})
+      false ->
+        conn |> put_status(:unauthorized) |> json(%{error: "unauthorized"})
+
+      {:error, reason} ->
+        Logger.warning("rejected SNS feedback payload: #{inspect(reason)}")
+        conn |> put_status(:forbidden) |> json(%{error: "bad signature"})
     end
   end
 
-  defp handle({:confirmation, url}, conn) do
-    # Logged, never fetched. Confirming a subscription by following a URL out of
-    # the request body would let anyone holding the token point this endpoint at
-    # a topic of their choosing; a human confirms it in the SNS console.
-    Logger.info("SNS subscription confirmation received — confirm in the console: #{url}")
-    json(conn, %{status: "confirmation_pending"})
+  # Confirmed here rather than by hand in the console — the signature check
+  # above has already proved the body is Amazon's. An unconfirmed subscription
+  # looks exactly like a working one until the bounces it should have caught
+  # have already counted against the account.
+  defp handle({:confirmation, url, topic_arn}, conn) do
+    case SNS.confirm(url, topic_arn) do
+      :ok ->
+        Logger.info("confirmed SNS feedback subscription on #{topic_arn}")
+        json(conn, %{status: "confirmed"})
+
+      {:error, reason} ->
+        Logger.warning("could not confirm SNS subscription (#{inspect(reason)}): #{url}")
+        json(conn, %{status: "confirmation_pending"})
+    end
   end
 
   defp handle({:unsubscribe_confirmation, _url}, conn) do

@@ -175,10 +175,12 @@ that can break your existing email, so it should not be tangled up with launch.
 3. SNS → the topic → Create subscription → protocol **HTTPS**, endpoint
    `https://go.affordablestartup.com/inbound/<INBOUND_TOKEN>` (the value from
    `deploy/.env`).
-4. SNS sends a `SubscriptionConfirmation` first. The app answers `200` to
-   anything it doesn't recognise — deliberately, so providers stop retrying mail
-   that will never match — so **confirm the subscription from the SNS console**
-   rather than waiting for it to confirm itself.
+4. SNS sends a `SubscriptionConfirmation` first. **The app confirms it itself**
+   — it verifies Amazon's signature on the message, then follows the
+   `SubscribeURL`, which is inside the signed data. Nothing to click. The
+   subscription should read *Confirmed* in the console within a second or two;
+   if it still says `PendingConfirmation`, the endpoint isn't reachable or the
+   token in the URL is wrong.
 
 Verify by replying to a test send: it should appear under the project's
 **Replies** tab within seconds, matched `exact`. A run of `by address` matches
@@ -204,10 +206,8 @@ SNS topics cannot be subscribed to each other by accident. It uses the **same**
 3. Check **Include original headers**.
 4. SNS → the topic → Create subscription → protocol **HTTPS**, endpoint
    `https://go.affordablestartup.com/feedback/<INBOUND_TOKEN>`
-5. Confirm the subscription **from the SNS console**. The app logs the
-   confirmation URL but deliberately never follows it: confirming by fetching a
-   URL out of a request body would let anyone holding the token point the
-   endpoint at a topic of their choosing.
+5. **No confirmation step.** The app verifies the signature and confirms
+   itself, same as the reply topic. Check the subscription reads *Confirmed*.
 
 ### What it does
 
@@ -235,9 +235,22 @@ success@simulator.amazonses.com     → clean delivery
 ```
 
 After the first two, both addresses should appear on the suppression list with
-reasons `bounced` and `complained`. If they don't, the subscription is not
+reasons `bounced` and `complained`. If they don't, the subscription never
 confirmed — that is the failure this step exists to catch, and catching it here
 costs nothing.
+
+### Why SNS at all
+
+SES has no plain "POST to my URL" setting; SNS is how it delivers, and every
+other option (EventBridge, Firehose) is more AWS to configure, not less. What
+arrives at `/feedback/:token` is an ordinary HTTPS POST that this app parses and
+acts on entirely on its own — SNS is the postman, not a processor.
+
+Two things guard it: the secret in the URL, and Amazon's signature on the
+message body. The signature is checked against a certificate fetched from
+Amazon, and the URL that certificate comes from is validated first — a verifier
+that fetched whatever URL the caller named would be a request-forgery hole
+wearing the costume of a security check.
 
 ## Order of operations
 

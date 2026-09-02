@@ -17,7 +17,7 @@ defmodule ColdForge.SNS do
   Classifies an SNS POST body.
 
     * `{:notification, payload}` — the decoded inner message
-    * `{:confirmation, url}` — a new subscription waiting to be confirmed
+    * `{:confirmation, url, topic_arn}` — a new subscription to confirm
     * `{:unsubscribe_confirmation, url}` — the subscription is being torn down
     * `{:raw, params}` — not SNS at all; some other provider's own shape
 
@@ -29,7 +29,7 @@ defmodule ColdForge.SNS do
   end
 
   def unwrap(%{"Type" => "SubscriptionConfirmation"} = params) do
-    {:confirmation, params["SubscribeURL"]}
+    {:confirmation, params["SubscribeURL"], params["TopicArn"]}
   end
 
   def unwrap(%{"Type" => "UnsubscribeConfirmation"} = params) do
@@ -47,4 +47,50 @@ defmodule ColdForge.SNS do
 
   defp decode_message(%{} = message), do: message
   defp decode_message(_), do: %{}
+
+  @doc """
+  Completes a subscription by fetching the `SubscribeURL` SNS sent.
+
+  Only ever called after `ColdForge.SNS.Signature.verify/1` has proved the body
+  is Amazon's, because this follows a URL taken out of a request body. The host
+  is checked again here regardless: two cheap checks are worth less than one
+  request-forgery bug.
+
+  Doing this in the app rather than by hand in the console is the difference
+  between a subscription that works the moment it is created and one that sits
+  in `PendingConfirmation` until somebody remembers. A subscription that is
+  never confirmed looks exactly like one that works — until the bounces it was
+  supposed to catch have already counted against the account.
+  """
+  def confirm(url, topic_arn) when is_binary(url) do
+    uri = URI.parse(url)
+
+    cond do
+      uri.scheme != "https" or
+          not Regex.match?(~r/^sns\.[a-z0-9\-]+\.amazonaws\.com(\.cn)?$/, uri.host || "") ->
+        {:error, :bad_subscribe_url}
+
+      not allowed?(topic_arn) ->
+        {:error, :topic_not_allowed}
+
+      true ->
+        case Req.get(url, receive_timeout: 10_000, retry: false) do
+          {:ok, %{status: 200}} -> :ok
+          other -> {:error, {:confirm_failed, inspect(other)}}
+        end
+    end
+  end
+
+  def confirm(_url, _topic_arn), do: {:error, :bad_subscribe_url}
+
+  # An optional allowlist. Left unset, any topic whose signature checks out is
+  # accepted — reaching this point already required the URL secret *and* a valid
+  # Amazon signature. Set it to pin the exact topics once they exist.
+  defp allowed?(topic_arn) do
+    case Application.get_env(:cold_forge, :sns_topic_arns) do
+      nil -> true
+      [] -> true
+      allowed when is_list(allowed) -> topic_arn in allowed
+    end
+  end
 end
