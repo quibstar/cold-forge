@@ -236,11 +236,18 @@ defmodule ColdForgeWeb.AdminLive.Projects do
             />
           </div>
 
-          <.input
-            field={@form[:reply_to]}
-            label="Reply-to (optional)"
-            placeholder="Leave blank to use the from address"
-          />
+          <div class="grid gap-4 sm:grid-cols-2">
+            <.input
+              field={@form[:reply_to]}
+              label="Reply-to (optional)"
+              placeholder="Leave blank to use the from address"
+            />
+            <.input field={@form[:phone]} label="Callback number" placeholder="(616) 555-0142" />
+          </div>
+          <p class="text-xs text-base-content/50 -mt-2">
+            Said twice in every voicemail script. Without it the scripts can't be
+            filled in — a voicemail with no number to ring back is a wasted call.
+          </p>
 
           <.input
             field={@form[:landing_url]}

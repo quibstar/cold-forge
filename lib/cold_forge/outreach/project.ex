@@ -12,6 +12,8 @@ defmodule ColdForge.Outreach.Project do
     field :from_name, :string
     field :from_email, :string
     field :reply_to, :string
+    # The callback number left in voicemails; see `ColdForge.Calling.Scripts`.
+    field :phone, :string
     field :landing_url, :string
     field :postal_address, :string
     # Values every campaign in this project falls back to. The broadest level of
@@ -41,6 +43,7 @@ defmodule ColdForge.Outreach.Project do
       :from_name,
       :from_email,
       :reply_to,
+      :phone,
       :landing_url,
       :postal_address,
       :merge_defaults,

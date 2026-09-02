@@ -30,6 +30,11 @@ defmodule ColdForge.Outreach.Prospect do
     field :bounced_at, :utc_datetime
     field :replied_at, :utc_datetime
     field :unsubscribe_token, :string
+    # Calling state, denormalised so the call queue is one indexed query.
+    field :next_call_at, :utc_datetime
+    field :last_called_at, :utc_datetime
+    field :call_attempts, :integer, default: 0
+    field :do_not_call, :boolean, default: false
 
     belongs_to :project, ColdForge.Outreach.Project
     has_many :enrollments, ColdForge.Outreach.Enrollment

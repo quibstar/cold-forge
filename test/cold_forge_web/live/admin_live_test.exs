@@ -56,6 +56,7 @@ defmodule ColdForgeWeb.AdminLiveTest do
       ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/people",
       ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/emails/new",
       ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/emails/#{ctx.step.id}",
+      ~p"/admin/p/#{ctx.project.id}/calls",
       ~p"/admin/p/#{ctx.project.id}/activity"
     ]
 

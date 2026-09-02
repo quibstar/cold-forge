@@ -125,6 +125,8 @@ defmodule ColdForgeWeb.Router do
            AdminLive.SurveyShow,
            :edit_question
 
+      live "/p/:project_id/calls", AdminLive.Calls, :index
+
       live "/p/:project_id/replies", AdminLive.Replies, :index
 
       live "/p/:project_id/activity", AdminLive.Messages, :index
