@@ -462,10 +462,23 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
       class={["modal modal-top justify-items-center sm:pt-[6vh]", @previewing && "modal-open"]}
     >
       <div
-        class="modal-box w-full max-w-3xl p-0 relative"
+        class="modal-box w-full max-w-3xl"
         phx-window-keydown="close_preview"
         phx-key="Escape"
       >
+        <button
+          phx-click="close_preview"
+          class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+          aria-label="Close preview"
+        >
+          <.icon name="hero-x-mark" class="size-4" />
+        </button>
+
+        <h3 class="text-lg font-bold">Email {@preview_step.position}</h3>
+
+        <%!-- `:bare` because the modal already provides the frame, the heading
+        and the close button. `h-[50vh]` rather than a fixed height so the box
+        never outgrows daisyUI's max-height and start scrolling inside itself. --%>
         <.email_preview
           id="step-preview"
           subject={@preview_step.subject}
@@ -477,15 +490,10 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
           full_page_url={
             ~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/emails/#{@preview_step.id}/preview"
           }
-          class="shadow-none"
+          variant={:bare}
+          height="h-[50vh]"
+          class="mt-3"
         />
-        <button
-          phx-click="close_preview"
-          class="btn btn-sm btn-circle absolute right-2 top-2"
-          aria-label="Close preview"
-        >
-          <.icon name="hero-x-mark" class="size-4" />
-        </button>
       </div>
 
       <form method="dialog" class="modal-backdrop" phx-click="close_preview">

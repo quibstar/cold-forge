@@ -38,6 +38,11 @@ defmodule ColdForgeWeb.EmailPreview do
   attr :class, :string, default: "h-fit lg:sticky lg:top-20"
   attr :height, :string, default: "h-[32rem]"
 
+  attr :variant, :atom,
+    default: :card,
+    values: [:card, :bare],
+    doc: "`:bare` drops the card wrapper and heading for use inside a modal, which supplies both"
+
   def email_preview(assigns) do
     preview =
       Renderer.preview_message(
@@ -52,10 +57,17 @@ defmodule ColdForgeWeb.EmailPreview do
     assigns = assign(assigns, :preview, preview)
 
     ~H"""
-    <div class={["card bg-base-100 shadow-sm", @class]}>
-      <div class="card-body">
-        <div class="flex items-center justify-between gap-2 flex-wrap">
-          <h2 class="card-title text-base">Preview</h2>
+    <div class={[@variant == :card && "card bg-base-100 shadow-sm", @class]}>
+      <div class={[@variant == :card && "card-body"]}>
+        <%!-- With no heading in `:bare` mode the controls are the row's only
+        child, so `justify-between` would strand them on the left. --%>
+        <div class={[
+          "flex items-center gap-2 flex-wrap",
+          if(@variant == :card, do: "justify-between", else: "justify-end")
+        ]}>
+          <%!-- A modal supplies its own title and close button; rendering a
+          second heading here would duplicate one and collide with the other. --%>
+          <h2 :if={@variant == :card} class="card-title text-base">Preview</h2>
 
           <div class="flex items-center gap-2">
             <span class="text-xs text-base-content/50">

@@ -110,6 +110,15 @@ defmodule ColdForgeWeb.AdminLive.Projects do
     |> List.first()
   end
 
+  # Multi-line placeholders come from functions rather than inline strings.
+  # In HEEx a plain attribute is literal text — `placeholder="a\nb"` shows a
+  # backslash and an n — and `mix format` rewrites the `{"a\nb"}` form that
+  # would fix it straight back into the broken one. A function call it leaves
+  # alone.
+  defp signature_hint, do: "Kris Utter\nExteriorPro\n(555) 123-4567"
+
+  defp merge_defaults_hint, do: "industry: contractors\nproduct: ExteriorPro"
+
   defp logo_error(:too_large), do: "That image is over 2 MB."
   defp logo_error(:not_accepted), do: "PNG or JPG only."
   defp logo_error(:too_many_files), do: "One logo at a time."
@@ -259,7 +268,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
             <textarea
               name="project[merge_defaults_text]"
               rows="3"
-              placeholder="industry: contractors\nproduct: ExteriorPro"
+              placeholder={merge_defaults_hint()}
               class="textarea w-full mt-1 font-mono text-sm"
             >{ColdForge.MergeFields.to_text(@form[:merge_defaults].value)}</textarea>
             <p class="text-xs text-base-content/50 mt-1">
@@ -276,7 +285,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
             field={@form[:signature]}
             label="Signature"
             rows="4"
-            placeholder="Kris Utter\nExteriorPro\n(555) 123-4567"
+            placeholder={signature_hint()}
           />
           <p class="text-xs text-base-content/50 -mt-2">
             Added above the unsubscribe footer on every send. In cold email this is
