@@ -39,7 +39,22 @@ project =
           # rather than a brand, so the from-name stays personal while the
           # sign-off carries the company.
           "from_name" => "Kris Utter",
-          "from_email" => "kris@exteriorpro.io",
+          # Deliberately NOT kris@exteriorpro.io. Three reasons, any one of them
+          # sufficient:
+          #
+          # 1. Replies have to come back to the inbound MX on the outreach
+          #    domain. Sent from exteriorpro.io, replies land in the normal
+          #    inbox, the webhook never sees them, and the drip keeps chasing
+          #    people who already answered.
+          # 2. Complaint reputation attaches to the From domain at Gmail and
+          #    Microsoft. Cold outreach signed as exteriorpro.io damages the
+          #    domain that sends proposals and invoices to paying customers.
+          # 3. `rfc_message_id/2` derives the Message-ID domain from this, so
+          #    the tie would follow the mail even where the From is rewritten.
+          #
+          # The pitch still leads with ExteriorPro — in the body, where it
+          # belongs, and where it costs nothing.
+          "from_email" => "kris@go.affordablestartup.com",
           "landing_url" => "https://exteriorpro.io/demo",
           "signature" =>
             "Kris Utter\nExteriorPro — a product of Affordable Startup LLC\nexteriorpro.io",

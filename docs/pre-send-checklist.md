@@ -19,11 +19,26 @@ A    go.affordablestartup.com    <box ipv4>
 AAAA go.affordablestartup.com    <box ipv6>
 ```
 
-## 2. SES
+## 2. SES — in its own AWS account
 
-The same SES account ExteriorPro uses is fine — the identity being verified is
-the sending domain, and this is a different one. The IAM user needs
-`ses:SendRawEmail` and nothing else.
+Use a **separate AWS account** under Affordable Startup LLC, not ExteriorPro's.
+
+SES tracks bounce and complaint rates *per account*, and what it pauses when
+they climb is the account's sending — not one domain. Cold outreach is the
+highest-complaint mail there is. Run it in ExteriorPro's account and a campaign
+that goes badly can stop the proposals, invoices and payment links going to
+paying customers. That is a bad day caused by a marketing experiment.
+
+The costs of separating are a second production-access request and a second set
+of DKIM records, both one-time. SES has no per-account minimum, and AWS
+Organizations gives you one bill across both — consolidated billing shares
+invoices, not reputation.
+
+Credential blast radius points the same way. These keys live on an
+internet-facing box beside a suppression list. In a shared account they could
+send as any verified identity in it, including exteriorpro.io.
+
+The IAM user needs `ses:SendRawEmail` and nothing else.
 
 SES is the adapter because it tolerates cold outreach as long as bounce and
 complaint rates stay low. Postmark, Resend and SendGrid prohibit it outright in
@@ -42,7 +57,25 @@ waiting to be closed.
 - [ ] **Production access.** New accounts are sandboxed and can only mail
       verified addresses. It is a support request — start it early.
 
-## 3. Inbound replies
+## 3. Send from the outreach domain, not the product's
+
+The account boundary protects you from AWS. It does nothing about Gmail and
+Microsoft, which track the reputation of the **From domain** regardless of who
+sent it. Cold mail signed as `exteriorpro.io` teaches them to distrust
+`exteriorpro.io` — the domain that also carries your customer mail.
+
+So the From address is `kris@go.affordablestartup.com`, and the pitch leads with
+ExteriorPro in the body, where it costs nothing.
+
+There is a mechanical reason too, and it bites first: replies have to arrive at
+the inbound MX on this domain. Sent from `exteriorpro.io`, replies land in the
+normal inbox, the webhook never sees them, and the drip keeps chasing people who
+already answered.
+
+`Message-ID` derives its domain from the From address, so this is one setting,
+not three.
+
+## 4. Inbound replies
 
 Without this, replies are invisible and people who already answered keep getting
 chased, which is the fastest way to look like a machine.
@@ -62,7 +95,7 @@ Verify by replying to a test send: it should appear under the project's
 **Replies** tab within seconds, matched `exact`. A run of `by address` matches
 means the `Message-ID` header isn't surviving the round trip.
 
-## 4. Warm-up
+## 5. Warm-up
 
 A domain with no sending history that suddenly emits hundreds a day is how a
 sending domain gets blocked, usually for good.
@@ -77,7 +110,7 @@ sending domain gets blocked, usually for good.
 The campaign's daily cap enforces this. It ships at 25 — week-two pacing. Raise
 it deliberately, not because a list is large.
 
-## 5. The content
+## 6. The content
 
 - [ ] **Postal address** on the project is the registered one for Affordable
       Startup LLC. It ships with a shouted placeholder on purpose: CAN-SPAM
@@ -86,3 +119,25 @@ it deliberately, not because a list is large.
 - [ ] Callback number set, or the voicemail scripts can't be filled in.
 - [ ] Read one rendered email on a phone before sending it to a stranger.
 - [ ] Click the unsubscribe link yourself.
+
+## Validating more than one idea
+
+This is the point of the Projects layer, and it changes almost nothing above.
+
+**One outreach AWS account, one warmed sending domain, for all of them.**
+Warm-up is per-domain and, at 25/day, takes weeks — a new domain per idea means
+every idea starts cold and slow. The isolation that actually matters is the one
+already drawn: between everything experimental and the products earning money.
+
+Give each project its own From *local part* on the shared domain
+(`kris@go.affordablestartup.com`, `hello@go.affordablestartup.com`) rather than
+its own domain. Cheap, and enough to tell campaigns apart in replies.
+
+Suppression is deliberately **global**, not per-project. Someone who
+unsubscribed from idea one must not hear from idea two — to them it is the same
+sender, because it is. This is the one thing that would be wrong to make
+per-project for tidiness.
+
+If an idea graduates into a real product with its own transactional mail, that
+is when it earns its own account and domain — and by then the outreach domain
+stays here, expendable, which is what it was for.
