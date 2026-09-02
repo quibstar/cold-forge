@@ -159,12 +159,20 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
         </select>
       </form>
 
-      <.link
-        navigate={~p"/admin/p/#{@project_id}/prospects/new"}
-        class="btn btn-primary btn-sm"
-      >
-        <.icon name="hero-plus" class="size-4" /> Add prospect
-      </.link>
+      <div class="flex gap-2">
+        <.link
+          navigate={~p"/admin/p/#{@project_id}/prospects/import"}
+          class="btn btn-sm"
+        >
+          <.icon name="hero-arrow-up-tray" class="size-4" /> Import CSV
+        </.link>
+        <.link
+          navigate={~p"/admin/p/#{@project_id}/prospects/new"}
+          class="btn btn-primary btn-sm"
+        >
+          <.icon name="hero-plus" class="size-4" /> Add prospect
+        </.link>
+      </div>
     </div>
 
     <div class="card bg-base-100 shadow-sm">

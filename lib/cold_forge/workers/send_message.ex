@@ -42,7 +42,10 @@ defmodule ColdForge.Workers.SendMessage do
         :ok
 
       true ->
-        case Sending.deliver_step(prospect, step, project, enrollment_id: enrollment.id) do
+        case Sending.deliver_step(prospect, step, project,
+               enrollment_id: enrollment.id,
+               branded: enrollment.sequence.branded
+             ) do
           {:ok, _message} ->
             {:ok, _} = Sending.advance_enrollment(enrollment)
             :ok

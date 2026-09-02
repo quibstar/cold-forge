@@ -44,15 +44,17 @@ defmodule ColdForgeWeb.AdminLiveTest do
       ~p"/admin/projects",
       ~p"/admin/projects/new",
       ~p"/admin/suppressions",
+      ~p"/admin/guide",
       ~p"/admin/p/#{ctx.project.id}/prospects",
       ~p"/admin/p/#{ctx.project.id}/prospects/new",
       ~p"/admin/p/#{ctx.project.id}/prospects/#{ctx.prospect.id}/edit",
-      ~p"/admin/p/#{ctx.project.id}/sequences",
-      ~p"/admin/p/#{ctx.project.id}/sequences/new",
-      ~p"/admin/p/#{ctx.project.id}/sequences/#{ctx.sequence.id}",
-      ~p"/admin/p/#{ctx.project.id}/sequences/#{ctx.sequence.id}/steps/new",
-      ~p"/admin/p/#{ctx.project.id}/sequences/#{ctx.sequence.id}/steps/#{ctx.step.id}",
-      ~p"/admin/p/#{ctx.project.id}/sequences/#{ctx.sequence.id}/enroll",
+      ~p"/admin/p/#{ctx.project.id}/prospects/import",
+      ~p"/admin/p/#{ctx.project.id}/campaigns",
+      ~p"/admin/p/#{ctx.project.id}/campaigns/new",
+      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}",
+      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}/people",
+      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}/emails/new",
+      ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}/emails/#{ctx.step.id}",
       ~p"/admin/p/#{ctx.project.id}/messages"
     ]
 
@@ -63,10 +65,10 @@ defmodule ColdForgeWeb.AdminLiveTest do
 
   test "the per-project nav section only appears once a project is in scope", ctx do
     {:ok, _view, html} = live(ctx.conn, ~p"/admin/projects")
-    refute html =~ ~s|href="/admin/p/#{ctx.project.id}/sequences"|
+    refute html =~ ~s|href="/admin/p/#{ctx.project.id}/campaigns"|
 
     {:ok, _view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects")
-    assert html =~ ~s|href="/admin/p/#{ctx.project.id}/sequences"|
+    assert html =~ ~s|href="/admin/p/#{ctx.project.id}/campaigns"|
   end
 
   describe "search palette" do
@@ -90,28 +92,85 @@ defmodule ColdForgeWeb.AdminLiveTest do
     end
   end
 
-  describe "sequence editor" do
-    test "refuses to activate a sequence with no emails", ctx do
+  describe "campaign editor" do
+    test "refuses to start a campaign with no emails", ctx do
       empty = sequence_fixture(ctx.project, name: "Empty")
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/sequences/#{empty.id}")
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/campaigns/#{empty.id}")
 
-      html = view |> element("button", "Activate") |> render_click()
+      html = view |> element("button", "Start") |> render_click()
 
-      assert html =~ "Add at least one email"
+      assert html =~ "Write at least one email"
       assert Outreach.get_sequence!(empty.id).status == "draft"
     end
 
-    test "previews the step against a real prospect", ctx do
+    test "previews the email as it will actually be sent", ctx do
       {:ok, _view, html} =
         live(
           ctx.conn,
-          ~p"/admin/p/#{ctx.project.id}/sequences/#{ctx.sequence.id}/steps/#{ctx.step.id}"
+          ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.sequence.id}/emails/#{ctx.step.id}"
         )
 
-      # The whole point of the preview: merge tags resolved, not shown raw.
+      # Merge tags resolved, not shown raw.
       assert html =~ "Quick question about Northside Siding"
       assert html =~ "Hi Dana,"
+      # And the parts the old preview didn't show: the tokenised link and the
+      # compliance footer that get added on send.
+      assert html =~ "/c/preview0"
+      assert html =~ "Unsubscribe"
     end
+  end
+
+  describe "csv import" do
+    test "walks upload, mapping and review without writing until committed", ctx do
+      {:ok, view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/import")
+      assert html =~ "Drop a CSV here"
+
+      csv = """
+      Email,First Name,Company,Roof Type
+      marcus@webbroofing.com,Marcus,Webb Roofing,Asphalt
+      dana@northsidesiding.com,Dana,Northside,Metal
+      """
+
+      entry =
+        file_input(view, "#csv-upload-form", :csv, [
+          %{name: "leads.csv", content: csv, type: "text/csv"}
+        ])
+
+      render_upload(entry, "leads.csv")
+      html = view |> element("#csv-upload-form") |> render_submit()
+
+      # Mapping step: guessed from the headers.
+      assert html =~ "Map the columns"
+      assert html =~ "Roof Type"
+
+      before = length(Outreach.list_prospects(ctx.project.id))
+      html = view |> element("button", "Review import") |> render_click()
+
+      # Review step reports what *would* happen, having written nothing.
+      assert html =~ "Will be added"
+      assert length(Outreach.list_prospects(ctx.project.id)) == before
+
+      view |> element("button[phx-click='commit']") |> render_click()
+
+      emails = Outreach.list_prospects(ctx.project.id) |> Enum.map(& &1.email)
+      assert "marcus@webbroofing.com" in emails
+      assert "dana@northsidesiding.com" in emails
+
+      # Unmapped columns survive the round trip as merge-tag data.
+      marcus =
+        Enum.find(
+          Outreach.list_prospects(ctx.project.id),
+          &(&1.email == "marcus@webbroofing.com")
+        )
+
+      assert marcus.custom_fields == %{"roof_type" => "Asphalt"}
+    end
+  end
+
+  test "the guide renders", ctx do
+    {:ok, _view, html} = live(ctx.conn, ~p"/admin/guide")
+    assert html =~ "How this works"
+    assert html =~ "Do not contact"
   end
 
   describe "prospects" do

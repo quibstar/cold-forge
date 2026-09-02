@@ -43,7 +43,7 @@ defmodule ColdForgeWeb.AdminLive.Dashboard do
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <.link
-                navigate={~p"/admin/p/#{project.id}/prospects"}
+                navigate={~p"/admin/p/#{project.id}/campaigns"}
                 class="font-semibold hover:text-primary truncate block"
               >
                 {project.name}
@@ -62,16 +62,16 @@ defmodule ColdForgeWeb.AdminLive.Dashboard do
 
           <div class="card-actions justify-end mt-4">
             <.link
-              navigate={~p"/admin/p/#{project.id}/sequences"}
+              navigate={~p"/admin/p/#{project.id}/prospects"}
               class="btn btn-sm btn-ghost"
             >
-              Sequences
+              Prospects
             </.link>
             <.link
-              navigate={~p"/admin/p/#{project.id}/prospects"}
+              navigate={~p"/admin/p/#{project.id}/campaigns"}
               class="btn btn-sm btn-primary"
             >
-              Prospects
+              Campaigns
             </.link>
           </div>
         </div>

@@ -149,6 +149,13 @@ defmodule ColdForgeWeb.Layouts do
           >
             Do not contact
           </.nav_link>
+          <.nav_link
+            navigate={~p"/admin/guide"}
+            icon="hero-book-open"
+            active={nav_active(@current_path, "/admin/guide")}
+          >
+            How this works
+          </.nav_link>
 
           <%!-- Prospects, sequences and activity are meaningless without a
           project to scope them to, so this section only appears once one is
@@ -156,18 +163,18 @@ defmodule ColdForgeWeb.Layouts do
           <div :if={@current_project}>
             <.nav_section>{@current_project.name}</.nav_section>
             <.nav_link
+              navigate={~p"/admin/p/#{@current_project.id}/campaigns"}
+              icon="hero-paper-airplane"
+              active={nav_active(@current_path, "/admin/p/#{@current_project.id}/campaigns")}
+            >
+              Campaigns
+            </.nav_link>
+            <.nav_link
               navigate={~p"/admin/p/#{@current_project.id}/prospects"}
               icon="hero-users"
               active={nav_active(@current_path, "/admin/p/#{@current_project.id}/prospects")}
             >
               Prospects
-            </.nav_link>
-            <.nav_link
-              navigate={~p"/admin/p/#{@current_project.id}/sequences"}
-              icon="hero-queue-list"
-              active={nav_active(@current_path, "/admin/p/#{@current_project.id}/sequences")}
-            >
-              Sequences
             </.nav_link>
             <.nav_link
               navigate={~p"/admin/p/#{@current_project.id}/messages"}

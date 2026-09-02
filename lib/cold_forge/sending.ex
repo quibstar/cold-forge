@@ -30,6 +30,7 @@ defmodule ColdForge.Sending do
         opts \\ []
       ) do
     enrollment_id = opts[:enrollment_id]
+    branded? = Keyword.get(opts, :branded, false)
 
     with :ok <- check_sendable(prospect, project) do
       base_url = base_url()
@@ -59,7 +60,7 @@ defmodule ColdForge.Sending do
           |> Ecto.Changeset.change(body: final_body)
           |> Repo.update!()
 
-        case deliver(message, prospect, project, final_body, base_url) do
+        case deliver(message, prospect, project, final_body, base_url, branded?) do
           {:ok, provider_id} ->
             mark_sent(message, provider_id)
 
@@ -87,14 +88,14 @@ defmodule ColdForge.Sending do
     end
   end
 
-  defp deliver(message, prospect, project, body, base_url) do
+  defp deliver(message, prospect, project, body, base_url, branded?) do
     email =
       Swoosh.Email.new()
       |> Swoosh.Email.to({Prospect.display_name(prospect), prospect.email})
       |> Swoosh.Email.from({project.from_name, project.from_email})
       |> Swoosh.Email.subject(message.subject)
       |> Swoosh.Email.text_body(body)
-      |> Swoosh.Email.html_body(Renderer.to_html(body, message, base_url))
+      |> Swoosh.Email.html_body(Renderer.to_html(body, message, base_url, project, branded?))
       |> maybe_reply_to(project)
       # RFC 8058: mail clients render a native "Unsubscribe" button from these,
       # which keeps people from reaching for "mark as spam" instead.
@@ -140,6 +141,41 @@ defmodule ColdForge.Sending do
       error: reason
     )
     |> Repo.update!()
+  end
+
+  @doc """
+  Sends the rendered email to `to_email` so the operator can see it in a real
+  inbox.
+
+  Deliberately writes no `messages` row and no tracked links: a test send is not
+  something the prospect did, and counting it would corrupt the numbers you use
+  to judge the campaign. Link tokens are the preview placeholders, so clicking
+  one in a test goes nowhere — that's the tradeoff for not polluting stats.
+  """
+  def deliver_test(
+        to_email,
+        subject,
+        body,
+        %Prospect{} = prospect,
+        %Project{} = project,
+        opts \\ []
+      ) do
+    branded? = Keyword.get(opts, :branded, false)
+    preview = Renderer.preview_message(subject, body, prospect, project, branded: branded?)
+
+    email =
+      Swoosh.Email.new()
+      |> Swoosh.Email.to(to_email)
+      |> Swoosh.Email.from({project.from_name, project.from_email})
+      |> Swoosh.Email.subject("[test] " <> preview.subject)
+      |> Swoosh.Email.text_body(preview.text)
+      |> Swoosh.Email.html_body(preview.html)
+      |> maybe_reply_to(project)
+
+    case Mailer.deliver(email) do
+      {:ok, _} -> :ok
+      {:error, reason} -> {:error, inspect(reason)}
+    end
   end
 
   @doc """

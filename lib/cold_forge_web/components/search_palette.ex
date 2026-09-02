@@ -20,7 +20,7 @@ defmodule ColdForgeWeb.SearchPalette do
   @entities [
     {:all, "All"},
     {:prospects, "Prospects"},
-    {:sequences, "Sequences"},
+    {:campaigns, "Campaigns"},
     {:projects, "Projects"}
   ]
 
@@ -93,14 +93,14 @@ defmodule ColdForgeWeb.SearchPalette do
     )
   end
 
-  defp items_for(:sequences, q, limit) do
+  defp items_for(:campaigns, q, limit) do
     q
     |> Outreach.search_sequences(limit)
     |> Enum.map(
       &%{
         title: &1.name,
-        subtitle: "#{&1.status} sequence",
-        path: ~p"/admin/p/#{&1.project_id}/sequences/#{&1.id}"
+        subtitle: "#{&1.status} campaign",
+        path: ~p"/admin/p/#{&1.project_id}/campaigns/#{&1.id}"
       }
     )
   end
@@ -191,7 +191,7 @@ defmodule ColdForgeWeb.SearchPalette do
               No matches for “{@q}”.
             </p>
             <p :if={@q == ""} class="px-3 py-8 text-center text-sm text-base-content/50">
-              Type to search — name, email, company, or sequence.
+              Type to search — name, email, company, or campaign.
             </p>
             <div :for={section <- @results} class="mb-1">
               <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-base-content/40">

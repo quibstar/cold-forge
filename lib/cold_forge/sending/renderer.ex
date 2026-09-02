@@ -145,7 +145,10 @@ defmodule ColdForge.Sending.Renderer do
   def append_footer(body, %Prospect{} = prospect, %Project{} = project, base_url) do
     unsubscribe_url = unsubscribe_url(base_url, prospect)
 
-    body = String.replace(body, "{{unsubscribe_url}}", unsubscribe_url)
+    body =
+      body
+      |> append_signature(project)
+      |> String.replace("{{unsubscribe_url}}", unsubscribe_url)
 
     if String.contains?(body, unsubscribe_url) do
       body
@@ -167,10 +170,80 @@ defmodule ColdForge.Sending.Renderer do
     do: "#{base_url}/o/#{message.open_token}.png"
 
   @doc """
-  A minimal HTML part: paragraphs, linkified URLs, and the open pixel. No
-  styling — the plain-text part is the real message.
+  The project's sign-off, added unless the body already ends with one.
+
+  This is the branding that belongs in cold mail: a person's name and details,
+  not a letterhead. Skipped when the author has clearly written their own —
+  a doubled signature reads worse than none.
   """
-  def to_html(text, %Message{} = message, base_url) do
+  def append_signature(body, %Project{signature: signature}) when signature in [nil, ""],
+    do: body
+
+  def append_signature(body, %Project{signature: signature}) do
+    trimmed = String.trim(signature)
+
+    if String.contains?(body, trimmed) do
+      body
+    else
+      String.trim_trailing(body) <> "\n\n" <> trimmed
+    end
+  end
+
+  @doc """
+  Everything a message will look like, without writing anything to the database.
+
+  Used by the preview pane and the test send. Link tokens are fake — creating
+  real ones would mean a `tracked_links` row per keystroke, and a click count
+  polluted by your own previews.
+  """
+  def preview_message(subject, body, %Prospect{} = prospect, %Project{} = project, opts \\ []) do
+    base_url = opts[:base_url] || ColdForgeWeb.Endpoint.url()
+    branded? = Keyword.get(opts, :branded, false)
+
+    subject = apply_tags(subject, merge_values(prospect, project))
+
+    text =
+      body
+      |> apply_tags(merge_values(prospect, project))
+      |> fake_tracked_links(base_url)
+      |> append_footer(prospect, project, base_url)
+
+    %{
+      subject: subject,
+      text: text,
+      html: html_body(text, preview_pixel(base_url), project, branded?)
+    }
+  end
+
+  # Mirrors rewrite_links/3 exactly, minus the inserts — so what you see in the
+  # preview is the shape of what goes out.
+  defp fake_tracked_links(body, base_url) do
+    body
+    |> extract_urls()
+    |> Enum.reject(&internal?(&1, base_url))
+    |> Enum.uniq()
+    |> Enum.sort_by(&String.length/1, :desc)
+    |> Enum.with_index()
+    |> Enum.reduce(body, fn {url, index}, acc ->
+      String.replace(acc, url, "#{base_url}/c/preview#{index}")
+    end)
+  end
+
+  defp preview_pixel(base_url), do: "#{base_url}/o/preview.png"
+
+  @doc """
+  A minimal HTML part: paragraphs, linkified URLs, and the open pixel.
+
+  Plain by default. The plain-text part is the real message, and an HTML
+  template around a cold email is the clearest signal that it was sent in bulk.
+  `branded: true` opts into the wrapper for blasts, where the recipient already
+  knows who you are.
+  """
+  def to_html(text, %Message{} = message, base_url, project \\ nil, branded? \\ false) do
+    html_body(text, open_pixel_url(base_url, message), project, branded?)
+  end
+
+  defp html_body(text, pixel_url, project, branded?) do
     paragraphs =
       text
       |> String.split(~r/\n{2,}/)
@@ -182,12 +255,47 @@ defmodule ColdForge.Sending.Renderer do
         |> then(&"<p>#{&1}</p>")
       end)
 
-    pixel = ~s(<img src="#{open_pixel_url(base_url, message)}" width="1" height="1" alt="">)
+    pixel = ~s(<img src="#{pixel_url}" width="1" height="1" alt="">)
 
+    if branded? and project do
+      branded_html(paragraphs, pixel, project)
+    else
+      plain_html(paragraphs, pixel)
+    end
+  end
+
+  defp plain_html(paragraphs, pixel) do
     """
     <div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">
     #{paragraphs}
     </div>
+    #{pixel}
+    """
+  end
+
+  # Table-based and inline-styled because mail clients are not browsers —
+  # Outlook ignores most of a stylesheet and flexbox outright.
+  defp branded_html(paragraphs, pixel, %Project{} = project) do
+    accent = project.brand_color || "#0f766e"
+
+    logo =
+      if project.logo_url in [nil, ""] do
+        ~s(<span style="font-size:18px;font-weight:700;color:#fff">#{escape(project.from_name)}</span>)
+      else
+        ~s(<img src="#{project.logo_url}" alt="#{escape(project.name)}" height="32" style="height:32px;display:block;border:0">)
+      end
+
+    """
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f5;padding:24px 0">
+      <tr><td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background:#fff;border-radius:8px;overflow:hidden">
+          <tr><td style="background:#{accent};padding:20px 24px">#{logo}</td></tr>
+          <tr><td style="padding:24px;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">
+            #{paragraphs}
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
     #{pixel}
     """
   end

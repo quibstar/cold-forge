@@ -202,6 +202,34 @@ defmodule ColdForgeWeb.AdminLive.Projects do
 
           <.input field={@form[:timezone]} label="Timezone" placeholder="America/New_York" />
 
+          <div class="divider text-xs text-base-content/40">Branding</div>
+
+          <.input
+            type="textarea"
+            field={@form[:signature]}
+            label="Signature"
+            rows="4"
+            placeholder="Kris Utter\nExteriorPro\n(555) 123-4567"
+          />
+          <p class="text-xs text-base-content/50 -mt-2">
+            Added above the unsubscribe footer on every send. In cold email this is
+            the branding that works — a sign-off from a person, not a letterhead.
+          </p>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <.input
+              field={@form[:logo_url]}
+              label="Logo URL"
+              placeholder="https://exteriorpro.io/logo.png"
+            />
+            <.input field={@form[:brand_color]} label="Brand colour" placeholder="#0f766e" />
+          </div>
+          <p class="text-xs text-base-content/50 -mt-2">
+            Used only by blasts with branded HTML turned on. Drips stay plain —
+            a designed template is the clearest signal that mail was sent in bulk,
+            and it costs you the Primary tab.
+          </p>
+
           <div class="flex justify-end gap-2 pt-2">
             <.link navigate={~p"/admin/projects"} class="btn btn-ghost">Cancel</.link>
             <button type="submit" class="btn btn-primary" phx-disable-with="Saving…">

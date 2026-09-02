@@ -63,6 +63,7 @@ defmodule ColdForge.MixProject do
       {:gen_smtp, "~> 1.2"},
       {:oban, "~> 2.19"},
       {:tz, "~> 0.28"},
+      {:nimble_csv, "~> 1.2"},
       {:req, "~> 0.5"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},

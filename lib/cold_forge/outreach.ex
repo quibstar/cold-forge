@@ -196,7 +196,7 @@ defmodule ColdForge.Outreach do
   def list_sequences(project_id) do
     Sequence
     |> where([s], s.project_id == ^project_id)
-    |> order_by([s], asc: s.name)
+    |> order_by([s], desc: s.inserted_at)
     |> Repo.all()
   end
 
@@ -230,6 +230,44 @@ defmodule ColdForge.Outreach do
   end
 
   def pause_sequence(%Sequence{} = sequence), do: update_sequence(sequence, %{status: "paused"})
+
+  @doc """
+  Activates a campaign and enrolls the chosen recipients in one go.
+
+  Sending is still the scheduler's job — this only makes people due. That keeps
+  the daily cap meaningful: a campaign to 2,000 people at 50/day goes out over
+  forty days rather than torching the sending domain in an hour.
+  """
+  def send_campaign(%Sequence{} = sequence, prospect_ids) do
+    with {:ok, sequence} <- activate_sequence(sequence),
+         {:ok, result} <- enroll_prospects(sequence, prospect_ids) do
+      {:ok, result}
+    end
+  end
+
+  @doc "Sent/opened/clicked for one campaign — the numbers on its own page."
+  def campaign_stats(sequence_id) do
+    base =
+      from(m in Message,
+        join: e in assoc(m, :enrollment),
+        where: e.sequence_id == ^sequence_id
+      )
+
+    sent = Repo.one(from [m, _e] in base, where: m.status == "sent", select: count(m.id))
+
+    opened =
+      Repo.one(from [m, _e] in base, where: not is_nil(m.first_opened_at), select: count(m.id))
+
+    clicked =
+      Repo.one(
+        from [m, _e] in base,
+          join: l in assoc(m, :tracked_links),
+          where: l.click_count > 0,
+          select: count(m.id, :distinct)
+      )
+
+    %{sent: sent, opened: opened, clicked: clicked}
+  end
 
   ## Sequence steps
 

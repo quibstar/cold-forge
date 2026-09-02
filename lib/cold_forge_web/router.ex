@@ -87,17 +87,19 @@ defmodule ColdForgeWeb.Router do
       live "/projects/:id/edit", AdminLive.Projects, :edit
 
       live "/suppressions", AdminLive.Suppressions, :index
+      live "/guide", AdminLive.Guide, :index
 
       live "/p/:project_id/prospects", AdminLive.Prospects, :index
       live "/p/:project_id/prospects/new", AdminLive.Prospects, :new
+      live "/p/:project_id/prospects/import", AdminLive.Import, :new
       live "/p/:project_id/prospects/:id/edit", AdminLive.Prospects, :edit
 
-      live "/p/:project_id/sequences", AdminLive.Sequences, :index
-      live "/p/:project_id/sequences/new", AdminLive.Sequences, :new
-      live "/p/:project_id/sequences/:id", AdminLive.SequenceShow, :show
-      live "/p/:project_id/sequences/:id/steps/new", AdminLive.SequenceShow, :new_step
-      live "/p/:project_id/sequences/:id/steps/:step_id", AdminLive.SequenceShow, :edit_step
-      live "/p/:project_id/sequences/:id/enroll", AdminLive.SequenceShow, :enroll
+      live "/p/:project_id/campaigns", AdminLive.Campaigns, :index
+      live "/p/:project_id/campaigns/new", AdminLive.Campaigns, :new
+      live "/p/:project_id/campaigns/:id", AdminLive.CampaignShow, :show
+      live "/p/:project_id/campaigns/:id/people", AdminLive.CampaignShow, :people
+      live "/p/:project_id/campaigns/:id/emails/new", AdminLive.CampaignShow, :new_email
+      live "/p/:project_id/campaigns/:id/emails/:step_id", AdminLive.CampaignShow, :edit_email
 
       live "/p/:project_id/messages", AdminLive.Messages, :index
       live "/p/:project_id/messages/:id", AdminLive.Messages, :show

@@ -1,8 +1,14 @@
 defmodule ColdForge.Outreach.Sequence do
   @moduledoc """
-  An ordered drip: steps, plus the window they're allowed to go out in. The
-  window and daily cap live here rather than on the project because two
-  sequences on the same project may want very different pacing.
+  A campaign: an ordered set of emails plus the window they're allowed to go
+  out in.
+
+  One email with no delay is a blast; several with delays is a drip. That's the
+  only difference between them, so there's no `kind` — the steps already say
+  which it is.
+
+  The window and daily cap live here rather than on the project because two
+  campaigns on the same project may want very different pacing.
   """
   use Ecto.Schema
   import Ecto.Changeset
@@ -12,6 +18,7 @@ defmodule ColdForge.Outreach.Sequence do
   schema "sequences" do
     field :name, :string
     field :status, :string, default: "draft"
+    field :branded, :boolean, default: false
     field :send_window_start, :integer, default: 8
     field :send_window_end, :integer, default: 17
     field :send_days, {:array, :integer}, default: [1, 2, 3, 4, 5]
@@ -33,6 +40,7 @@ defmodule ColdForge.Outreach.Sequence do
       :project_id,
       :name,
       :status,
+      :branded,
       :send_window_start,
       :send_window_end,
       :send_days,

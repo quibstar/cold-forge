@@ -14,6 +14,9 @@ defmodule ColdForge.Outreach.Project do
     field :reply_to, :string
     field :landing_url, :string
     field :postal_address, :string
+    field :signature, :string
+    field :logo_url, :string
+    field :brand_color, :string
     field :timezone, :string, default: "America/New_York"
     field :active, :boolean, default: true
 
@@ -34,6 +37,9 @@ defmodule ColdForge.Outreach.Project do
       :reply_to,
       :landing_url,
       :postal_address,
+      :signature,
+      :logo_url,
+      :brand_color,
       :timezone,
       :active
     ])
@@ -46,6 +52,10 @@ defmodule ColdForge.Outreach.Project do
       message: "must be a valid email"
     )
     |> validate_url(:landing_url)
+    |> validate_optional_url(:logo_url)
+    |> validate_format(:brand_color, ~r/^#[0-9a-fA-F]{6}$/,
+      message: "must be a hex colour like #0f766e"
+    )
     |> unique_constraint(:slug)
   end
 
@@ -65,6 +75,16 @@ defmodule ColdForge.Outreach.Project do
     |> String.downcase()
     |> String.replace(~r/[^a-z0-9]+/, "-")
     |> String.trim("-")
+  end
+
+  # A logo referenced by a relative path would resolve against the recipient's
+  # mail client, not our site — it has to be absolute or it's a broken image.
+  defp validate_optional_url(changeset, field) do
+    case get_field(changeset, field) do
+      nil -> changeset
+      "" -> changeset
+      _ -> validate_url(changeset, field)
+    end
   end
 
   # A landing URL that isn't absolute would redirect back into Cold Forge
