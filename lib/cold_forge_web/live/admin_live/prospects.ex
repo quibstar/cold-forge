@@ -159,10 +159,10 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
           name="search"
           value={@search}
           placeholder="Search name, email or company…"
-          class="input input-bordered input-sm flex-1"
+          class="input input-sm flex-1"
           phx-debounce="300"
         />
-        <select name="status" class="select select-bordered select-sm">
+        <select name="status" class="select select-sm">
           <option value="all" selected={@status == "all"}>All statuses</option>
           <option :for={s <- Prospect.statuses()} value={s} selected={@status == s}>
             {String.capitalize(s)} ({Map.get(@counts, s, 0)})

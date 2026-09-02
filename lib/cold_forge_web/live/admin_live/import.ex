@@ -217,7 +217,7 @@ defmodule ColdForgeWeb.AdminLive.Import do
               <span :if={field == :email} class="text-error">*</span>
             </label>
             <select
-              class="select select-bordered select-sm w-full mt-1"
+              class="select select-sm w-full mt-1"
               phx-change="set_mapping"
               name="index"
             >

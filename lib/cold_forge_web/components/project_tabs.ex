@@ -14,7 +14,10 @@ defmodule ColdForgeWeb.ProjectTabs do
 
   def project_tabs(assigns) do
     ~H"""
-    <div role="tablist" class="tabs tabs-bordered mb-6">
+    <%!-- `tabs-border`, not `tabs-bordered` — the latter is daisyUI 4 syntax and
+    silently does nothing on the vendored v5 build, which leaves the active tab
+    with no underline at all. --%>
+    <div role="tablist" class="tabs tabs-border mb-6">
       <.link
         :for={{label, path, icon} <- tabs(@project)}
         role="tab"
