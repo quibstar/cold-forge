@@ -388,6 +388,47 @@ defmodule ColdForge.SurveyTest do
     end
   end
 
+  describe "creating a survey with its questions" do
+    test "one save creates both", ctx do
+      {:ok, survey} =
+        Survey.create_survey(%{
+          "project_id" => ctx.project.id,
+          "name" => "Written in one go",
+          "questions" => %{
+            "0" => %{
+              "position" => "1",
+              "kind" => "choice",
+              "prompt" => "Worst bit?",
+              "options" => "Scheduling\nInvoicing"
+            },
+            "1" => %{"position" => "2", "kind" => "text", "prompt" => "Anything else?"}
+          },
+          "questions_order" => ["0", "1"]
+        })
+
+      assert [
+               %{position: 1, kind: "choice", options: ["Scheduling", "Invoicing"]},
+               %{position: 2, kind: "text", prompt: "Anything else?"}
+             ] = Survey.list_questions(survey.id)
+    end
+
+    test "an invalid question stops the survey being created too", ctx do
+      before = length(Survey.list_surveys(ctx.project.id))
+
+      assert {:error, _changeset} =
+               Survey.create_survey(%{
+                 "project_id" => ctx.project.id,
+                 "name" => "Broken",
+                 "questions" => %{
+                   "0" => %{"position" => "1", "kind" => "choice", "prompt" => "?", "options" => "A"}
+                 },
+                 "questions_order" => ["0"]
+               })
+
+      assert length(Survey.list_surveys(ctx.project.id)) == before
+    end
+  end
+
   describe "surveys are reusable" do
     test "the same survey answered from two campaigns pools its results", ctx do
       q = question(ctx.survey, %{"kind" => "choice", "prompt" => "?", "options" => "A\nB"})

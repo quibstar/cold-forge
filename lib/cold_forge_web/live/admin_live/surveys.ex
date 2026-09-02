@@ -8,8 +8,10 @@ defmodule ColdForgeWeb.AdminLive.Surveys do
   use ColdForgeWeb, :live_view
 
   import ColdForgeWeb.ProjectTabs
+  import ColdForgeWeb.SurveyQuestions
 
   alias ColdForge.Survey
+  alias ColdForge.Survey.Question
   alias ColdForge.Survey.Survey, as: Sheet
 
   @impl true
@@ -33,18 +35,27 @@ defmodule ColdForgeWeb.AdminLive.Surveys do
   end
 
   defp apply_action(socket, :new, _params) do
+    # Starts with one blank question rather than an empty list: a survey with no
+    # questions isn't a thing anyone wants, and making them save, navigate, then
+    # add one is two steps where there should be none.
+    blank = %Sheet{questions: [%Question{kind: "choice"}]}
+
     socket
     |> assign(:page_title, "New survey")
     |> assign(:breadcrumbs, [
       {"Projects", ~p"/admin/projects"},
       {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}/surveys"}
     ])
-    |> assign(:form, to_form(Survey.change_survey(%Sheet{})))
+    |> assign(:form, to_form(Sheet.changeset(blank, %{})))
   end
 
   @impl true
   def handle_event("validate", %{"survey" => params}, socket) do
-    changeset = %Sheet{} |> Survey.change_survey(params) |> Map.put(:action, :validate)
+    changeset =
+      %Sheet{questions: []}
+      |> Sheet.changeset(params)
+      |> Map.put(:action, :validate)
+
     {:noreply, assign(socket, :form, to_form(changeset))}
   end
 
@@ -121,9 +132,9 @@ defmodule ColdForgeWeb.AdminLive.Surveys do
 
   def render(assigns) do
     ~H"""
-    <div class="card bg-base-100 shadow-sm">
-      <div class="card-body">
-        <.form for={@form} phx-change="validate" phx-submit="save" id="survey-form" class="space-y-4">
+    <.form for={@form} phx-change="validate" phx-submit="save" id="survey-form" class="space-y-4">
+      <div class="card bg-base-100 shadow-sm">
+        <div class="card-body">
           <.input field={@form[:name]} label="Survey name" placeholder="What hurts most" />
           <p class="text-xs text-base-content/50 -mt-2">Only you see this.</p>
 
@@ -144,18 +155,19 @@ defmodule ColdForgeWeb.AdminLive.Surveys do
             field={@form[:thank_you]}
             label="Thank-you message (optional)"
             rows="2"
-            placeholder="That's genuinely useful — thank you."
           />
-
-          <div class="flex justify-end gap-2 pt-2">
-            <.link navigate={~p"/admin/p/#{@project_id}/surveys"} class="btn btn-ghost">Cancel</.link>
-            <button type="submit" class="btn btn-primary" phx-disable-with="Creating…">
-              Create survey
-            </button>
-          </div>
-        </.form>
+        </div>
       </div>
-    </div>
+
+      <.survey_questions form={@form} />
+
+      <div class="flex justify-end gap-2">
+        <.link navigate={~p"/admin/p/#{@project_id}/surveys"} class="btn btn-ghost">Cancel</.link>
+        <button type="submit" class="btn btn-primary" phx-disable-with="Creating…">
+          Create survey
+        </button>
+      </div>
+    </.form>
     """
   end
 end

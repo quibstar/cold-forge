@@ -17,7 +17,7 @@ defmodule ColdForge.Outreach.Importer do
 
   # Columns we can map onto. Anything else the file carries is kept verbatim in
   # `custom_fields`, so a merge tag can reach it.
-  @fields ~w(email first_name last_name company title phone website source notes)a
+  @fields ~w(email first_name last_name company title industry phone website source notes)a
 
   @doc "The prospect fields a CSV column can be mapped to."
   def fields, do: @fields
@@ -68,6 +68,7 @@ defmodule ColdForge.Outreach.Importer do
         {~w(lastname last lname surname familyname), :last_name},
         {~w(company companyname organization organisation business account), :company},
         {~w(title jobtitle position role), :title},
+        {~w(industry sector vertical trade), :industry},
         {~w(phone phonenumber telephone mobile cell), :phone},
         {~w(website url site domain web), :website},
         {~w(source leadsource origin), :source},
