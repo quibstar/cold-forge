@@ -169,6 +169,47 @@ defmodule ColdForge.Outreach do
     end)
   end
 
+  @doc """
+  Every prospect with this address, across all projects.
+
+  Plural because the same person can be a prospect for more than one idea, and a
+  bounce or complaint is about the address rather than about one campaign — it
+  has to stop all of them.
+  """
+  def prospects_by_email(email) when is_binary(email) do
+    normalized = email |> String.trim() |> String.downcase()
+
+    Prospect
+    |> where([p], fragment("lower(?)", p.email) == ^normalized)
+    |> Repo.all()
+  end
+
+  def prospects_by_email(_), do: []
+
+  @doc """
+  Marks a prospect as having complained, suppresses them, and stops their
+  campaigns.
+
+  The status is `unsubscribed` rather than a status of its own: from the
+  prospect's side a spam complaint *is* an opt-out, and the stronger claim —
+  that they reported it rather than clicked a link — is kept on the suppression
+  record, where the reason lives.
+  """
+  def mark_complained(%Prospect{} = prospect, notes \\ nil) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    Repo.transaction(fn ->
+      {:ok, prospect} =
+        prospect
+        |> Ecto.Changeset.change(status: "unsubscribed", unsubscribed_at: now)
+        |> Repo.update()
+
+      suppress(prospect.email, "complained", %{project_id: prospect.project_id, notes: notes})
+      stop_enrollments(prospect, "complained")
+      prospect
+    end)
+  end
+
   @doc "Marks a prospect as bounced, suppresses them, and stops their campaigns."
   def mark_bounced(%Prospect{} = prospect, notes \\ nil) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)

@@ -136,8 +136,10 @@ accounts closed later.
   (RFC 8058 `List-Unsubscribe` / `List-Unsubscribe-Post`) plus a link in the
   footer. Opt-outs go to a global suppression list that blocks the address
   across every campaign, immediately and permanently.
-- **How you handle bounces and complaints:** *see the gap below before answering
-  this one.*
+- **How you handle bounces and complaints:** SNS bounce and complaint topics
+  post to an endpoint that adds the address to a global suppression list
+  automatically and stops every campaign it is in. Permanent bounces and
+  complaints suppress immediately; transient bounces do not.
 
 ---
 
@@ -184,24 +186,58 @@ means `Message-ID` isn't surviving the round trip.
 
 ---
 
-## The gap: bounces and complaints are not automated yet
+## Phase 6 — bounces and complaints
 
-The machinery exists — `mark_bounced/2`, and a suppression list with `bounced`
-and `complained` reasons — but **nothing receives SES's bounce and complaint
-notifications**. Today they would only be recorded if you entered them by hand.
+This is the one that keeps the account alive. SES suspends senders above
+roughly **5% bounces** or **0.1% complaints**, measured whether or not anyone is
+watching, and cold outreach to hand-collected addresses starts well above 5%
+until the list cleans itself.
 
-This matters more than it sounds. SES suspends accounts above roughly **5%
-bounces** or **0.1% complaints**, and those are measured whether or not you are
-watching. Cold outreach to scraped business addresses bounces at well above 5%
-until the list is cleaned.
+The endpoint is `/feedback/:token` — a different path from replies, so the two
+SNS topics cannot be subscribed to each other by accident. It uses the **same**
+`INBOUND_TOKEN`.
 
-So on the production-access form, describe what is true today: SNS bounce and
-complaint topics feeding an endpoint that suppresses the address automatically,
-**being wired up before first send** — and then actually wire it up. It is a
-small endpoint alongside the existing `/inbound` one, and it is the difference
-between a list that cleans itself and an account that gets suspended.
+1. SNS → Create topic, e.g. `cold-forge-feedback`.
+2. SES → Verified identities → `go.affordablestartup.com` → **Notifications** →
+   edit Feedback notifications. Set **Bounce** and **Complaint** to that topic.
+   Leave Delivery off — it is a lot of traffic that changes nothing.
+3. Check **Include original headers**.
+4. SNS → the topic → Create subscription → protocol **HTTPS**, endpoint
+   `https://go.affordablestartup.com/feedback/<INBOUND_TOKEN>`
+5. Confirm the subscription **from the SNS console**. The app logs the
+   confirmation URL but deliberately never follows it: confirming by fetching a
+   URL out of a request body would let anyone holding the token point the
+   endpoint at a topic of their choosing.
 
----
+### What it does
+
+| SES sends | Result |
+|---|---|
+| Bounce, `Permanent` | Suppressed as `bounced`, prospect marked, campaigns stopped |
+| Bounce, `Transient` / `Undetermined` | **Nothing** — a full mailbox is not a dead address |
+| Complaint | Suppressed as `complained`, campaigns stopped |
+| Complaint, `not-spam` | **Nothing** — the recipient rescued it *from* spam |
+| Delivery, anything else | Ignored |
+
+Suppression is global and happens even when no prospect matches, because SES
+reports bounces for addresses whose prospect has since been deleted. Redelivery
+is safe: SNS delivers at least once, and every path here is idempotent.
+
+### Test it before you trust it
+
+SES has mailbox simulator addresses that produce each outcome without touching a
+real inbox or counting against your reputation. Add them as prospects and send:
+
+```
+bounce@simulator.amazonses.com      → permanent bounce
+complaint@simulator.amazonses.com   → complaint
+success@simulator.amazonses.com     → clean delivery
+```
+
+After the first two, both addresses should appear on the suppression list with
+reasons `bounced` and `complained`. If they don't, the subscription is not
+confirmed — that is the failure this step exists to catch, and catching it here
+costs nothing.
 
 ## Order of operations
 
@@ -211,7 +247,8 @@ between a list that cleans itself and an account that gets suspended.
 4. Request production access — start it, don't wait on it *(Phase 4)*
 5. Fill in `deploy/.env`, deploy, add the Caddy block *(`deploy/README.md`)*
 6. Send yourself a test; click the unsubscribe link
-7. Wire bounce/complaint handling *(the gap above)*
+7. Wire bounce and complaint notifications, and test with the simulator
+   addresses *(Phase 6)*
 8. Add inbound MX and SNS *(Phase 5)*
 9. Replace the postal-address placeholder, then send for real
    *(`pre-send-checklist.md`)*

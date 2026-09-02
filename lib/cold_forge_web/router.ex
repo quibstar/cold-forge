@@ -26,6 +26,14 @@ defmodule ColdForgeWeb.Router do
     post "/:token", InboundController, :create
   end
 
+  # Bounces and complaints from SES, over a different SNS topic. A separate path
+  # from replies so the two topics cannot be subscribed to each other's endpoint.
+  scope "/feedback", ColdForgeWeb do
+    pipe_through :api
+
+    post "/:token", FeedbackController, :create
+  end
+
   # The endpoints that appear inside outgoing mail. Deliberately *not*
   # `:protect_from_forgery` — RFC 8058 one-click unsubscribe is POSTed by the
   # recipient's mail client, which has no CSRF token to send. Nothing here

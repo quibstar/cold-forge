@@ -78,6 +78,46 @@ defmodule ColdForgeWeb.InboundControllerTest do
       assert %{"matched_by" => "exact"} = json_response(conn, 200)
     end
 
+    test "reads it through the real SNS envelope", ctx do
+      # What SES actually POSTs. SNS does not deliver the payload — it delivers
+      # its own object with the payload as a JSON *string* under "Message".
+      # Read straight off `params`, every field comes back nil and the reply is
+      # silently dropped as unmatched, which is the worst possible failure:
+      # replies stop being detected and the drip keeps chasing people who
+      # already answered.
+      conn =
+        post(ctx.conn, ~p"/inbound/#{@token}", %{
+          "Type" => "Notification",
+          "TopicArn" => "arn:aws:sns:us-east-1:123456789012:cold-forge-inbound",
+          "Message" =>
+            Jason.encode!(%{
+              "notificationType" => "Received",
+              "mail" => %{
+                "source" => "sam@riveraroofing.com",
+                "messageId" => "ses-sns-1",
+                "commonHeaders" => %{"subject" => "Re: Quick question"},
+                "headers" => [
+                  %{"name" => "In-Reply-To", "value" => "<#{ctx.message.rfc_message_id}>"}
+                ]
+              }
+            })
+        })
+
+      assert %{"matched_by" => "exact"} = json_response(conn, 200)
+      assert Repo.reload(ctx.prospect).status == "replied"
+    end
+
+    test "a subscription confirmation is acknowledged, never followed", ctx do
+      conn =
+        post(ctx.conn, ~p"/inbound/#{@token}", %{
+          "Type" => "SubscriptionConfirmation",
+          "SubscribeURL" => "https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription"
+        })
+
+      assert json_response(conn, 200) == %{"status" => "confirmation_pending"}
+      assert Inbox.list_replies(ctx.project.id) == []
+    end
+
     test "mail from a stranger is accepted and ignored", ctx do
       conn = post(ctx.conn, ~p"/inbound/#{@token}", %{"from" => "nobody@elsewhere.com"})
 

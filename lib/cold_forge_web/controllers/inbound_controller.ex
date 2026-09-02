@@ -16,14 +16,31 @@ defmodule ColdForgeWeb.InboundController do
 
   require Logger
 
-  alias ColdForge.Inbox
+  alias ColdForge.{Inbox, SNS}
 
   def create(conn, %{"token" => token} = params) do
-    if authorized?(token) do
-      params |> parse() |> handle(conn)
+    if ColdForgeWeb.WebhookAuth.authorized?(token) do
+      params |> SNS.unwrap() |> dispatch(conn)
     else
       conn |> put_status(:unauthorized) |> json(%{error: "unauthorized"})
     end
+  end
+
+  # SES delivers over SNS, which wraps the real payload in its own envelope.
+  # Without unwrapping, every field parses to nil and the reply is silently
+  # dropped as unmatched.
+  defp dispatch({:confirmation, url}, conn) do
+    Logger.info("SNS subscription confirmation received — confirm in the console: #{url}")
+    json(conn, %{status: "confirmation_pending"})
+  end
+
+  defp dispatch({:unsubscribe_confirmation, _url}, conn) do
+    Logger.warning("SNS unsubscribe confirmation — inbound replies have been detached")
+    json(conn, %{status: "ok"})
+  end
+
+  defp dispatch({kind, payload}, conn) when kind in [:notification, :raw] do
+    payload |> parse() |> handle(conn)
   end
 
   defp handle(email, conn) do
@@ -42,18 +59,6 @@ defmodule ColdForgeWeb.InboundController do
       {:error, reason} ->
         Logger.error("inbound reply failed: #{inspect(reason)}")
         conn |> put_status(:unprocessable_entity) |> json(%{error: "could not record"})
-    end
-  end
-
-  # A constant-time compare, because a shared secret checked with `==` leaks its
-  # length and prefix to anyone willing to time the responses.
-  defp authorized?(token) do
-    case Application.get_env(:cold_forge, :inbound_token) do
-      secret when is_binary(secret) and secret != "" ->
-        Plug.Crypto.secure_compare(token, secret)
-
-      _ ->
-        false
     end
   end
 

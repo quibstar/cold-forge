@@ -121,6 +121,9 @@ it deliberately, not because a list is large.
 - [ ] Callback number set, or the voicemail scripts can't be filled in.
 - [ ] Read one rendered email on a phone before sending it to a stranger.
 - [ ] Click the unsubscribe link yourself.
+- [ ] Bounce and complaint notifications are subscribed and confirmed, proven
+      with SES's simulator addresses. Without them the list never cleans itself
+      and the account gets suspended by its own bounce rate.
 
 ## Validating more than one idea
 
