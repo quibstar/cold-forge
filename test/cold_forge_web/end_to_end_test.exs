@@ -107,8 +107,22 @@ defmodule ColdForgeWeb.EndToEndTest do
     ## 4. A campaign: an opener that asks the survey, and a follow-up three days
     ##    later.
 
+    # Pinned to a weekday two days out, so "nothing is due yet" below holds
+    # whatever time the suite runs at — enrolling inside the send window makes
+    # somebody due immediately, which is correct behaviour, not a bug.
+    send_day =
+      DateTime.utc_now()
+      |> DateTime.shift_zone!(project.timezone)
+      |> DateTime.to_date()
+      |> Date.add(2)
+      |> Date.day_of_week()
+
     {:ok, campaign} =
-      Outreach.create_campaign(%{"project_id" => project.id, "name" => "Roofers — spring"})
+      Outreach.create_campaign(%{
+        "project_id" => project.id,
+        "name" => "Roofers — spring",
+        "send_days" => [send_day]
+      })
 
     {:ok, _opener} =
       Outreach.create_step(campaign, %{
@@ -141,7 +155,7 @@ defmodule ColdForgeWeb.EndToEndTest do
 
     assert Outreach.get_campaign!(campaign.id).status == "active"
 
-    # Nothing is due yet — the send window pushed everyone forward.
+    # Nothing is due yet — the send window pushed everyone to that future day.
     assert :ok = perform_job(CampaignScheduler, %{})
     refute_enqueued(worker: SendMessage)
 

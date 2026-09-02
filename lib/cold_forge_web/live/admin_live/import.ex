@@ -211,17 +211,18 @@ defmodule ColdForgeWeb.AdminLive.Import do
         </p>
 
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-3">
-          <div :for={field <- Importer.fields()}>
+          <%!-- A form per field, because the change event has to carry *which*
+          field is being mapped alongside the chosen column. The hidden input
+          holding that cannot live inside the `select` — an `input` there is
+          invalid HTML, and the browser ejects it along with every option that
+          follows, leaving an empty dropdown. --%>
+          <form :for={field <- Importer.fields()} id={"map-#{field}"} phx-change="set_mapping">
             <label class="text-sm font-medium">
               {humanize(field)}
               <span :if={field == :email} class="text-error">*</span>
             </label>
-            <select
-              class="select select-sm w-full mt-1"
-              phx-change="set_mapping"
-              name="index"
-            >
-              <input type="hidden" name="field" value={field} />
+            <input type="hidden" name="field" value={field} />
+            <select class="select select-sm w-full mt-1" name="index">
               <option value="">— not in this file —</option>
               <option
                 :for={{header, index} <- Enum.with_index(@headers)}
@@ -231,7 +232,7 @@ defmodule ColdForgeWeb.AdminLive.Import do
                 {header}
               </option>
             </select>
-          </div>
+          </form>
         </div>
 
         <div class="mt-4 flex justify-end">

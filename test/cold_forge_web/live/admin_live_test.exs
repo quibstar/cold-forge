@@ -230,6 +230,58 @@ defmodule ColdForgeWeb.AdminLiveTest do
     end
   end
 
+  describe "markup that browsers reject" do
+    # A `<select>` may only contain `<option>` and `<optgroup>`. Anything else —
+    # a hidden input, most temptingly — is dropped by the parser along with
+    # every option that follows it, leaving an empty dropdown. It looks like
+    # valid markup in a string assertion, which is why this checks structure.
+    test "no select contains an input", ctx do
+      paths = [
+        ~p"/admin/p/#{ctx.project.id}/prospects",
+        ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/emails/new",
+        ~p"/admin/projects/new"
+      ]
+
+      for path <- paths do
+        {:ok, _view, html} = live(ctx.conn, path)
+        assert_selects_are_clean(html, path)
+      end
+    end
+
+    test "the CSV column mapping renders options inside its selects", ctx do
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/import")
+
+      csv = "Email,First Name\nsam@example.com,Sam\n"
+
+      entry =
+        file_input(view, "#csv-upload-form", :csv, [
+          %{name: "leads.csv", content: csv, type: "text/csv"}
+        ])
+
+      render_upload(entry, "leads.csv")
+      html = view |> element("#csv-upload-form") |> render_submit()
+
+      assert_selects_are_clean(html, "import mapping")
+
+      # And the guessed column is actually offered, pre-selected.
+      assert html =~ ~r{<option value="0"[^>]*selected[^>]*>\s*Email\s*</option>}
+    end
+  end
+
+  # Every `<select>` must still contain its options once the HTML has been
+  # parsed. Checking for a stray `<input>` inside one does not work: the parser
+  # has already ejected it — along with every option after it — which is
+  # precisely the damage. An empty select is what that damage looks like.
+  defp assert_selects_are_clean(html, where) do
+    ~r{<select\b[^>]*>(.*?)</select>}s
+    |> Regex.scan(html, capture: :all_but_first)
+    |> Enum.each(fn [inner] ->
+      assert inner =~ ~r{<option\b},
+             "a <select> on #{where} rendered with no options — something invalid inside it " <>
+               "(an <input>, most likely) made the parser drop them"
+    end)
+  end
+
   describe "csv import" do
     test "walks upload, mapping and review without writing until committed", ctx do
       {:ok, view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/import")

@@ -39,11 +39,31 @@ defmodule ColdForge.Workers.CampaignSchedulerTest do
   end
 
   test "leaves an enrollment alone until its send time", ctx do
+    # Enrolling during the send window makes somebody due immediately, which is
+    # correct — so the campaign is pinned to a day that is not today, or this
+    # assertion would pass overnight and fail during working hours.
+    campaign = sending_only_on_a_future_day(ctx.campaign, ctx.project)
     prospect = prospect_fixture(ctx.project)
-    {:ok, _enrollment} = Outreach.enroll_prospect(ctx.campaign, prospect)
+    {:ok, enrollment} = Outreach.enroll_prospect(campaign, prospect)
+
+    assert DateTime.compare(enrollment.next_send_at, DateTime.utc_now()) == :gt
 
     assert :ok = perform_job(CampaignScheduler, %{})
     refute_enqueued(worker: SendMessage)
+  end
+
+  # Restricts a campaign to one weekday two days from now, so its next open slot
+  # is always in the future no matter when the suite runs.
+  defp sending_only_on_a_future_day(campaign, project) do
+    day =
+      DateTime.utc_now()
+      |> DateTime.shift_zone!(project.timezone)
+      |> DateTime.to_date()
+      |> Date.add(2)
+      |> Date.day_of_week()
+
+    {:ok, campaign} = Outreach.update_campaign(campaign, %{send_days: [day]})
+    Outreach.get_campaign!(campaign.id)
   end
 
   test "ignores a paused campaign", ctx do
