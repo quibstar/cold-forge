@@ -160,7 +160,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
 
   def render(assigns) do
     ~H"""
-    <div class="card bg-base-100 shadow-sm max-w-2xl">
+    <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <.form id="project-form" for={@form} phx-change="validate" phx-submit="save" class="space-y-4">
           <.input field={@form[:name]} label="Project name" placeholder="ExteriorPro" />

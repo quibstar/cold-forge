@@ -148,7 +148,7 @@ defmodule ColdForgeWeb.AdminLive.Import do
 
   defp upload_step(assigns) do
     ~H"""
-    <div class="card bg-base-100 shadow-sm max-w-2xl">
+    <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <form id="csv-upload-form" phx-change="validate_upload" phx-submit="upload">
           <label

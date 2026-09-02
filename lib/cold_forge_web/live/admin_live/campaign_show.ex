@@ -273,23 +273,20 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
 
     <div class="grid gap-4 lg:grid-cols-3">
       <div class="lg:col-span-2 space-y-3">
+        <%!-- Full bodies, not an excerpt. Reading the whole campaign in order is
+        how you notice that email 2 repeats email 1's opening, or that the ask
+        never actually appears — which a two-line clamp hides. --%>
         <div :for={step <- @campaign.steps} class="card bg-base-100 shadow-sm">
           <div class="card-body py-4">
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <div class="flex items-center gap-2 text-xs text-base-content/50">
-                  <span class="badge badge-sm badge-ghost">Email {step.position}</span>
-                  <span :if={step.position == 1}>goes out when someone is added</span>
-                  <span :if={step.position > 1}>
-                    {step.delay_days} {if step.delay_days == 1, do: "day", else: "days"} later
-                  </span>
-                </div>
-                <div class="font-medium mt-1 truncate">{step.subject}</div>
-                <p class="text-sm text-base-content/60 mt-1 line-clamp-2 whitespace-pre-line">
-                  {step.body}
-                </p>
+              <div class="flex items-center gap-2 text-xs text-base-content/50 min-w-0">
+                <span class="badge badge-sm badge-ghost shrink-0">Email {step.position}</span>
+                <span :if={step.position == 1}>goes out when someone is added</span>
+                <span :if={step.position > 1}>
+                  {step.delay_days} {if step.delay_days == 1, do: "day", else: "days"} later
+                </span>
               </div>
-              <div class="flex flex-col gap-1 shrink-0">
+              <div class="flex gap-1 shrink-0">
                 <.link
                   navigate={~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/emails/#{step.id}"}
                   class="btn btn-xs btn-ghost"
@@ -305,6 +302,14 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
                   Delete
                 </button>
               </div>
+            </div>
+
+            <div class="mt-2 border-t border-base-200 pt-3">
+              <div class="text-xs text-base-content/40">Subject</div>
+              <div class="font-medium">{step.subject}</div>
+
+              <div class="text-xs text-base-content/40 mt-3">Body</div>
+              <p class="text-sm text-base-content/70 whitespace-pre-line">{step.body}</p>
             </div>
           </div>
         </div>

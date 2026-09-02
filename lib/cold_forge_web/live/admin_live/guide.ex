@@ -19,7 +19,7 @@ defmodule ColdForgeWeb.AdminLive.Guide do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-3xl space-y-4">
+    <div class="space-y-4">
       <.card title="The shape of it">
         <p>
           A <strong>project</strong>

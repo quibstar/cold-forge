@@ -234,19 +234,20 @@ defmodule ColdForgeWeb.Layouts do
           </button>
 
           <div :if={@page_title} class="min-w-0">
-            <%!-- Breadcrumbs replace the subtitle when present: on a nested
-            screen, where you are is more useful than a description of it. --%>
+            <h1 class="text-2xl font-bold text-base-content truncate">{@page_title}</h1>
+            <%!-- Under the title, in the subtitle's slot: on a nested screen the
+            trail *is* the description of where you are, so the two never both
+            need to be there. --%>
             <nav
               :if={@breadcrumbs != []}
               aria-label="Breadcrumb"
-              class="flex items-center gap-1 text-xs text-base-content/50 mb-0.5"
+              class="flex items-center gap-1 text-xs text-base-content/50 mt-0.5"
             >
               <span :for={{label, path} <- @breadcrumbs} class="flex items-center gap-1 min-w-0">
                 <.link navigate={path} class="hover:text-base-content truncate">{label}</.link>
                 <.icon name="hero-chevron-right" class="size-3 shrink-0" />
               </span>
             </nav>
-            <h1 class="text-2xl font-bold text-base-content truncate">{@page_title}</h1>
             <p
               :if={@breadcrumbs == [] and @page_subtitle not in [nil, ""]}
               class="text-sm text-base-content/60 mt-0.5 truncate"
@@ -285,7 +286,7 @@ defmodule ColdForgeWeb.Layouts do
         </header>
 
         <main class="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div class="max-w-7xl mx-auto">
+          <div>
             <.flash_group flash={@flash} />
             {@inner_content}
           </div>

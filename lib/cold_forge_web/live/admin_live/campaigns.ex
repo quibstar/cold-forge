@@ -143,7 +143,7 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
 
   def render(assigns) do
     ~H"""
-    <div class="card bg-base-100 shadow-sm max-w-xl">
+    <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <.form
           for={@form}
