@@ -1,0 +1,10 @@
+# Append to /etc/caddy/Caddyfile, then: systemctl reload caddy
+#
+# One host, no www. This name is not a website people navigate to — it exists to
+# serve tracked links, unsubscribe pages and surveys, and it appears in every
+# link inside mail already sent. Those URLs outlive deploys, so the name has to
+# keep resolving long after a campaign ends. PHX_HOST must match it exactly.
+
+go.affordablestartup.com {
+	reverse_proxy 127.0.0.1:4010
+}

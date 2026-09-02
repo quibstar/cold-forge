@@ -46,5 +46,7 @@ npm-debug.log
 /test/browser/playwright-report/
 /secrets
 
-# Deployment secrets. The example file is committed; this one never is.
+# Deployment secrets. deploy/env.example is committed; the filled-in copy
+# beside it never is.
+/deploy/.env
 /.env

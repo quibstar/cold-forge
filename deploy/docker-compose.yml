@@ -1,0 +1,44 @@
+# Cold Forge on the shared Hetzner box, following the pattern the other apps on
+# it already use: one container per app built from the repo's Dockerfile, env
+# from a git-ignored .env beside this file, the shared global_postgres, and the
+# HOST Caddy terminating TLS.
+#
+# From /apps/cold-forge/deploy:  docker compose up -d --build
+#
+# No postgres and no caddy service here on purpose. The box has one of each
+# already, and adding a second Caddy would try to bind 80/443 out from under
+# the one serving exteriorpro.io and everything else on the machine.
+#
+# Host port 4010, loopback only — binding 0.0.0.0 would serve the app plaintext
+# to the internet beside the TLS front door. Confirm it's actually free before
+# the first deploy (`ss -ltnp | grep 127.0.0.1:40`); 4003 and 4008 are taken.
+# Inside the container the app listens on 4000.
+#
+# `apps-network` is the box's shared external network; global_postgres
+# publishes no host port, so joining it is the only way to reach the database.
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: cold_forge
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - '127.0.0.1:4010:4000'
+    volumes:
+      # Uploaded logos must outlive the image. A release stores `priv` under a
+      # versioned path that changes with every deploy, so they cannot live
+      # there — losing them would strip the branding out of mail already sent,
+      # which is the part that cannot be re-done. See `ColdForge.Uploads`.
+      - cold_forge_uploads:/app/uploads
+    networks:
+      - apps-network
+
+volumes:
+  cold_forge_uploads:
+
+networks:
+  apps-network:
+    external: true
