@@ -32,6 +32,9 @@ config :cold_forge, ColdForge.Mailer, adapter: Swoosh.Adapters.Test
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false
 
+# A known secret so the inbound endpoint can be exercised.
+config :cold_forge, :inbound_token, "test-inbound-token"
+
 # `:manual` stops queues and cron, so no background send fires in the middle of
 # an assertion. The PG notifier keeps Oban off a second Postgres connection per
 # test process, which the default (Postgres) notifier opens.

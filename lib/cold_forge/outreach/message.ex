@@ -16,6 +16,10 @@ defmodule ColdForge.Outreach.Message do
     field :failed_at, :utc_datetime
     field :error, :string
     field :provider_message_id, :string
+    # The RFC 5322 Message-ID we set on the outgoing mail — what a reply quotes
+    # in In-Reply-To. Distinct from `provider_message_id`, which is SES's own
+    # handle and never leaves their system.
+    field :rfc_message_id, :string
     field :open_token, :string
     field :first_opened_at, :utc_datetime
     field :open_count, :integer, default: 0
@@ -45,12 +49,14 @@ defmodule ColdForge.Outreach.Message do
       :sent_at,
       :failed_at,
       :error,
-      :provider_message_id
+      :provider_message_id,
+      :rfc_message_id
     ])
     |> validate_required([:project_id, :prospect_id, :subject, :body])
     |> validate_inclusion(:status, @statuses)
     |> put_open_token()
     |> unique_constraint(:open_token)
+    |> unique_constraint(:rfc_message_id)
   end
 
   defp put_open_token(changeset) do

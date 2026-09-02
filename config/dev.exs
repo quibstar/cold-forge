@@ -90,3 +90,10 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# A known secret so the inbound reply webhook can be exercised locally:
+#
+#     curl -X POST localhost:4000/inbound/dev-inbound-token \
+#       -H 'content-type: application/json' \
+#       -d '{"from":"sam@example.com","subject":"Re: hi","text":"sure"}'
+config :cold_forge, :inbound_token, "dev-inbound-token"

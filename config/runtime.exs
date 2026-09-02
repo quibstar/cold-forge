@@ -100,6 +100,13 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 
+  # The shared secret in the inbound webhook's URL, where replies arrive.
+  # Optional rather than `fetch_env!`: the endpoint already refuses everything
+  # without it, so a deploy that hasn't set up inbound mail yet should still
+  # boot and send. What it must never do is accept mail from whoever finds the
+  # path, and it doesn't.
+  config :cold_forge, :inbound_token, System.get_env("INBOUND_TOKEN")
+
   # ## Mailer — Amazon SES
   #
   # SES is the adapter here because it tolerates cold outreach as long as your

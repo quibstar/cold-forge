@@ -132,6 +132,31 @@ defmodule ColdForgeWeb.AdminLive.Guide do
         </p>
       </.card>
 
+      <.card title="Knowing when someone replies">
+        <p>
+          Point an inbound mail provider at <code>/inbound/&lt;your secret&gt;</code>
+          and replies land in the Replies tab, stop that person's campaign, and
+          mark them replied. With SES that means an MX record for a subdomain,
+          a receipt rule, and an SNS subscription posting to that URL.
+        </p>
+        <p>
+          Matching is exact where it can be: every email carries a <code>Message-ID</code>
+          we generate, and a reply quotes it back in <code>In-Reply-To</code>. When
+          a mail client strips that, we fall back to the sender's address — still
+          a reply, just not tied to a specific email, and the Replies tab labels
+          those so a run of them tells you the header isn't surviving.
+        </p>
+        <p>
+          Out-of-office notices and bounce reports are recorded but change
+          nothing. Somebody on holiday hasn't answered you, and dropping them
+          out of a campaign for it would lose you the lead.
+        </p>
+        <p>
+          Until that's wired up, the <strong>Replied</strong>
+          button on the prospect list does the same job by hand.
+        </p>
+      </.card>
+
       <.card title="Before your first real send">
         <ul class="list-disc pl-5 space-y-1">
           <li>Verify your from-address (or its domain) in Amazon SES.</li>

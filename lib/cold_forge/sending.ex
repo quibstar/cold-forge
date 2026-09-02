@@ -60,9 +60,15 @@ defmodule ColdForge.Sending do
           |> Renderer.rewrite_links(message, base_url)
           |> Renderer.append_footer(prospect, project, base_url)
 
+        # Our own Message-ID, set before delivery so a reply quoting it in
+        # In-Reply-To names this exact send. The provider's id never appears in
+        # a reply, so it cannot serve here.
         message =
           message
-          |> Ecto.Changeset.change(body: final_body)
+          |> Ecto.Changeset.change(
+            body: final_body,
+            rfc_message_id: rfc_message_id(message, project)
+          )
           |> Repo.update!()
 
         case deliver(message, prospect, project, final_body, base_url, branded?) do
@@ -109,11 +115,26 @@ defmodule ColdForge.Sending do
         "<#{Renderer.unsubscribe_url(base_url, prospect)}>"
       )
       |> Swoosh.Email.header("List-Unsubscribe-Post", "List-Unsubscribe=One-Click")
+      |> Swoosh.Email.header("Message-ID", "<#{message.rfc_message_id}>")
 
     case Mailer.deliver(email) do
       {:ok, response} -> {:ok, provider_message_id(response)}
       {:error, reason} -> {:error, inspect(reason)}
     end
+  end
+
+  # Domain-qualified with the sending address's own domain: a Message-ID whose
+  # right-hand side doesn't resolve to the sender is a spam signal, and the
+  # local part is the message's id so a reply is traceable without a lookup
+  # table.
+  defp rfc_message_id(message, project) do
+    domain =
+      case String.split(project.from_email, "@") do
+        [_local, domain] -> domain
+        _ -> "cold-forge.invalid"
+      end
+
+    "#{message.id}@#{domain}"
   end
 
   defp maybe_reply_to(email, %Project{reply_to: nil}), do: email

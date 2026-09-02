@@ -17,6 +17,15 @@ defmodule ColdForgeWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Replies arriving from an inbound mail provider. No session and no CSRF —
+  # the caller is a machine — so the secret in the path is the whole of the
+  # authentication, and it is compared in constant time.
+  scope "/inbound", ColdForgeWeb do
+    pipe_through :api
+
+    post "/:token", InboundController, :create
+  end
+
   # The endpoints that appear inside outgoing mail. Deliberately *not*
   # `:protect_from_forgery` — RFC 8058 one-click unsubscribe is POSTed by the
   # recipient's mail client, which has no CSRF token to send. Nothing here
@@ -115,6 +124,8 @@ defmodule ColdForgeWeb.Router do
       live "/p/:project_id/surveys/:id/questions/:question_id",
            AdminLive.SurveyShow,
            :edit_question
+
+      live "/p/:project_id/replies", AdminLive.Replies, :index
 
       live "/p/:project_id/activity", AdminLive.Messages, :index
       live "/p/:project_id/activity/:id", AdminLive.Messages, :show
