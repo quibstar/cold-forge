@@ -10,6 +10,19 @@ warm-up — is `../docs/pre-send-checklist.md`, and none of it depends on the
 deploy, so start it first: DNS propagates slowly and SES production access is a
 support ticket that takes a day or two.
 
+## Before anything: the project name
+
+Every app on this box keeps its compose file in a directory called `deploy`.
+Compose derives its project name from that directory, so without an explicit
+`name:` they all become project `deploy`, sharing one service name (`app`) and
+one image tag (`deploy-app`). Running `docker compose up` in one app's directory
+then **adopts and replaces another app's container**, and `docker compose build`
+overwrites another app's image.
+
+This took exteriorpro.io down and left it serving Cold Forge. `name: cold-forge`
+at the top of `docker-compose.yml` is what prevents it. Any new app on this box
+needs the same, and the existing ones are still colliding with each other.
+
 ## First deploy
 
 ```bash

@@ -16,6 +16,14 @@
 #
 # `apps-network` is the box's shared external network; global_postgres
 # publishes no host port, so joining it is the only way to reach the database.
+# An explicit project name. Without one, Compose derives it from the directory
+# — which is `deploy` for every app on this box, so they collide: same project,
+# same service name, same `deploy-app` image tag. `docker compose up` in one
+# app's directory then adopts and replaces another app's container, and a build
+# overwrites another app's image. That is not hypothetical; it took
+# exteriorpro.io down and left it serving this app.
+name: cold-forge
+
 services:
   app:
     build:
