@@ -279,6 +279,35 @@ defmodule ColdForgeWeb.AdminLiveTest do
     end)
   end
 
+  describe "multi-line placeholders" do
+    # In HEEx a plain attribute is literal text, so `placeholder="a\nb"` puts a
+    # backslash and an n in front of the user rather than a line break — and
+    # then teaches them to type it. An Elixir expression is interpreted.
+    test "render as newlines, not as a backslash and an n", ctx do
+      {:ok, _view, html} = live(ctx.conn, ~p"/admin/projects/#{ctx.project.id}/edit")
+
+      refute html =~ ~S(placeholder="Kris Utter\n)
+      assert html =~ "Kris Utter\nExteriorPro"
+    end
+
+    test "no placeholder anywhere carries a literal escape", ctx do
+      paths = [
+        ~p"/admin/projects/new",
+        ~p"/admin/projects/#{ctx.project.id}/edit",
+        ~p"/admin/p/#{ctx.project.id}/prospects/new",
+        ~p"/admin/p/#{ctx.project.id}/campaigns/new",
+        ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/emails/new"
+      ]
+
+      for path <- paths do
+        {:ok, _view, html} = live(ctx.conn, path)
+
+        refute html =~ ~r/placeholder="[^"]*\\n/,
+               "a placeholder on #{path} contains a literal \\n instead of a line break"
+      end
+    end
+  end
+
   describe "csv import" do
     test "walks upload, mapping and review without writing until committed", ctx do
       {:ok, view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/import")
