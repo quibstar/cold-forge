@@ -14,7 +14,11 @@ defmodule ColdForge.Outreach.Project do
     field :reply_to, :string
     field :landing_url, :string
     field :postal_address, :string
-    field :industry, :string
+    # Values every campaign in this project falls back to. The broadest level of
+    # the chain; a campaign or a prospect overrides them.
+    field :merge_defaults, :map, default: %{}
+    # Form-only: the one-per-line text behind `merge_defaults`.
+    field :merge_defaults_text, :string, virtual: true
     field :signature, :string
     field :logo_url, :string
     field :logo_path, :string
@@ -31,7 +35,7 @@ defmodule ColdForge.Outreach.Project do
   @doc false
   def changeset(project, attrs) do
     project
-    |> cast(attrs, [
+    |> cast(ColdForge.MergeFields.parse(attrs, "merge_defaults"), [
       :name,
       :slug,
       :from_name,
@@ -39,7 +43,8 @@ defmodule ColdForge.Outreach.Project do
       :reply_to,
       :landing_url,
       :postal_address,
-      :industry,
+      :merge_defaults,
+      :merge_defaults_text,
       :signature,
       :logo_url,
       :logo_path,

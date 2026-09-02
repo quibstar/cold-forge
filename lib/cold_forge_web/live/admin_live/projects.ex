@@ -252,6 +252,23 @@ defmodule ColdForgeWeb.AdminLive.Projects do
 
           <.input field={@form[:timezone]} label="Timezone" placeholder="America/New_York" />
 
+          <%!-- The broadest level of the merge chain. A campaign default beats
+          this, and a prospect's own value beats both. --%>
+          <div>
+            <label class="text-sm font-medium">Default values</label>
+            <textarea
+              name="project[merge_defaults_text]"
+              rows="3"
+              placeholder="industry: contractors\nproduct: ExteriorPro"
+              class="textarea w-full mt-1 font-mono text-sm"
+            >{ColdForge.MergeFields.to_text(@form[:merge_defaults].value)}</textarea>
+            <p class="text-xs text-base-content/50 mt-1">
+              One per line, <code>name: value</code>. Anything true of every campaign
+              for this idea. A campaign can override it, and a prospect's own value
+              overrides both.
+            </p>
+          </div>
+
           <div class="divider text-xs text-base-content/40">Branding</div>
 
           <.input

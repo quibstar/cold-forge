@@ -20,6 +20,11 @@ defmodule ColdForge.Outreach.Campaign do
     field :status, :string, default: "draft"
     field :branded, :boolean, default: false
     field :stop_on_answer, :boolean, default: true
+    # Values every merge tag in this campaign falls back to when the prospect
+    # has none of their own — "everyone here is a roofer".
+    field :merge_defaults, :map, default: %{}
+    # Form-only: the one-per-line text behind `merge_defaults`.
+    field :merge_defaults_text, :string, virtual: true
     field :send_window_start, :integer, default: 8
     field :send_window_end, :integer, default: 17
     field :send_days, {:array, :integer}, default: [1, 2, 3, 4, 5]
@@ -37,12 +42,14 @@ defmodule ColdForge.Outreach.Campaign do
   @doc false
   def changeset(campaign, attrs) do
     campaign
-    |> cast(attrs, [
+    |> cast(ColdForge.MergeFields.parse(attrs, "merge_defaults"), [
       :project_id,
       :name,
       :status,
       :branded,
       :stop_on_answer,
+      :merge_defaults,
+      :merge_defaults_text,
       :send_window_start,
       :send_window_end,
       :send_days,

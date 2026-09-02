@@ -411,6 +411,17 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
               up to {@campaign.daily_cap} a day, in {@current_project.timezone}.
             </p>
 
+            <div :if={@campaign.merge_defaults not in [nil, %{}]} class="mt-2">
+              <div class="text-xs text-base-content/40">Default values</div>
+              <div
+                :for={{name, value} <- Enum.sort(@campaign.merge_defaults)}
+                class="text-sm flex justify-between gap-2"
+              >
+                <span class="font-mono text-xs text-primary">{"{{#{name}}}"}</span>
+                <span class="text-base-content/70 truncate">{value}</span>
+              </div>
+            </div>
+
             <label class="flex items-start gap-3 cursor-pointer mt-2">
               <input
                 type="checkbox"

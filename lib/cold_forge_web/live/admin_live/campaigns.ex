@@ -155,6 +155,23 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
           <.input field={@form[:name]} label="Campaign name" placeholder="Roofers — spring 2026" />
           <p class="text-xs text-base-content/50 -mt-2">Only you see this.</p>
 
+          <%!-- A campaign usually targets one segment, which is what makes the
+          copy work — so this is where "everyone here is a roofer" belongs. --%>
+          <div>
+            <label class="text-sm font-medium">Default values</label>
+            <textarea
+              name="campaign[merge_defaults_text]"
+              rows="3"
+              placeholder="industry: roofing"
+              class="textarea w-full mt-1 font-mono text-sm"
+            >{ColdForge.MergeFields.to_text(@form[:merge_defaults].value)}</textarea>
+            <p class="text-xs text-base-content/50 mt-1">
+              One per line, <code>name: value</code>. Used by <code>{"{{industry}}"}</code>
+              and friends when a prospect has nothing of their own — their value
+              always wins.
+            </p>
+          </div>
+
           <details class="text-sm">
             <summary class="cursor-pointer text-base-content/60">
               Sending pace — the defaults are sensible, change them if you need

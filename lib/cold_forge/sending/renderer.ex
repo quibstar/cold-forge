@@ -35,8 +35,13 @@ defmodule ColdForge.Sending.Renderer do
   Applies merge tags to a step's subject and body. URLs are still raw at this
   point — they can't be tokenised until the message row exists.
   """
-  def render_step(%CampaignStep{} = step, %Prospect{} = prospect, %Project{} = project) do
-    values = merge_values(prospect, project)
+  def render_step(
+        %CampaignStep{} = step,
+        %Prospect{} = prospect,
+        %Project{} = project,
+        campaign \\ nil
+      ) do
+    values = merge_values(prospect, project, campaign)
 
     %{
       subject: apply_tags(step.subject, values),
@@ -45,29 +50,41 @@ defmodule ColdForge.Sending.Renderer do
   end
 
   @doc "Renders arbitrary text against a prospect — used by the step previewer."
-  def preview(text, %Prospect{} = prospect, %Project{} = project) do
-    apply_tags(text, merge_values(prospect, project))
+  def preview(text, %Prospect{} = prospect, %Project{} = project, campaign \\ nil) do
+    apply_tags(text, merge_values(prospect, project, campaign))
   end
 
-  defp merge_values(%Prospect{} = prospect, %Project{} = project) do
-    # Custom fields are merged under the built-ins so an imported column named
-    # "company" can't shadow the real one.
+  # Resolution order, most specific first:
+  #
+  #   1. the prospect's own column   — their industry
+  #   2. their extra fields          — anything a CSV carried
+  #   3. the campaign's defaults     — "everyone in this campaign is a roofer"
+  #   4. the project's defaults      — true of every campaign for this idea
+  #   5. whatever follows the pipe   — {{industry|contractors}}
+  #
+  # Most specific wins: a default is a statement about a group, a prospect's own
+  # value is a fact about them, and a fact beats a generalisation.
+  defp merge_values(%Prospect{} = prospect, %Project{} = project, campaign) do
+    defaults =
+      project
+      |> defaults_of()
+      |> Map.merge(defaults_of(campaign), fn _k, project_value, campaign_value ->
+        presence(campaign_value) || project_value
+      end)
+
     custom =
       prospect.custom_fields
       |> Kernel.||(%{})
       |> Map.new(fn {k, v} -> {to_string(k), v} end)
 
-    Map.merge(custom, %{
+    built_in = %{
       "first_name" => prospect.first_name,
       "last_name" => prospect.last_name,
       "full_name" => Prospect.display_name(prospect),
       "email" => prospect.email,
       "company" => prospect.company,
       "title" => prospect.title,
-      # Prospect first: "I work with roofing contractors" only lands if it's
-      # their industry. The project's value is a fallback so the line still
-      # reads when a row is thin.
-      "industry" => first_present([prospect.industry, project.industry]),
+      "industry" => prospect.industry,
       "phone" => prospect.phone,
       "website" => prospect.website,
       "sender_name" => project.from_name,
@@ -75,12 +92,28 @@ defmodule ColdForge.Sending.Renderer do
       # The whole point of the redirect: authors write {{link}}, and it becomes
       # a tracked hop out to the project's landing page.
       "link" => project.landing_url
-    })
+    }
+
+    defaults
+    |> Map.merge(custom, fn _k, default, own -> presence(own) || default end)
+    |> Map.merge(built_in, fn _k, less_specific, own -> presence(own) || less_specific end)
   end
 
-  defp first_present(values) do
-    Enum.find(values, fn v -> is_binary(v) and String.trim(v) != "" end)
+  defp defaults_of(%{merge_defaults: defaults}) when is_map(defaults) do
+    Map.new(defaults, fn {k, v} -> {to_string(k), v} end)
   end
+
+  defp defaults_of(_), do: %{}
+
+  # A blank value must not shadow a less specific one that has something in it.
+  defp presence(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp presence(value), do: value
 
   defp apply_tags(nil, _values), do: ""
 
@@ -264,12 +297,14 @@ defmodule ColdForge.Sending.Renderer do
     base_url = opts[:base_url] || ColdForgeWeb.Endpoint.url()
     branded? = Keyword.get(opts, :branded, false)
     question = opts[:question]
+    campaign = opts[:campaign]
+    values = merge_values(prospect, project, campaign)
 
-    subject = apply_tags(subject, merge_values(prospect, project))
+    subject = apply_tags(subject, values)
 
     text =
       body
-      |> apply_tags(merge_values(prospect, project))
+      |> apply_tags(values)
       |> preview_survey(question, base_url)
       |> fake_tracked_links(base_url)
       |> append_footer(prospect, project, base_url)

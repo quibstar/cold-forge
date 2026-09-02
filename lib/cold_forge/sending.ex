@@ -32,10 +32,11 @@ defmodule ColdForge.Sending do
     enrollment_id = opts[:enrollment_id]
     branded? = Keyword.get(opts, :branded, false)
     question = opts[:question]
+    campaign = opts[:campaign]
 
     with :ok <- check_sendable(prospect, project) do
       base_url = base_url()
-      rendered = Renderer.render_step(step, prospect, project)
+      rendered = Renderer.render_step(step, prospect, project, campaign)
 
       Repo.transaction(fn ->
         message =

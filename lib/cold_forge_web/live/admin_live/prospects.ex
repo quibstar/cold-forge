@@ -265,9 +265,10 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
             <.input field={@form[:email]} label="Email" />
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-3">
               <.input field={@form[:company]} label="Company" />
               <.input field={@form[:title]} label="Title" />
+              <.input field={@form[:industry]} label="Industry" placeholder="roofing" />
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -277,6 +278,26 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
             <.input field={@form[:source]} label="Source" placeholder="Where this lead came from" />
             <.input type="textarea" field={@form[:notes]} label="Notes" />
+
+            <%!-- Anything a CSV carried that had no column of its own. Editable
+            as one-per-line `key: value` because that is how few of them there
+            usually are — a repeating field group would be more machinery than
+            the data deserves. --%>
+            <div>
+              <label class="text-sm font-medium">Extra fields</label>
+              <textarea
+                name="prospect[custom_fields_text]"
+                rows="3"
+                placeholder="crew_size: 6"
+                class="textarea w-full mt-1 font-mono text-sm"
+              >{custom_fields_text(@form)}</textarea>
+              <p class="text-xs text-base-content/50 mt-1">
+                One per line, <code>name: value</code>. Each becomes a merge tag —
+                <code>crew_size</code>
+                is <code>{"{{crew_size}}"}</code>
+                in an email.
+              </p>
+            </div>
 
             <div class="flex justify-end gap-2 pt-2">
               <.link navigate={~p"/admin/p/#{@project_id}/prospects"} class="btn btn-ghost">
@@ -290,27 +311,71 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
         </div>
       </div>
 
-      <div :if={@live_action == :edit} class="card bg-base-100 shadow-sm h-fit">
-        <div class="card-body">
-          <h2 class="card-title text-base">Mail history</h2>
-          <p :if={@messages == []} class="text-sm text-base-content/50">
-            Nothing sent yet.
-          </p>
-          <ul class="space-y-3">
-            <li :for={m <- @messages} class="text-sm border-b border-base-200 pb-3 last:border-0">
-              <div class="font-medium truncate">{m.subject}</div>
-              <div class="text-xs text-base-content/50 flex items-center gap-2 mt-0.5">
-                <.status_badge status={m.status} />
-                <span :if={m.sent_at}>{Calendar.strftime(m.sent_at, "%b %-d")}</span>
-                <span :if={m.open_count > 0}>· {m.open_count} opens</span>
-                <span :if={clicks(m) > 0} class="text-primary">· {clicks(m)} clicks</span>
+      <div :if={@live_action == :edit} class="space-y-4">
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title text-base">Merge tags</h2>
+            <p class="text-xs text-base-content/50">
+              What an email to this person resolves to. A blank one falls back to
+              the project's value, then to whatever you write after the pipe — <code class="text-primary">{"{{industry|contractors}}"}</code>.
+            </p>
+
+            <dl class="mt-2 space-y-1 text-sm">
+              <div
+                :for={{name, value} <- Prospect.merge_values(@prospect)}
+                class="flex items-baseline justify-between gap-3"
+              >
+                <dt class="font-mono text-xs text-primary shrink-0">{"{{#{name}}}"}</dt>
+                <dd class={[
+                  "truncate text-right",
+                  if(value in [nil, ""], do: "text-base-content/30", else: "text-base-content/80")
+                ]}>
+                  {if value in [nil, ""], do: "— not set —", else: value}
+                </dd>
               </div>
-            </li>
-          </ul>
+            </dl>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm h-fit">
+          <div class="card-body">
+            <h2 class="card-title text-base">Mail history</h2>
+            <p :if={@messages == []} class="text-sm text-base-content/50">
+              Nothing sent yet.
+            </p>
+            <ul class="space-y-3">
+              <li :for={m <- @messages} class="text-sm border-b border-base-200 pb-3 last:border-0">
+                <div class="font-medium truncate">{m.subject}</div>
+                <div class="text-xs text-base-content/50 flex items-center gap-2 mt-0.5">
+                  <.status_badge status={m.status} />
+                  <span :if={m.sent_at}>{Calendar.strftime(m.sent_at, "%b %-d")}</span>
+                  <span :if={m.open_count > 0}>· {m.open_count} opens</span>
+                  <span :if={clicks(m) > 0} class="text-primary">· {clicks(m)} clicks</span>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
     """
+  end
+
+  # The map once saved, the raw string mid-edit — the textarea renders both.
+  defp custom_fields_text(form) do
+    case form[:custom_fields_text].value do
+      text when is_binary(text) ->
+        text
+
+      _ ->
+        case form[:custom_fields].value do
+          fields when is_map(fields) ->
+            fields |> Enum.sort() |> Enum.map_join("\n", fn {k, v} -> "#{k}: #{v}" end)
+
+          _ ->
+            ""
+        end
+    end
   end
 
   defp clicks(message), do: Enum.sum(Enum.map(message.tracked_links, & &1.click_count))

@@ -19,6 +19,10 @@ defmodule ColdForge.Outreach.Prospect do
     field :phone, :string
     field :website, :string
     field :custom_fields, :map, default: %{}
+    # Form-only: the one-per-line text the operator edits, parsed into
+    # `custom_fields` before cast. Kept virtual so a half-typed line survives a
+    # validate round trip instead of snapping back to the saved map.
+    field :custom_fields_text, :string, virtual: true
     field :source, :string
     field :notes, :string
     field :status, :string, default: "new"
@@ -38,7 +42,7 @@ defmodule ColdForge.Outreach.Prospect do
   @doc false
   def changeset(prospect, attrs) do
     prospect
-    |> cast(attrs, [
+    |> cast(ColdForge.MergeFields.parse(attrs, "custom_fields"), [
       :project_id,
       :email,
       :first_name,
@@ -49,6 +53,7 @@ defmodule ColdForge.Outreach.Prospect do
       :phone,
       :website,
       :custom_fields,
+      :custom_fields_text,
       :source,
       :notes,
       :status
@@ -64,6 +69,35 @@ defmodule ColdForge.Outreach.Prospect do
       message: "is already a prospect on this project"
     )
     |> foreign_key_constraint(:project_id)
+  end
+
+  @doc """
+  Every merge tag this prospect resolves, and what it resolves to.
+
+  The point is answering "why did the email say *that*" without reading the
+  renderer: a blank here is a tag that will fall back, and a fallback nobody
+  wrote is an empty gap in somebody's inbox.
+  """
+  def merge_values(%__MODULE__{} = prospect) do
+    built_in = [
+      {"first_name", prospect.first_name},
+      {"last_name", prospect.last_name},
+      {"full_name", display_name(prospect)},
+      {"email", prospect.email},
+      {"company", prospect.company},
+      {"title", prospect.title},
+      {"industry", prospect.industry},
+      {"phone", prospect.phone},
+      {"website", prospect.website}
+    ]
+
+    custom =
+      prospect.custom_fields
+      |> Kernel.||(%{})
+      |> Enum.map(fn {k, v} -> {to_string(k), v} end)
+      |> Enum.sort()
+
+    built_in ++ custom
   end
 
   defp put_unsubscribe_token(changeset) do
