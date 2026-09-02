@@ -3,7 +3,7 @@ defmodule ColdForge.Outreach.Project do
   One idea/product. Owns its sender identity and its landing page, so ExteriorPro
   outreach never picks up another project's from-address or unsubscribe copy.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   schema "projects" do

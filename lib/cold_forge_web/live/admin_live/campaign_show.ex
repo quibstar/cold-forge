@@ -181,7 +181,6 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   ## People
 
   def handle_event("toggle", %{"id" => id}, socket) do
-    id = String.to_integer(id)
     selected = socket.assigns.selected
 
     selected =
@@ -260,8 +259,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
     case form[:survey_id].value do
       nil -> nil
       "" -> nil
-      value when is_integer(value) -> value
-      value when is_binary(value) -> String.to_integer(value)
+      value -> value
     end
   end
 

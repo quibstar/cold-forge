@@ -47,6 +47,13 @@ config :phoenix_live_view,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
+# UUIDv7 primary keys everywhere (see `ColdForge.UUIDv7`). Set on the repo so a
+# new migration cannot quietly go back to bigserial and leave one table unable
+# to be referenced by the rest.
+config :cold_forge, ColdForge.Repo,
+  migration_primary_key: [name: :id, type: :binary_id],
+  migration_foreign_key: [column: :id, type: :binary_id]
+
 config :cold_forge, ColdForge.Mailer, adapter: Swoosh.Adapters.Local
 
 # The SES adapter (see config/runtime.exs) builds a raw MIME message with

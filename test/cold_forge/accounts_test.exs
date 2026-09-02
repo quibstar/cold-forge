@@ -36,10 +36,17 @@ defmodule ColdForge.AccountsTest do
   end
 
   describe "get_user!/1" do
-    test "raises if id is invalid" do
+    test "raises when nobody has that id" do
+      # A well-formed UUID that belongs to no row. The generated version passed
+      # `-1`, which stopped meaning "a missing id" when keys became UUIDs — it
+      # now fails to cast, which is a different error for a different reason.
       assert_raise Ecto.NoResultsError, fn ->
-        Accounts.get_user!(-1)
+        Accounts.get_user!(ColdForge.UUIDv7.generate())
       end
+    end
+
+    test "raises when the id is not a UUID at all" do
+      assert_raise Ecto.Query.CastError, fn -> Accounts.get_user!(-1) end
     end
 
     test "returns the user with the given id" do

@@ -12,11 +12,18 @@ unless Accounts.get_user_by_email(email) do
 
   # phx.gen.auth users start unconfirmed and passwordless; confirming here means
   # the magic-link flow in dev works from the first run.
+  # Confirmed and given a password so a fresh database is usable immediately.
+  # This runs only when you invoke seeds by hand, and only ever against a
+  # database you just created — but it is still a known password, so never
+  # point this at anything reachable from outside your machine.
   user
-  |> Ecto.Changeset.change(confirmed_at: DateTime.utc_now() |> DateTime.truncate(:second))
+  |> Ecto.Changeset.change(
+    confirmed_at: DateTime.utc_now() |> DateTime.truncate(:second),
+    hashed_password: Bcrypt.hash_pwd_salt("devpassword123!")
+  )
   |> Repo.update!()
 
-  IO.puts("Created operator #{email} — log in at /users/log-in")
+  IO.puts("Created operator #{email} — log in at /users/log-in with devpassword123!")
 end
 
 project =

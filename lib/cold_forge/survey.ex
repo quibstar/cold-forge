@@ -185,7 +185,7 @@ defmodule ColdForge.Survey do
       saved =
         answers
         |> Enum.map(fn {question_id, values} ->
-          upsert_response(link, to_int(question_id), values, now)
+          upsert_response(link, question_id, values, now)
         end)
         |> Enum.reject(&is_nil/1)
 
@@ -295,9 +295,6 @@ defmodule ColdForge.Survey do
       Repo.update_all(query, set: [answered_at: now])
     end
   end
-
-  defp to_int(value) when is_integer(value), do: value
-  defp to_int(value) when is_binary(value), do: String.to_integer(value)
 
   ## Reading the results
 

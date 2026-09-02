@@ -1,5 +1,5 @@
 defmodule ColdForge.Accounts.User do
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   schema "users" do

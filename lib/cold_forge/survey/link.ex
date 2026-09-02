@@ -9,7 +9,7 @@ defmodule ColdForge.Survey.Link do
   Either way the token is the only identifier, so nothing about the recipient
   is exposed in a URL they might paste somewhere.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   schema "survey_links" do

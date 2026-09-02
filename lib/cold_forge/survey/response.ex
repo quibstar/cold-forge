@@ -9,7 +9,7 @@ defmodule ColdForge.Survey.Response do
   `message_id` records which send produced the answer, so the same question
   asked by two campaigns can still be read apart.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   schema "survey_responses" do

@@ -3,7 +3,7 @@ defmodule ColdForge.Outreach.Suppression do
   The do-not-contact list. Deliberately global rather than per-project: someone
   who unsubscribes from one idea should not hear from the next one.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   @reasons ~w(unsubscribed bounced complained manual)

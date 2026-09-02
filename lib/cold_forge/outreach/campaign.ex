@@ -10,7 +10,7 @@ defmodule ColdForge.Outreach.Campaign do
   The window and daily cap live here rather than on the project because two
   campaigns on the same project may want very different pacing.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   @statuses ~w(draft active paused archived)

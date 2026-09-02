@@ -58,7 +58,7 @@
       <%!-- Radios rather than a slider: a slider has a default position, which
       is an answer nobody gave. --%>
       <div :if={question.kind in ["rating", "nps"]} class="mt-3">
-        <div class="flex flex-wrap gap-1">
+        <div class="flex flex-wrap justify-between gap-1">
           <label :for={n <- scale_values(question)} class="cursor-pointer">
             <input
               type="radio"

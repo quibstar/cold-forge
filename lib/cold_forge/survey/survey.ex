@@ -7,7 +7,7 @@ defmodule ColdForge.Survey.Survey do
   survey belonged to one campaign, every campaign would produce its own
   unrelated result set.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   schema "surveys" do

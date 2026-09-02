@@ -4,7 +4,7 @@ defmodule ColdForge.Outreach.Prospect do
   outreach — replied, bounced, unsubscribed — so the scheduler can skip them
   without consulting every campaign they're in.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   @statuses ~w(new active replied bounced unsubscribed completed)

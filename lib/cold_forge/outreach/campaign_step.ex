@@ -3,7 +3,7 @@ defmodule ColdForge.Outreach.CampaignStep do
   One email in a campaign. `delay_days` is measured from the *previous* step,
   which is what you actually think in when writing a drip ("then wait 3 days").
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   schema "campaign_steps" do

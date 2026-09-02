@@ -3,7 +3,7 @@ defmodule ColdForge.Outreach.Message do
   One email we tried to send. The rendered subject/body are stored as they went
   out, so what a prospect saw is recoverable even after the step is edited.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   @statuses ~w(pending sent failed bounced)

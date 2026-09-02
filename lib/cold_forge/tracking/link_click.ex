@@ -1,6 +1,6 @@
 defmodule ColdForge.Tracking.LinkClick do
   @moduledoc "One click on a tracked link. Kept per-event so repeat visits show."
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   schema "link_clicks" do

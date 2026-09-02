@@ -15,7 +15,7 @@ defmodule ColdForge.Survey.Question do
   become complicated, and a cold email that opens with a three-question survey
   is already asking a lot — long ones don't get finished.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   @kinds ~w(choice multi rating nps text)

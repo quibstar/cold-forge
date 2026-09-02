@@ -5,7 +5,7 @@ defmodule ColdForge.Tracking.TrackedLink do
   One row per (message, destination) so a click is attributable to a specific
   send rather than just "someone clicked the demo link".
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   schema "tracked_links" do

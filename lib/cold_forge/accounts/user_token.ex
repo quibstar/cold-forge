@@ -1,5 +1,5 @@
 defmodule ColdForge.Accounts.UserToken do
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Query
   alias ColdForge.Accounts.UserToken
 

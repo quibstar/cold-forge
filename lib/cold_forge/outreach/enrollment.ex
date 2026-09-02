@@ -3,7 +3,7 @@ defmodule ColdForge.Outreach.Enrollment do
   A prospect's progress through one campaign. `next_send_at` is the scheduler's
   only input — everything else about pacing is decided when it's written.
   """
-  use Ecto.Schema
+  use ColdForge.Schema
   import Ecto.Changeset
 
   @statuses ~w(active paused completed stopped)
