@@ -81,6 +81,13 @@ end
 # The survey is the opener: asking a stranger for fifteen minutes is a big first
 # ask, and asking one question they answer in a single click is a small one.
 # Every option maps to a feature, so a click tells you what the follow-up says.
+#
+# The body leads with ExteriorPro rather than the LLC on purpose. The parent
+# company's site sells MVP development to startup founders, and a roofer who
+# looks it up after reading "we're Affordable Startup LLC" finds a general
+# software shop — which contradicts the one thing ExteriorPro is selling, that
+# it was built for his trade rather than bent to fit it. The LLC belongs in the
+# footer, where it satisfies CAN-SPAM without being the pitch.
 survey =
   Enum.find(Survey.list_surveys(project.id), &(&1.name == "What eats the most time")) ||
     (
@@ -132,8 +139,8 @@ if Outreach.list_campaigns(project.id) == [] do
       "body" => """
       Hi {{first_name|there}},
 
-      I'm with Affordable Startup LLC — we make ExteriorPro, software built for
-      {{industry}} rather than bent to fit them.
+      We make ExteriorPro — scheduling, estimates and job tracking built for
+      {{industry}}, not bent to fit them.
 
       One question, takes five seconds:
 

@@ -157,6 +157,61 @@ defmodule ColdForgeWeb.AdminLive.Guide do
         </p>
       </.card>
 
+      <.card title="Which domain to send from">
+        <p>
+          Not the one carrying your real business mail. Cold outreach damages
+          sending reputation even when you do everything right — some people
+          hit "spam" regardless — and you want that landing somewhere you could
+          abandon, not on the domain your customers reply to.
+        </p>
+        <p>
+          A subdomain is the cheap version and it is good enough: <code>go.yourcompany.com</code>. It inherits the parent domain's age,
+          it resolves to a real business if a filter goes looking, and the root
+          stays clean.
+        </p>
+        <p>
+          Avoid <code>marketing.</code>
+          and <code>track.</code>
+          — the host shows
+          up in every link a recipient hovers, and those two announce bulk mail
+          before the email has said anything. <code>go.</code>
+          and <code>links.</code>
+          read as nothing at all, which is the point.
+        </p>
+        <p>
+          <strong>Send from the same subdomain the links point at.</strong>
+          A from-address on one domain and tracked links on another is the shape
+          of a phishing email, and it is a common self-inflicted wound.
+        </p>
+
+        <div class="not-prose">
+          <p class="font-medium text-base-content mb-1">On the sending subdomain</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>
+              <code>A</code>
+              or <code>CNAME</code>
+              → wherever Cold Forge runs, so tracked links, unsubscribes and survey pages resolve
+            </li>
+            <li><code>MX</code> → your inbound provider, which is what makes reply detection work</li>
+            <li>The <code>CNAME</code> records SES gives you for DKIM</li>
+            <li><code>TXT</code>: <code>v=spf1 include:amazonses.com ~all</code></li>
+          </ul>
+
+          <p class="font-medium text-base-content mt-3 mb-1">On the root domain</p>
+          <p>
+            <code>v=DMARC1; p=none; sp=none; rua=mailto:dmarc@yourcompany.com</code>
+          </p>
+          <p class="text-base-content/60">
+            <code>sp=none</code>
+            is the part people miss: subdomains inherit the
+            root's policy, so tightening <code>p</code>
+            to <code>quarantine</code>
+            later would silently start failing your
+            outreach until you noticed.
+          </p>
+        </div>
+      </.card>
+
       <.card title="Before your first real send">
         <ul class="list-disc pl-5 space-y-1">
           <li>Verify your from-address (or its domain) in Amazon SES.</li>
