@@ -133,6 +133,10 @@ defmodule ColdForgeWeb.Router do
     end
 
     post "/users/update-password", UserSessionController, :update_password
+
+    # Outside the live_session because it renders the public answer page's own
+    # template, which is a plain controller view.
+    get "/admin/p/:project_id/surveys/:id/preview", SurveyPreviewController, :show
   end
 
   scope "/", ColdForgeWeb do

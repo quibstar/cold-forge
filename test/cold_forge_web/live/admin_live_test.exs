@@ -186,6 +186,50 @@ defmodule ColdForgeWeb.AdminLiveTest do
     end
   end
 
+  describe "survey preview" do
+    setup ctx do
+      {:ok, survey} =
+        ColdForge.Survey.create_survey(%{project_id: ctx.project.id, name: "What hurts"})
+
+      {:ok, _q} =
+        ColdForge.Survey.create_question(survey, %{
+          "position" => 1,
+          "kind" => "choice",
+          "prompt" => "Worst bit?",
+          "options" => "Scheduling\nInvoicing"
+        })
+
+      %{survey: survey}
+    end
+
+    test "shows the real answer page, inert", ctx do
+      conn = get(ctx.conn, ~p"/admin/p/#{ctx.project.id}/surveys/#{ctx.survey.id}/preview")
+      html = html_response(conn, 200)
+
+      assert html =~ "Worst bit?"
+      assert html =~ "Scheduling"
+      # The recipient arrives having clicked an answer, so it starts selected.
+      assert html =~ "checked"
+      # And nothing here can be submitted.
+      assert html =~ "disabled"
+      assert html =~ "nothing is recorded"
+    end
+
+    test "previewing records no answer and creates no link", ctx do
+      get(ctx.conn, ~p"/admin/p/#{ctx.project.id}/surveys/#{ctx.survey.id}/preview")
+
+      assert ColdForge.Survey.answered_count(ctx.survey.id) == 0
+      assert ColdForge.Repo.aggregate(ColdForge.Survey.Link, :count) == 0
+    end
+
+    test "the preview needs a signed-in operator", ctx do
+      conn = Phoenix.ConnTest.build_conn()
+      conn = get(conn, ~p"/admin/p/#{ctx.project.id}/surveys/#{ctx.survey.id}/preview")
+
+      assert redirected_to(conn) == ~p"/users/log-in"
+    end
+  end
+
   describe "csv import" do
     test "walks upload, mapping and review without writing until committed", ctx do
       {:ok, view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/import")

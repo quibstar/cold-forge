@@ -248,6 +248,70 @@ defmodule ColdForge.SurveyTest do
     end
   end
 
+  describe "previewing" do
+    test "the email preview renders the survey rather than the raw tag", ctx do
+      q =
+        question(ctx.survey, %{
+          "position" => 1,
+          "kind" => "choice",
+          "prompt" => "Worst bit?",
+          "options" => "Scheduling\nInvoicing"
+        })
+
+      prospect = prospect_fixture(ctx.project, first_name: "Sam")
+
+      preview =
+        ColdForge.Sending.Renderer.preview_message(
+          "Hi",
+          "Hi {{first_name}},\n\n{{survey}}",
+          prospect,
+          ctx.project,
+          question: q,
+          base_url: "https://cold.example"
+        )
+
+      # The point of previewing is catching what the recipient gets. A literal
+      # {{survey}} in the preview would be the preview lying.
+      refute preview.text =~ "{{survey}}"
+      assert preview.text =~ "Worst bit?"
+      assert preview.text =~ "Scheduling: https://cold.example/a/preview0"
+      assert preview.text =~ "Invoicing: https://cold.example/a/preview1"
+    end
+
+    test "previewing creates no answer links", ctx do
+      q =
+        question(ctx.survey, %{
+          "position" => 1,
+          "kind" => "choice",
+          "prompt" => "?",
+          "options" => "A\nB"
+        })
+
+      prospect = prospect_fixture(ctx.project)
+
+      ColdForge.Sending.Renderer.preview_message("s", "{{survey}}", prospect, ctx.project,
+        question: q
+      )
+
+      # A real link per keystroke would leave a trail of dead rows.
+      assert Repo.aggregate(ColdForge.Survey.Link, :count) == 0
+    end
+
+    test "an email with no survey linked previews without the tag", ctx do
+      prospect = prospect_fixture(ctx.project)
+
+      preview =
+        ColdForge.Sending.Renderer.preview_message(
+          "s",
+          "Text {{survey}} end",
+          prospect,
+          ctx.project
+        )
+
+      refute preview.text =~ "{{survey}}"
+    end
+  end
+
   describe "editing questions through the survey form" do
     test "adds, reorders and removes in one save", ctx do
       {:ok, survey} =

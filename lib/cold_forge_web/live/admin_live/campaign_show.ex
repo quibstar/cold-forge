@@ -247,6 +247,17 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
     {:noreply, load(socket)}
   end
 
+  # The survey picker's current value, which may be a string mid-edit and an
+  # integer straight from the database.
+  defp preview_survey_id(form) do
+    case form[:survey_id].value do
+      nil -> nil
+      "" -> nil
+      value when is_integer(value) -> value
+      value when is_binary(value) -> String.to_integer(value)
+    end
+  end
+
   defp campaign_path(%{project_id: project_id, campaign_id: campaign_id}) do
     ~p"/admin/p/#{project_id}/campaigns/#{campaign_id}"
   end
@@ -435,6 +446,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
           branded={@campaign.branded}
           prospect={@preview_prospect}
           project={@current_project}
+          question={ColdForge.Survey.email_question(@preview_step.survey_id)}
           class=""
         />
         <button
@@ -598,6 +610,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
         branded={@campaign.branded}
         prospect={@preview_prospect}
         project={@current_project}
+        question={ColdForge.Survey.email_question(preview_survey_id(@form))}
       />
     </div>
     """

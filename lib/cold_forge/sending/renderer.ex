@@ -263,12 +263,14 @@ defmodule ColdForge.Sending.Renderer do
   def preview_message(subject, body, %Prospect{} = prospect, %Project{} = project, opts \\ []) do
     base_url = opts[:base_url] || ColdForgeWeb.Endpoint.url()
     branded? = Keyword.get(opts, :branded, false)
+    question = opts[:question]
 
     subject = apply_tags(subject, merge_values(prospect, project))
 
     text =
       body
       |> apply_tags(merge_values(prospect, project))
+      |> preview_survey(question, base_url)
       |> fake_tracked_links(base_url)
       |> append_footer(prospect, project, base_url)
 
@@ -277,6 +279,28 @@ defmodule ColdForge.Sending.Renderer do
       text: text,
       html: html_body(text, preview_pixel(base_url), project, branded?, base_url)
     }
+  end
+
+  # Mirrors render_survey/5 minus the inserts: a real answer link per keystroke
+  # would leave a trail of dead rows and a survey that looks answered.
+  defp preview_survey(body, nil, _base_url), do: String.replace(body, "{{survey}}", "")
+
+  defp preview_survey(body, question, base_url) do
+    block =
+      case Question.clickable_answers(question) do
+        [] ->
+          "#{question.prompt}\n\n  #{base_url}/a/preview"
+
+        answers ->
+          links =
+            answers
+            |> Enum.with_index()
+            |> Enum.map_join("\n", fn {answer, i} -> "  #{answer}: #{base_url}/a/preview#{i}" end)
+
+          "#{question.prompt}\n\n#{links}"
+      end
+
+    String.replace(body, "{{survey}}", block)
   end
 
   # Mirrors rewrite_links/3 exactly, minus the inserts — so what you see in the

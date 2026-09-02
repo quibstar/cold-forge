@@ -29,6 +29,7 @@ defmodule ColdForgeWeb.EmailPreview do
   attr :branded, :boolean, default: false
   attr :prospect, :map, required: true
   attr :project, :map, required: true
+  attr :question, :map, default: nil
   attr :class, :string, default: "h-fit lg:sticky lg:top-20"
   attr :height, :string, default: "h-[32rem]"
 
@@ -39,7 +40,8 @@ defmodule ColdForgeWeb.EmailPreview do
         assigns.body || "",
         assigns.prospect,
         assigns.project,
-        branded: assigns.branded
+        branded: assigns.branded,
+        question: assigns.question
       )
 
     assigns = assign(assigns, :preview, preview)
