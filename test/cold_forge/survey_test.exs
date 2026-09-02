@@ -420,7 +420,12 @@ defmodule ColdForge.SurveyTest do
                  "project_id" => ctx.project.id,
                  "name" => "Broken",
                  "questions" => %{
-                   "0" => %{"position" => "1", "kind" => "choice", "prompt" => "?", "options" => "A"}
+                   "0" => %{
+                     "position" => "1",
+                     "kind" => "choice",
+                     "prompt" => "?",
+                     "options" => "A"
+                   }
                  },
                  "questions_order" => ["0"]
                })

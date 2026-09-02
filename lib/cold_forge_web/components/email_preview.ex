@@ -30,6 +30,11 @@ defmodule ColdForgeWeb.EmailPreview do
   attr :prospect, :map, required: true
   attr :project, :map, required: true
   attr :question, :map, default: nil
+
+  attr :full_page_url, :string,
+    default: nil,
+    doc: "when set, offers the email as a standalone page at full width"
+
   attr :class, :string, default: "h-fit lg:sticky lg:top-20"
   attr :height, :string, default: "h-[32rem]"
 
@@ -56,6 +61,16 @@ defmodule ColdForgeWeb.EmailPreview do
             <span class="text-xs text-base-content/50">
               as {Prospect.display_name(@prospect)}
             </span>
+            <.link
+              :if={@full_page_url}
+              href={@full_page_url}
+              target="_blank"
+              rel="noopener"
+              class="btn btn-xs btn-ghost"
+              title="Open at full width in a new tab"
+            >
+              <.icon name="hero-arrow-top-right-on-square" class="size-3.5" />
+            </.link>
             <div class="join">
               <button
                 type="button"

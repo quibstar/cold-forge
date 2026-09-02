@@ -247,6 +247,13 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
     {:noreply, load(socket)}
   end
 
+  # Only a saved email has a URL to open; a new one exists nowhere yet.
+  defp full_page_url(%{live_action: :edit_email} = assigns) do
+    ~p"/admin/p/#{assigns.project_id}/campaigns/#{assigns.campaign_id}/emails/#{assigns.step.id}/preview"
+  end
+
+  defp full_page_url(_assigns), do: nil
+
   # The survey picker's current value, which may be a string mid-edit and an
   # integer straight from the database.
   defp preview_survey_id(form) do
@@ -447,6 +454,9 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
           prospect={@preview_prospect}
           project={@current_project}
           question={ColdForge.Survey.email_question(@preview_step.survey_id)}
+          full_page_url={
+            ~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/emails/#{@preview_step.id}/preview"
+          }
           class=""
         />
         <button
@@ -611,6 +621,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
         prospect={@preview_prospect}
         project={@current_project}
         question={ColdForge.Survey.email_question(preview_survey_id(@form))}
+        full_page_url={full_page_url(assigns)}
       />
     </div>
     """

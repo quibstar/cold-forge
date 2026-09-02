@@ -46,7 +46,6 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
     socket
     |> assign(:page_title, socket.assigns.survey.name)
     |> assign(:breadcrumbs, survey_crumbs(socket))
-    |> assign(:previewing, false)
   end
 
   defp apply_action(socket, :edit, _params) do
@@ -70,14 +69,6 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
     do: ~p"/admin/p/#{project_id}/surveys/#{survey_id}"
 
   @impl true
-  def handle_event("preview", _params, socket) do
-    {:noreply, assign(socket, :previewing, true)}
-  end
-
-  def handle_event("close_preview", _params, socket) do
-    {:noreply, assign(socket, :previewing, false)}
-  end
-
   def handle_event("validate", %{"survey" => params}, socket) do
     changeset =
       socket.assigns.survey
@@ -108,9 +99,17 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
         {length(@questions)} {if length(@questions) == 1, do: "question", else: "questions"} · {@answered} answered
       </span>
       <div class="ml-auto flex gap-2">
-        <button :if={@questions != []} phx-click="preview" class="btn btn-sm">
-          <.icon name="hero-eye" class="size-4" /> Preview
-        </button>
+        <%!-- A real tab rather than a modal iframe: the answer page is a page,
+        and seeing it at the size a recipient gets is the point of looking. --%>
+        <.link
+          :if={@questions != []}
+          href={~p"/admin/p/#{@project_id}/surveys/#{@survey_id}/preview"}
+          target="_blank"
+          rel="noopener"
+          class="btn btn-sm"
+        >
+          <.icon name="hero-arrow-top-right-on-square" class="size-4" /> Preview
+        </.link>
         <.link
           navigate={~p"/admin/p/#{@project_id}/surveys/#{@survey_id}/edit"}
           class="btn btn-sm btn-primary"
@@ -148,36 +147,6 @@ defmodule ColdForgeWeb.AdminLive.SurveyShow do
           <div class="font-medium mt-1">{q.prompt}</div>
 
           <.question_results question={q} results={@results[q.id]} />
-        </div>
-      </div>
-    </div>
-
-    <%!-- An iframe onto the real answer page rather than a re-drawn copy: a
-    preview that renders its own version of the page is a preview of nothing,
-    because it drifts the moment the real one changes. --%>
-    <div
-      :if={@previewing}
-      class="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:pt-[6vh]"
-    >
-      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" phx-click="close_preview" />
-      <div
-        class="relative w-full max-w-2xl card bg-base-100 shadow-xl"
-        phx-window-keydown="close_preview"
-        phx-key="Escape"
-      >
-        <div class="card-body">
-          <div class="flex items-center justify-between">
-            <h2 class="card-title text-base">What they see after clicking</h2>
-            <button phx-click="close_preview" class="btn btn-sm btn-circle" aria-label="Close">
-              <.icon name="hero-x-mark" class="size-4" />
-            </button>
-          </div>
-
-          <iframe
-            title="Survey preview"
-            src={~p"/admin/p/#{@project_id}/surveys/#{@survey_id}/preview"}
-            class="w-full h-[32rem] rounded-lg border border-base-300 bg-base-200"
-          ></iframe>
         </div>
       </div>
     </div>

@@ -136,7 +136,11 @@ defmodule ColdForgeWeb.Router do
 
     # Outside the live_session because it renders the public answer page's own
     # template, which is a plain controller view.
-    get "/admin/p/:project_id/surveys/:id/preview", SurveyPreviewController, :show
+    get "/admin/p/:project_id/surveys/:id/preview", PreviewController, :survey
+
+    get "/admin/p/:project_id/campaigns/:id/emails/:step_id/preview",
+        PreviewController,
+        :email
   end
 
   scope "/", ColdForgeWeb do
