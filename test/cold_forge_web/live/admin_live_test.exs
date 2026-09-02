@@ -78,6 +78,15 @@ defmodule ColdForgeWeb.AdminLiveTest do
       assert html =~ ~s|href="/admin/p/#{ctx.project.id}/activity"|
     end
 
+    test "editing a project has a way back to the list", ctx do
+      for path <- [~p"/admin/projects/new", ~p"/admin/projects/#{ctx.project.id}/edit"] do
+        {:ok, _view, html} = live(ctx.conn, path)
+
+        assert html =~ ~s|href="/admin/projects"|,
+               "#{path} has no breadcrumb back to the project list"
+      end
+    end
+
     test "the trail down to an email says where you are", ctx do
       {:ok, _view, html} =
         live(

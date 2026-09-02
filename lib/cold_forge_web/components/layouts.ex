@@ -65,146 +65,161 @@ defmodule ColdForgeWeb.Layouts do
       |> assign_new(:page_subtitle, fn -> nil end)
 
     ~H"""
-    <div class="flex h-screen overflow-hidden bg-base-200">
-      <div
-        id="sidebar-overlay"
-        class="fixed inset-0 z-40 bg-black/50 lg:hidden"
-        phx-click={
-          JS.remove_class("open", to: "#admin-sidebar")
-          |> JS.remove_class("open", to: "#sidebar-overlay")
-        }
+    <%!-- daisyUI's drawer rather than a hand-rolled overlay: `lg:drawer-open`
+    pins it open from large screens up, and on a phone a checkbox does the
+    showing and hiding with no CSS or JS of our own. --%>
+    <div class="drawer lg:drawer-open h-screen bg-base-200">
+      <input
+        id="admin-drawer"
+        type="checkbox"
+        class="drawer-toggle"
+        phx-hook=".CloseOnNavigate"
       />
 
-      <aside
-        id="admin-sidebar"
-        class="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-base-100 border-r border-base-300"
-      >
-        <div class="flex items-center justify-between px-4 h-16 border-b border-base-300 shrink-0">
-          <.link navigate={~p"/admin"} class="flex items-center gap-2 min-w-0">
-            <span class="flex items-center justify-center size-9 rounded-lg bg-primary/10 shrink-0">
-              <.icon name="hero-fire" class="size-5 text-primary" />
-            </span>
-            <div class="leading-tight min-w-0">
-              <div class="text-sm font-bold logo-color truncate">Cold Forge</div>
-              <div class="text-xs text-base-content/50 -mt-0.5">Outreach</div>
-            </div>
-          </.link>
-          <button
-            class="lg:hidden flex items-center justify-center size-8 rounded-lg hover:bg-base-200 cursor-pointer"
-            phx-click={
-              JS.remove_class("open", to: "#admin-sidebar")
-              |> JS.remove_class("open", to: "#sidebar-overlay")
-            }
-            aria-label="Close navigation"
-          >
-            <.icon name="hero-x-mark" class="size-5" />
-          </button>
-        </div>
+      <div class="drawer-side z-40">
+        <label for="admin-drawer" aria-label="Close navigation" class="drawer-overlay"></label>
 
-        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          <.nav_link
-            navigate={~p"/admin"}
-            icon="hero-home"
-            active={nav_active(@current_path, "/admin")}
-          >
-            Dashboard
-          </.nav_link>
-          <.nav_link
-            navigate={~p"/admin/projects"}
-            icon="hero-squares-2x2"
-            active={nav_active(@current_path, "/admin/projects")}
-          >
-            Projects
-          </.nav_link>
-          <.nav_link
-            navigate={~p"/admin/suppressions"}
-            icon="hero-no-symbol"
-            active={nav_active(@current_path, "/admin/suppressions")}
-          >
-            Do not contact
-          </.nav_link>
-          <.nav_link
-            navigate={~p"/admin/guide"}
-            icon="hero-book-open"
-            active={nav_active(@current_path, "/admin/guide")}
-          >
-            How this works
-          </.nav_link>
-        </nav>
+        <aside class="w-64 min-h-full flex flex-col bg-base-100 border-r border-base-300">
+          <div class="flex items-center justify-between px-4 h-16 border-b border-base-300 shrink-0">
+            <.link navigate={~p"/admin"} class="flex items-center gap-2 min-w-0">
+              <span class="flex items-center justify-center size-9 rounded-lg bg-primary/10 shrink-0">
+                <.icon name="hero-fire" class="size-5 text-primary" />
+              </span>
+              <div class="leading-tight min-w-0">
+                <div class="text-sm font-bold logo-color truncate">Cold Forge</div>
+                <div class="text-xs text-base-content/50 -mt-0.5">Outreach</div>
+              </div>
+            </.link>
+            <label
+              for="admin-drawer"
+              class="lg:hidden flex items-center justify-center size-8 rounded-lg hover:bg-base-200 cursor-pointer"
+              aria-label="Close navigation"
+            >
+              <.icon name="hero-x-mark" class="size-5" />
+            </label>
+          </div>
 
-        <%!-- `dropdown-top` so the menu opens upward — this sits at the very
+          <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+            <.nav_link
+              navigate={~p"/admin"}
+              icon="hero-home"
+              active={nav_active(@current_path, "/admin")}
+            >
+              Dashboard
+            </.nav_link>
+            <.nav_link
+              navigate={~p"/admin/projects"}
+              icon="hero-squares-2x2"
+              active={nav_active(@current_path, "/admin/projects")}
+            >
+              Projects
+            </.nav_link>
+            <.nav_link
+              navigate={~p"/admin/suppressions"}
+              icon="hero-no-symbol"
+              active={nav_active(@current_path, "/admin/suppressions")}
+            >
+              Do not contact
+            </.nav_link>
+            <.nav_link
+              navigate={~p"/admin/guide"}
+              icon="hero-book-open"
+              active={nav_active(@current_path, "/admin/guide")}
+            >
+              How this works
+            </.nav_link>
+          </nav>
+
+          <%!-- `dropdown-top` so the menu opens upward — this sits at the very
         bottom of the viewport, and a downward menu would be clipped. --%>
-        <div
-          :if={@current_scope && @current_scope.user}
-          class="px-3 py-3 border-t border-base-300 shrink-0"
-        >
-          <div class="dropdown dropdown-top w-full">
-            <div
-              tabindex="0"
-              role="button"
-              class="flex items-center gap-3 w-full rounded-lg p-2 hover:bg-base-200 cursor-pointer"
-            >
-              <div class="size-9 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm font-semibold shrink-0">
-                {String.upcase(String.at(@current_scope.user.email, 0) || "?")}
-              </div>
-              <div class="flex-1 min-w-0 text-left">
-                <div class="text-sm font-medium text-base-content truncate">
-                  {@current_scope.user.email}
+          <div
+            :if={@current_scope && @current_scope.user}
+            class="px-3 py-3 border-t border-base-300 shrink-0"
+          >
+            <div class="dropdown dropdown-top w-full">
+              <div
+                tabindex="0"
+                role="button"
+                class="flex items-center gap-3 w-full rounded-lg p-2 hover:bg-base-200 cursor-pointer"
+              >
+                <div class="size-9 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm font-semibold shrink-0">
+                  {String.upcase(String.at(@current_scope.user.email, 0) || "?")}
                 </div>
-                <div class="text-xs text-base-content/60 truncate">Operator</div>
+                <div class="flex-1 min-w-0 text-left">
+                  <div class="text-sm font-medium text-base-content truncate">
+                    {@current_scope.user.email}
+                  </div>
+                  <div class="text-xs text-base-content/60 truncate">Operator</div>
+                </div>
+                <.icon name="hero-chevron-up-down" class="size-4 text-base-content/50 shrink-0" />
               </div>
-              <.icon name="hero-chevron-up-down" class="size-4 text-base-content/50 shrink-0" />
+              <ul
+                tabindex="0"
+                class="dropdown-content menu w-56 mb-2 p-2 shadow-lg bg-base-100 rounded-box border border-base-300"
+              >
+                <li>
+                  <.link navigate={~p"/users/settings"}>
+                    <.icon name="hero-cog-8-tooth" class="size-4" /> Account settings
+                  </.link>
+                </li>
+                <li>
+                  <.link navigate={~p"/admin/projects"}>
+                    <.icon name="hero-squares-2x2" class="size-4" /> Projects
+                  </.link>
+                </li>
+                <li>
+                  <.link navigate={~p"/admin/suppressions"}>
+                    <.icon name="hero-no-symbol" class="size-4" /> Do not contact
+                  </.link>
+                </li>
+                <li><hr class="border-base-300 my-1" /></li>
+                <li>
+                  <.link href={~p"/users/log-out"} method="delete">
+                    <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Log out
+                  </.link>
+                </li>
+              </ul>
             </div>
-            <ul
-              tabindex="0"
-              class="dropdown-content menu w-56 mb-2 p-2 shadow-lg bg-base-100 rounded-box border border-base-300"
-            >
-              <li>
-                <.link navigate={~p"/users/settings"}>
-                  <.icon name="hero-cog-8-tooth" class="size-4" /> Account settings
-                </.link>
-              </li>
-              <li>
-                <.link navigate={~p"/admin/projects"}>
-                  <.icon name="hero-squares-2x2" class="size-4" /> Projects
-                </.link>
-              </li>
-              <li>
-                <.link navigate={~p"/admin/suppressions"}>
-                  <.icon name="hero-no-symbol" class="size-4" /> Do not contact
-                </.link>
-              </li>
-              <li><hr class="border-base-300 my-1" /></li>
-              <li>
-                <.link href={~p"/users/log-out"} method="delete">
-                  <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Log out
-                </.link>
-              </li>
-            </ul>
-          </div>
 
-          <div class="mt-2 flex justify-center">
-            <.theme_toggle />
+            <div class="mt-2 flex justify-center">
+              <.theme_toggle />
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      </div>
 
-      <div class="flex flex-col flex-1 min-w-0 lg:ml-64">
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".CloseOnNavigate">
+        export default {
+          mounted() {
+            // On a phone the drawer covers the page, and following a link does
+            // not close it — so it would sit on top of the page it just took
+            // you to. Closing on navigation rather than on each link covers
+            // links added later too, including the account menu's.
+            this._close = (event) => {
+              if (["redirect", "patch"].includes(event.detail?.kind)) {
+                this.el.checked = false
+              }
+            }
+            window.addEventListener("phx:page-loading-stop", this._close)
+          },
+          destroyed() {
+            window.removeEventListener("phx:page-loading-stop", this._close)
+          }
+        }
+      </script>
+
+      <div class="drawer-content flex flex-col min-w-0 h-screen overflow-hidden">
         <%!-- Sticky header: the page's identity on the left, global search on
         the right. The title lives here rather than in the scroll area so it
         stays visible on a long prospect list. --%>
         <header class="sticky top-0 z-30 flex items-center gap-4 px-4 sm:px-6 h-16 bg-base-100 border-b border-base-300 shrink-0">
-          <button
-            id="sidebar-toggle"
+          <label
+            for="admin-drawer"
             class="lg:hidden flex items-center justify-center size-9 rounded-lg hover:bg-base-200 cursor-pointer shrink-0"
-            phx-click={
-              JS.add_class("open", to: "#admin-sidebar")
-              |> JS.add_class("open", to: "#sidebar-overlay")
-            }
             aria-label="Open navigation"
           >
             <.icon name="hero-bars-3" class="size-5" />
-          </button>
+          </label>
 
           <div :if={@page_title} class="min-w-0">
             <h1 class="text-2xl font-bold text-base-content truncate">{@page_title}</h1>

@@ -34,6 +34,9 @@ defmodule ColdForgeWeb.AdminLive.Projects do
     socket
     |> assign(:page_title, "Projects")
     |> assign(:page_subtitle, "One per idea. Each has its own from-address and landing page.")
+    # Reset explicitly: this LiveView also serves new/edit, and their trail
+    # would otherwise linger after navigating back to the list.
+    |> assign(:breadcrumbs, [])
     |> assign(:project, nil)
   end
 
@@ -41,6 +44,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
     socket
     |> assign(:page_title, "New project")
     |> assign(:page_subtitle, nil)
+    |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:project, %Project{})
     |> assign_form(Outreach.change_project(%Project{}))
   end
@@ -51,6 +55,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
     socket
     |> assign(:page_title, project.name)
     |> assign(:page_subtitle, nil)
+    |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:project, project)
     |> assign_form(Outreach.change_project(project))
   end
