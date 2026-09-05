@@ -186,7 +186,37 @@ defmodule ColdForgeWeb.FeedbackControllerTest do
   end
 
   describe "SNS plumbing" do
+    test "parses a body SNS labelled text/plain", ctx do
+      # SNS posts JSON under Content-Type: text/plain. Without the rewrite, Plug
+      # never decodes it, the controller sees no fields, and the endpoint
+      # answers a healthy-looking 200 while dropping every bounce on the floor.
+      body =
+        Jason.encode!(
+          sns(%{
+            "notificationType" => "Bounce",
+            "bounce" => %{
+              "bounceType" => "Permanent",
+              "bouncedRecipients" => [%{"emailAddress" => "sam@riveraroofing.com"}]
+            }
+          })
+        )
+
+      conn =
+        ctx.conn
+        |> put_req_header("content-type", "text/plain; charset=UTF-8")
+        |> put_req_header("x-amz-sns-message-type", "Notification")
+        |> post(~p"/feedback/#{@token}", body)
+
+      assert json_response(conn, 200) == %{"status" => "suppressed"}
+      assert Outreach.suppressed?("sam@riveraroofing.com")
+    end
+
     test "a subscription confirmation is acknowledged, never followed", ctx do
+      # An allowlist that excludes this topic, so confirmation short-circuits
+      # before the HTTP call — the suite must not reach out to AWS.
+      Application.put_env(:cold_forge, :sns_topic_arns, ["arn:aws:sns:us-east-1:1:only-this"])
+      on_exit(fn -> Application.delete_env(:cold_forge, :sns_topic_arns) end)
+
       conn =
         post(ctx.conn, ~p"/feedback/#{@token}", %{
           "Type" => "SubscriptionConfirmation",

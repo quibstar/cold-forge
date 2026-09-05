@@ -51,6 +51,10 @@ defmodule ColdForgeWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  # Must run before the parsers: SNS sends JSON labelled text/plain, which the
+  # JSON parser would otherwise skip, leaving the body undecoded.
+  plug ColdForgeWeb.Plugs.SNSContentType
+
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
