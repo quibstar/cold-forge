@@ -25,7 +25,7 @@ AAAA go.affordablestartup.com    <box ipv6>
 
 Use a **separate AWS account** under Affordable Startup LLC, not ExteriorPro's.
 
-SES tracks bounce and complaint rates *per account*, and what it pauses when
+SES tracks bounce and complaint rates _per account_, and what it pauses when
 they climb is the account's sending — not one domain. Cold outreach is the
 highest-complaint mail there is. Run it in ExteriorPro's account and a campaign
 that goes badly can stop the proposals, invoices and payment links going to
@@ -49,13 +49,14 @@ waiting to be closed.
 
 - [ ] **Verify the domain** — SES → Verified identities → `go.affordablestartup.com`,
       then add the three DKIM `CNAME` records.
-- [ ] **SPF**: `TXT go.affordablestartup.com` → `v=spf1 include:amazonses.com ~all`
-- [ ] **DMARC** on the *root*: `TXT _dmarc.affordablestartup.com` →
+- [x] **SPF**: `TXT go.affordablestartup.com` → `v=spf1 include:amazonses.com ~all`
+- [x] **DMARC** on the _root_: `TXT _dmarc.affordablestartup.com` →
       `v=DMARC1; p=none; sp=none; rua=mailto:dmarc@affordablestartup.com`
 
       `sp=none` is the part people miss. Subdomains inherit the root's policy,
       so tightening `p` to `quarantine` later would silently start failing this
       outreach until someone noticed.
+
 - [ ] **Production access.** New accounts are sandboxed and can only mail
       verified addresses. It is a support request — start it early.
 
@@ -102,12 +103,12 @@ means the `Message-ID` header isn't surviving the round trip.
 A domain with no sending history that suddenly emits hundreds a day is how a
 sending domain gets blocked, usually for good.
 
-| Week | Per day |
-|---|---|
-| 1 | 10–20 |
-| 2 | 25–40 |
-| 3 | 50–75 |
-| 4+ | climb while complaints stay under 0.1% |
+| Week | Per day                                |
+| ---- | -------------------------------------- |
+| 1    | 10–20                                  |
+| 2    | 25–40                                  |
+| 3    | 50–75                                  |
+| 4+   | climb while complaints stay under 0.1% |
 
 The campaign's daily cap enforces this. It ships at 25 — week-two pacing. Raise
 it deliberately, not because a list is large.
@@ -116,7 +117,7 @@ it deliberately, not because a list is large.
 
 - [ ] **Postal address** on the project is the registered one for Affordable
       Startup LLC. It ships with a shouted placeholder on purpose: CAN-SPAM
-      requires a real address, so a *plausible* placeholder would ship as a lie
+      requires a real address, so a _plausible_ placeholder would ship as a lie
       nobody caught.
 - [ ] Callback number set, or the voicemail scripts can't be filled in.
 - [ ] Read one rendered email on a phone before sending it to a stranger.
@@ -134,7 +135,7 @@ Warm-up is per-domain and, at 25/day, takes weeks — a new domain per idea mean
 every idea starts cold and slow. The isolation that actually matters is the one
 already drawn: between everything experimental and the products earning money.
 
-Give each project its own From *local part* on the shared domain
+Give each project its own From _local part_ on the shared domain
 (`kris@go.affordablestartup.com`, `hello@go.affordablestartup.com`) rather than
 its own domain. Cheap, and enough to tell campaigns apart in replies.
 
