@@ -48,6 +48,19 @@ defmodule ColdForge.Workers.SendMessageTest do
     assert enrollment.completed_at
     assert enrollment.next_send_at == nil
     assert length(Outreach.list_messages(ctx.project.id)) == 2
+    assert Repo.reload(ctx.prospect).status == "completed"
+  end
+
+  test "the prospect stays active while another campaign is still running", ctx do
+    other = campaign_fixture(ctx.project, name: "Other")
+    step_fixture(other)
+    {:ok, _} = Outreach.enroll_prospect(Outreach.get_campaign!(other.id), ctx.prospect)
+
+    assert :ok = perform_job(SendMessage, %{enrollment_id: ctx.enrollment.id})
+    assert :ok = perform_job(SendMessage, %{enrollment_id: ctx.enrollment.id})
+
+    assert Repo.reload(ctx.enrollment).status == "completed"
+    assert Repo.reload(ctx.prospect).status == "active"
   end
 
   test "stops quietly when the prospect unsubscribed after queueing", ctx do

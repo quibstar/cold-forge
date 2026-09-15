@@ -415,16 +415,51 @@ defmodule ColdForge.Outreach do
             DateTime.utc_now() |> DateTime.add(first_step.delay_days, :day)
           )
 
-        %Enrollment{}
-        |> Enrollment.changeset(%{
-          campaign_id: campaign.id,
-          prospect_id: prospect.id,
-          status: "active",
-          current_position: 0,
-          next_send_at: send_at
-        })
-        |> Repo.insert()
+        with {:ok, enrollment} <-
+               %Enrollment{}
+               |> Enrollment.changeset(%{
+                 campaign_id: campaign.id,
+                 prospect_id: prospect.id,
+                 status: "active",
+                 current_position: 0,
+                 next_send_at: send_at
+               })
+               |> Repo.insert() do
+          mark_active(prospect.id)
+          {:ok, enrollment}
+        end
     end
+  end
+
+  # Only from the statuses that mean "reachable". A query rather than a
+  # changeset on the struct, so a prospect who replied since it was loaded is
+  # never flipped back to active.
+  defp mark_active(prospect_id) do
+    Prospect
+    |> where([p], p.id == ^prospect_id and p.status in ["new", "completed"])
+    |> Repo.update_all(set: [status: "active"])
+  end
+
+  @doc """
+  Moves a prospect from `active` to `completed` once nothing is running for
+  them any more — called whenever an enrollment finishes or is stopped.
+
+  Only `active` moves. Someone who replied, bounced or unsubscribed keeps that
+  status, and someone still in another campaign stays active.
+  """
+  def settle_prospect_status(prospect_id) do
+    running? =
+      Repo.exists?(
+        from e in Enrollment, where: e.prospect_id == ^prospect_id and e.status == "active"
+      )
+
+    unless running? do
+      Prospect
+      |> where([p], p.id == ^prospect_id and p.status == "active")
+      |> Repo.update_all(set: [status: "completed"])
+    end
+
+    :ok
   end
 
   def list_enrollments(campaign_id) do
@@ -439,9 +474,13 @@ defmodule ColdForge.Outreach do
     do: Enrollment |> Repo.get!(id) |> Repo.preload([:prospect, campaign: [:project, :steps]])
 
   def stop_enrollment(%Enrollment{} = enrollment, reason \\ "manual") do
-    enrollment
-    |> Ecto.Changeset.change(status: "stopped", stopped_reason: reason, next_send_at: nil)
-    |> Repo.update()
+    with {:ok, enrollment} <-
+           enrollment
+           |> Ecto.Changeset.change(status: "stopped", stopped_reason: reason, next_send_at: nil)
+           |> Repo.update() do
+      settle_prospect_status(enrollment.prospect_id)
+      {:ok, enrollment}
+    end
   end
 
   def count_enrollments_by_status(campaign_id) do

@@ -271,7 +271,7 @@ defmodule ColdForgeWeb.EndToEndTest do
 
     conn = get(build_conn(), ~p"/u/#{dana.unsubscribe_token}")
     assert html_response(conn, 200) =~ "Unsubscribe"
-    assert Repo.reload(dana).status == "new"
+    assert Repo.reload(dana).status == "active"
 
     conn = post(build_conn(), ~p"/u/#{dana.unsubscribe_token}")
     assert html_response(conn, 200) =~ "unsubscribed"

@@ -141,7 +141,7 @@ defmodule ColdForge.InboxTest do
 
       assert reply.automated
       # They were away, not interested — the campaign carries on.
-      assert Repo.reload(ctx.prospect).status == "new"
+      assert Repo.reload(ctx.prospect).status == "active"
       assert Repo.reload(ctx.enrollment).status == "active"
     end
 

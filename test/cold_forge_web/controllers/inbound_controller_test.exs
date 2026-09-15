@@ -42,7 +42,7 @@ defmodule ColdForgeWeb.InboundControllerTest do
       post(ctx.conn, ~p"/inbound/not-the-token", %{"from" => "sam@riveraroofing.com"})
 
       assert Inbox.list_replies(ctx.project.id) == []
-      assert Repo.reload(ctx.prospect).status == "new"
+      assert Repo.reload(ctx.prospect).status == "active"
     end
   end
 
@@ -149,7 +149,7 @@ defmodule ColdForgeWeb.InboundControllerTest do
         })
 
       assert json_response(conn, 200)
-      assert Repo.reload(ctx.prospect).status == "new"
+      assert Repo.reload(ctx.prospect).status == "active"
       assert Repo.reload(ctx.enrollment).status == "active"
     end
   end

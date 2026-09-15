@@ -57,6 +57,15 @@ defmodule ColdForge.CallingTest do
       assert Calling.queue(ctx.project.id) == []
     end
 
+    test "still calls someone whose email sequence ran out", ctx do
+      # Finishing the emails without an answer is exactly who a call is for.
+      prospect = callable(ctx.project)
+      {:ok, _} = prospect |> Ecto.Changeset.change(status: "completed") |> Repo.update()
+
+      assert [%{id: id}] = Calling.queue(ctx.project.id)
+      assert id == prospect.id
+    end
+
     test "holds someone back until their next slot comes round", ctx do
       prospect = callable(ctx.project)
       {:ok, _} = Calling.log_call(prospect, %{"outcome" => "no_answer"})
@@ -170,7 +179,7 @@ defmodule ColdForge.CallingTest do
     test "a no-answer changes nothing on the email side", ctx do
       {:ok, _} = Calling.log_call(ctx.prospect, %{"outcome" => "no_answer"})
 
-      assert Repo.reload(ctx.prospect).status == "new"
+      assert Repo.reload(ctx.prospect).status == "active"
       assert Repo.reload(ctx.enrollment).status == "active"
     end
   end

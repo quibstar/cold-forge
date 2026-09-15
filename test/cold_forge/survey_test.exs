@@ -172,6 +172,36 @@ defmodule ColdForge.SurveyTest do
       assert enrollment.status == "stopped"
       assert enrollment.stopped_reason == "answered"
       assert enrollment.answered_at
+
+      # Answering is engagement: treated like a reply, which also takes them
+      # out of the calling queue.
+      assert Repo.reload(ctx.prospect).status == "replied"
+    end
+
+    test "an answer after the sequence finished leaves it completed", ctx do
+      :ok = perform_job(SendMessage, %{enrollment_id: ctx.enrollment.id})
+      assert Repo.reload(ctx.enrollment).status == "completed"
+
+      {:ok, _} =
+        Survey.record_answers(ctx.link, %{
+          to_string(ctx.question.id) => %{"choice" => "Scheduling"}
+        })
+
+      enrollment = Repo.reload(ctx.enrollment)
+      assert enrollment.status == "completed"
+      assert enrollment.answered_at
+      assert Repo.reload(ctx.prospect).status == "replied"
+    end
+
+    test "an answer never overwrites an unsubscribe", ctx do
+      {:ok, _} = Outreach.unsubscribe_prospect(ctx.prospect)
+
+      {:ok, _} =
+        Survey.record_answers(ctx.link, %{
+          to_string(ctx.question.id) => %{"choice" => "Scheduling"}
+        })
+
+      assert Repo.reload(ctx.prospect).status == "unsubscribed"
     end
 
     test "leaves the campaign running when told to", ctx do
@@ -187,6 +217,7 @@ defmodule ColdForge.SurveyTest do
       enrollment = Repo.reload(ctx.enrollment)
       assert enrollment.status == "active"
       assert enrollment.answered_at
+      assert Repo.reload(ctx.prospect).status == "active"
     end
 
     test "an empty submit is not an answer", ctx do

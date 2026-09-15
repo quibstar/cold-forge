@@ -225,14 +225,18 @@ defmodule ColdForge.Sending do
       |> Ecto.Changeset.change(current_position: next_position, next_send_at: send_at)
       |> Repo.update()
     else
-      enrollment
-      |> Ecto.Changeset.change(
-        current_position: next_position,
-        status: "completed",
-        next_send_at: nil,
-        completed_at: DateTime.utc_now() |> DateTime.truncate(:second)
-      )
-      |> Repo.update()
+      with {:ok, enrollment} <-
+             enrollment
+             |> Ecto.Changeset.change(
+               current_position: next_position,
+               status: "completed",
+               next_send_at: nil,
+               completed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+             )
+             |> Repo.update() do
+        Outreach.settle_prospect_status(enrollment.prospect_id)
+        {:ok, enrollment}
+      end
     end
   end
 

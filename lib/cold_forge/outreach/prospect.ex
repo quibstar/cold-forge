@@ -124,5 +124,8 @@ defmodule ColdForge.Outreach.Prospect do
   Whether this prospect may still be emailed. Suppression is checked separately
   by `ColdForge.Outreach.suppressed?/1` — that list is global.
   """
-  def mailable?(%__MODULE__{status: status}), do: status in ["new", "active"]
+  # `completed` is mailable: finishing a sequence without answering is not an
+  # opt-out, and a later campaign — often for a different idea — may be exactly
+  # what lands. Opt-outs are the suppression list's job, not this status's.
+  def mailable?(%__MODULE__{status: status}), do: status in ["new", "active", "completed"]
 end

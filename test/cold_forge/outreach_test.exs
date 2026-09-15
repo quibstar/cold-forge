@@ -31,6 +31,40 @@ defmodule ColdForge.OutreachTest do
       assert Date.day_of_week(DateTime.to_date(local)) in ctx.campaign.send_days
     end
 
+    test "marks the prospect active", ctx do
+      prospect = prospect_fixture(ctx.project)
+
+      {:ok, _} = Outreach.enroll_prospect(ctx.campaign, prospect)
+
+      assert Repo.reload(prospect).status == "active"
+    end
+
+    test "a finished sequence doesn't block a later campaign", ctx do
+      # Running out of emails is not an opt-out; the suppression list is.
+      prospect = prospect_fixture(ctx.project)
+      {:ok, prospect} = prospect |> Ecto.Changeset.change(status: "completed") |> Repo.update()
+
+      assert {:ok, _} = Outreach.enroll_prospect(ctx.campaign, prospect)
+      assert Repo.reload(prospect).status == "active"
+    end
+
+    test "never reopens someone who replied", ctx do
+      prospect = prospect_fixture(ctx.project)
+      {:ok, prospect} = Outreach.mark_replied(prospect)
+
+      assert {:error, :not_mailable} = Outreach.enroll_prospect(ctx.campaign, prospect)
+      assert Repo.reload(prospect).status == "replied"
+    end
+
+    test "stopping the last running campaign settles the prospect as completed", ctx do
+      prospect = prospect_fixture(ctx.project)
+      {:ok, enrollment} = Outreach.enroll_prospect(ctx.campaign, prospect)
+
+      {:ok, _} = Outreach.stop_enrollment(enrollment)
+
+      assert Repo.reload(prospect).status == "completed"
+    end
+
     test "refuses a suppressed address", ctx do
       prospect = prospect_fixture(ctx.project)
       Outreach.suppress(prospect.email, "manual")

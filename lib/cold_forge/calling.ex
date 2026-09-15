@@ -46,7 +46,9 @@ defmodule ColdForge.Calling do
     Prospect
     |> where([p], p.project_id == ^project_id)
     |> where([p], not p.do_not_call)
-    |> where([p], p.status in ["new", "active"])
+    # `completed` means an email sequence ran out without an answer — exactly
+    # who a call is for, not someone to leave alone.
+    |> where([p], p.status in ["new", "active", "completed"])
     |> where([p], not is_nil(p.phone) and p.phone != "")
     |> where([p], is_nil(p.next_call_at) or p.next_call_at <= ^now)
     |> order_by([p], asc_nulls_first: p.next_call_at, asc: p.inserted_at)

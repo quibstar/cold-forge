@@ -269,10 +269,25 @@ defmodule ColdForge.Survey do
     # one they were actually sent should stop.
     campaign = link.message && link.message.enrollment && link.message.enrollment.campaign
 
-    if is_nil(campaign) do
-      :ok
-    else
-      stop_or_note(campaign, link, now)
+    cond do
+      # An answer from an email sent outside any campaign is still somebody
+      # engaging, and there is no campaign setting to say otherwise.
+      is_nil(campaign) ->
+        engage(link.prospect_id)
+
+      campaign.stop_on_answer ->
+        stop_or_note(campaign, link, now)
+        engage(link.prospect_id)
+
+      true ->
+        stop_or_note(campaign, link, now)
+    end
+  end
+
+  defp engage(prospect_id) do
+    case Repo.get(Prospect, prospect_id) do
+      nil -> :ok
+      prospect -> mark_engaged(prospect)
     end
   end
 
@@ -282,17 +297,15 @@ defmodule ColdForge.Survey do
         where: e.campaign_id == ^campaign.id and e.prospect_id == ^link.prospect_id
       )
 
+    Repo.update_all(query, set: [answered_at: now])
+
+    # Only a running enrollment stops. One that already finished stays
+    # `completed` — rewriting it as `stopped` would make the campaign's numbers
+    # say it was cut short when it ran to the end.
     if campaign.stop_on_answer do
-      Repo.update_all(query,
-        set: [
-          status: "stopped",
-          stopped_reason: "answered",
-          next_send_at: nil,
-          answered_at: now
-        ]
-      )
-    else
-      Repo.update_all(query, set: [answered_at: now])
+      query
+      |> where([e], e.status == "active")
+      |> Repo.update_all(set: [status: "stopped", stopped_reason: "answered", next_send_at: nil])
     end
   end
 
@@ -376,8 +389,18 @@ defmodule ColdForge.Survey do
     survey_id |> list_questions() |> List.first()
   end
 
-  @doc "Marks the prospect as engaged, the same way a reply does."
-  def mark_engaged(%Prospect{} = prospect) do
+  @doc """
+  Marks the prospect as engaged, the same way a reply does — which also takes
+  them out of the calling queue.
+
+  Only from a reachable status. Somebody who unsubscribed and then answers the
+  survey from an old email is still unsubscribed; an answer is not consent to
+  be contacted again.
+  """
+  def mark_engaged(%Prospect{status: status} = prospect)
+      when status in ["new", "active", "completed"] do
     Outreach.mark_replied(prospect)
   end
+
+  def mark_engaged(%Prospect{} = prospect), do: {:ok, prospect}
 end
