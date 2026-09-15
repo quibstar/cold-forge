@@ -124,7 +124,13 @@ defmodule ColdForge.Outreach do
   an address that's already there is a no-op rather than an error, because
   bounce webhooks and manual adds routinely overlap.
   """
-  def suppress(email, reason, attrs \\ %{}) do
+  def suppress(email, reason, attrs \\ %{})
+
+  # A phone-only prospect has no address to list. Their status (and, for calls,
+  # `do_not_call`) carries the opt-out instead.
+  def suppress(nil, _reason, _attrs), do: {:error, :no_email}
+
+  def suppress(email, reason, attrs) do
     attrs = Map.merge(attrs, %{email: email, reason: reason})
 
     %Suppression{}

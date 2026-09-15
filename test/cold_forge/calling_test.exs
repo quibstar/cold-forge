@@ -36,6 +36,14 @@ defmodule ColdForge.CallingTest do
       refute called.id in Enum.map(queue, & &1.id)
     end
 
+    test "offers phone-only prospects, who can never be emailed", ctx do
+      {:ok, prospect} =
+        Outreach.create_prospect(%{project_id: ctx.project.id, phone: "616-396-5512"})
+
+      assert [%{id: id}] = Calling.queue(ctx.project.id)
+      assert id == prospect.id
+    end
+
     test "skips anyone without a phone number", ctx do
       prospect_fixture(ctx.project, phone: nil)
       assert Calling.queue(ctx.project.id) == []

@@ -63,7 +63,8 @@ defmodule ColdForge.Outreach.Prospect do
       :notes,
       :status
     ])
-    |> validate_required([:project_id, :email])
+    |> validate_required([:project_id])
+    |> validate_reachable()
     |> update_change(:email, &String.trim/1)
     |> validate_format(:email, ~r/^[^@,;\s]+@[^@,;\s]+\.[^@,;\s]+$/,
       message: "must be a valid email"
@@ -73,6 +74,7 @@ defmodule ColdForge.Outreach.Prospect do
     |> unique_constraint([:project_id, :email],
       message: "is already a prospect on this project"
     )
+    |> check_constraint(:email, name: :email_or_phone, message: "or phone is required")
     |> foreign_key_constraint(:project_id)
   end
 
@@ -105,6 +107,18 @@ defmodule ColdForge.Outreach.Prospect do
     built_in ++ custom
   end
 
+  # Email or phone, not necessarily both. A phone-only prospect can be called
+  # but never enrolled in a campaign — see `mailable?/1`.
+  defp validate_reachable(changeset) do
+    if blank?(get_field(changeset, :email)) and blank?(get_field(changeset, :phone)) do
+      add_error(changeset, :email, "or phone is required")
+    else
+      changeset
+    end
+  end
+
+  defp blank?(value), do: value in [nil, ""] or (is_binary(value) and String.trim(value) == "")
+
   defp put_unsubscribe_token(changeset) do
     case get_field(changeset, :unsubscribe_token) do
       nil -> put_change(changeset, :unsubscribe_token, ColdForge.Tracking.Token.generate())
@@ -115,7 +129,7 @@ defmodule ColdForge.Outreach.Prospect do
   @doc "Display name, falling back to the email when we only have an address."
   def display_name(%__MODULE__{} = prospect) do
     case String.trim("#{prospect.first_name} #{prospect.last_name}") do
-      "" -> prospect.email
+      "" -> prospect.email || prospect.company || prospect.phone
       name -> name
     end
   end
@@ -127,5 +141,10 @@ defmodule ColdForge.Outreach.Prospect do
   # `completed` is mailable: finishing a sequence without answering is not an
   # opt-out, and a later campaign — often for a different idea — may be exactly
   # what lands. Opt-outs are the suppression list's job, not this status's.
-  def mailable?(%__MODULE__{status: status}), do: status in ["new", "active", "completed"]
+  #
+  # And it needs an address: a phone-only prospect is reachable, but only by the
+  # call queue.
+  def mailable?(%__MODULE__{email: email, status: status}) do
+    is_binary(email) and email != "" and status in ["new", "active", "completed"]
+  end
 end

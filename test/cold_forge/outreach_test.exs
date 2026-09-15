@@ -88,6 +88,57 @@ defmodule ColdForge.OutreachTest do
     end
   end
 
+  describe "phone-only prospects" do
+    # Lists built for calling publish a phone far more often than an address.
+    defp phone_only(project) do
+      {:ok, prospect} =
+        Outreach.create_prospect(%{
+          project_id: project.id,
+          company: "Van's Septic",
+          phone: "616-396-5512"
+        })
+
+      prospect
+    end
+
+    test "can be created with a phone and no email", ctx do
+      prospect = phone_only(ctx.project)
+
+      assert prospect.email == nil
+      assert prospect.unsubscribe_token
+    end
+
+    test "need at least one way to reach them", ctx do
+      assert {:error, changeset} =
+               Outreach.create_prospect(%{project_id: ctx.project.id, company: "Nobody"})
+
+      assert "or phone is required" in errors_on(changeset).email
+    end
+
+    test "are never enrolled in a campaign", ctx do
+      prospect = phone_only(ctx.project)
+
+      assert {:error, :not_mailable} = Outreach.enroll_prospect(ctx.campaign, prospect)
+      assert Repo.reload(prospect).status == "new"
+    end
+
+    test "can be unsubscribed without an address to suppress", ctx do
+      prospect = phone_only(ctx.project)
+
+      {:ok, prospect} = Outreach.unsubscribe_prospect(prospect)
+
+      assert prospect.status == "unsubscribed"
+      assert Outreach.list_suppressions() == []
+    end
+
+    test "any number of them can share a project", ctx do
+      phone_only(ctx.project)
+
+      assert {:ok, _} =
+               Outreach.create_prospect(%{project_id: ctx.project.id, phone: "231-744-1070"})
+    end
+  end
+
   describe "enroll_prospects/2" do
     test "skips who it can't mail rather than failing the whole batch", ctx do
       ok = prospect_fixture(ctx.project)

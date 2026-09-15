@@ -86,14 +86,18 @@ defmodule ColdForge.Outreach.Importer do
     * `:new`        — will be created
     * `:duplicate`  — already a prospect on this project
     * `:suppressed` — on the global do-not-contact list
-    * `:invalid`    — no email, or one that isn't an address
+    * `:invalid`    — neither an email nor a phone, or an email that isn't an
+                      address
+
+  A row with a phone and no email is imported: it can be called, though never
+  emailed. Without an address to compare, it is deduplicated by phone digits.
 
   Duplicates within the file itself count as duplicates too, so a list with the
   same address twice doesn't insert it twice.
   """
   def analyze(contents, project_id, mapping) do
     with {:ok, [_headers | rows]} <- parse(contents) do
-      existing = existing_emails(project_id)
+      existing = existing_keys(project_id)
 
       {results, _seen} =
         Enum.map_reduce(rows, MapSet.new(), fn row, seen ->
@@ -112,19 +116,21 @@ defmodule ColdForge.Outreach.Importer do
   defp classify(row, mapping, existing, seen, project_id) do
     attrs = row_to_attrs(row, mapping, project_id)
     email = attrs |> Map.get(:email, "") |> to_string() |> String.trim() |> String.downcase()
+    phone = attrs |> Map.get(:phone) |> phone_digits()
+    key = if email == "", do: "phone:" <> phone, else: email
 
     status =
       cond do
-        email == "" -> :invalid
-        not valid_email?(email) -> :invalid
-        MapSet.member?(seen, email) -> :duplicate
-        MapSet.member?(existing, email) -> :duplicate
-        Outreach.suppressed?(email) -> :suppressed
+        email == "" and phone == "" -> :invalid
+        email != "" and not valid_email?(email) -> :invalid
+        MapSet.member?(seen, key) -> :duplicate
+        MapSet.member?(existing, key) -> :duplicate
+        email != "" and Outreach.suppressed?(email) -> :suppressed
         true -> :new
       end
 
     result = %{status: status, email: email, attrs: attrs, raw: row}
-    {result, MapSet.put(seen, email)}
+    {result, MapSet.put(seen, key)}
   end
 
   @doc """
@@ -211,16 +217,30 @@ defmodule ColdForge.Outreach.Importer do
 
   defp valid_email?(email), do: Regex.match?(~r/^[^@,;\s]+@[^@,;\s]+\.[^@,;\s]+$/, email)
 
-  defp existing_emails(project_id) do
+  # Emails, plus phone digits under a `phone:` prefix so a phone-only row can
+  # be matched against the prospects already on the project.
+  defp existing_keys(project_id) do
     import Ecto.Query
 
     Prospect
     |> where([p], p.project_id == ^project_id)
-    |> select([p], p.email)
+    |> select([p], {p.email, p.phone})
     |> Repo.all()
-    |> Enum.map(&String.downcase/1)
+    |> Enum.flat_map(fn {email, phone} ->
+      [
+        email && String.downcase(email),
+        case phone_digits(phone) do
+          "" -> nil
+          digits -> "phone:" <> digits
+        end
+      ]
+    end)
+    |> Enum.reject(&is_nil/1)
     |> MapSet.new()
   end
+
+  defp phone_digits(nil), do: ""
+  defp phone_digits(phone), do: phone |> to_string() |> String.replace(~r/\D/, "")
 
   # A malformed CSV raises out of NimbleCSV; the operator gets a message rather
   # than a 500 page.

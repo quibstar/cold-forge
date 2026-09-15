@@ -118,6 +118,32 @@ defmodule ColdForge.ImporterTest do
       assert emails == ["already@example.com", "fresh@example.com"]
     end
 
+    test "imports phone-only rows, deduplicated by phone digits", ctx do
+      {:ok, _} =
+        Outreach.create_prospect(%{project_id: ctx.project.id, phone: "231 744 1070"})
+
+      csv = """
+      Email,Company,Phone
+      ,Van's Septic,616-396-5512
+      ,Van's Septic again,(616) 396-5512
+      ,Schultz Septic,231-744-1070
+      ,No Contact,
+      joe@septicwork.com,Septic Works,616-292-5805
+      """
+
+      headers = ["Email", "Company", "Phone"]
+      {:ok, analysis} = Importer.analyze(csv, ctx.project.id, ctx.mapping.(headers))
+      assert analysis.counts == %{new: 2, duplicate: 2, invalid: 1}
+
+      {:ok, result} = Importer.commit(csv, ctx.project.id, ctx.mapping.(headers))
+      assert result.inserted == 2
+      assert result.failed == []
+
+      vans = Enum.find(Outreach.list_prospects(ctx.project.id), &(&1.company == "Van's Septic"))
+      assert vans.email == nil
+      assert vans.phone == "616-396-5512"
+    end
+
     test "keeps unmapped columns as merge-tag data", ctx do
       csv = """
       Email,Roof Type,Crew Size
