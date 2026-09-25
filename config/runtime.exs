@@ -102,6 +102,12 @@ if config_env() == :prod do
 
   # Uploaded logos live on a mounted volume, not inside the release — see
   # `ColdForge.Uploads` for why `priv` cannot hold them.
+  # Where magic-link and confirmation mail comes from. Defaults to the sending
+  # host, which is a verified SES domain, so any local part on it is accepted.
+  config :cold_forge,
+         :operator_from_email,
+         System.get_env("OPERATOR_FROM_EMAIL") || "no-reply@#{host}"
+
   config :cold_forge, :uploads_dir, System.get_env("UPLOADS_DIR") || "/app/uploads"
 
   # The shared secret in the inbound webhook's URL, where replies arrive.

@@ -5,11 +5,23 @@ defmodule ColdForge.Accounts.UserNotifier do
   alias ColdForge.Accounts.User
 
   # Delivers the email using the application mailer.
+  # Operator mail — magic links and confirmations — is the one kind this app
+  # sends to itself rather than to a prospect, so it has no project to take a
+  # from-address from.
+  #
+  # It must still be an address SES will accept. The generator's default,
+  # contact@example.com, is not a verified identity, so every login email was
+  # rejected by SES and the magic link simply never arrived: no bounce to see,
+  # and a log-in page that looks like it worked.
+  defp from_address do
+    Application.get_env(:cold_forge, :operator_from_email) || "contact@example.com"
+  end
+
   defp deliver(recipient, subject, body) do
     email =
       new()
       |> to(recipient)
-      |> from({"ColdForge", "contact@example.com"})
+      |> from({"Cold Forge", from_address()})
       |> subject(subject)
       |> text_body(body)
 
