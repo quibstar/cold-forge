@@ -10,7 +10,7 @@ defmodule ColdForgeWeb.AdminLive.Replies do
 
   import ColdForgeWeb.ProjectTabs
 
-  alias ColdForge.Inbox
+  alias ColdForge.{Inbox, Outreach}
   alias ColdForge.Outreach.Prospect
 
   @impl true
@@ -27,6 +27,16 @@ defmodule ColdForgeWeb.AdminLive.Replies do
     socket
     |> assign(:replies, Inbox.list_replies(socket.assigns.project_id))
     |> assign(:people, Inbox.replied_count(socket.assigns.project_id))
+  end
+
+  @impl true
+  def handle_event("undo_reply", %{"id" => id}, socket) do
+    {:ok, _} = id |> Outreach.get_prospect!() |> Outreach.undo_reply()
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Reply undone. Their campaign picks up at the next send window.")
+     |> load()}
   end
 
   @impl true
@@ -81,6 +91,18 @@ defmodule ColdForgeWeb.AdminLive.Replies do
                 <span :if={reply.automated} class="badge badge-sm badge-warning">
                   automated
                 </span>
+                <%!-- An out-of-office that slipped through, or a reply matched
+                to the wrong person, should not cost somebody the rest of the
+                sequence. --%>
+                <button
+                  :if={reply.prospect.status == "replied"}
+                  phx-click="undo_reply"
+                  phx-value-id={reply.prospect_id}
+                  class="btn btn-xs btn-ghost"
+                  title="Not a real reply — resume their campaign"
+                >
+                  Undo
+                </button>
               </div>
             </div>
 

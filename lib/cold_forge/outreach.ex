@@ -176,6 +176,61 @@ defmodule ColdForge.Outreach do
   end
 
   @doc """
+  Undoes `mark_replied/1` and puts the prospect back in their campaigns.
+
+  For the false positives: an auto-responder that slipped past the
+  `Auto-Submitted` check, a reply matched to the wrong person by address, or a
+  button clicked by mistake. Without this the only way back was editing the
+  database by hand.
+
+  Enrollments stopped *because of* the reply resume — `replied` and `answered`
+  — and nothing else. One stopped by an unsubscribe or a bounce stays stopped,
+  since undoing a reply is not consent to start mailing someone again.
+
+  The reply itself is kept. It happened, and deleting the record to change a
+  status would lose the evidence for why the status was ever set.
+
+  Resumed enrollments are scheduled for the next open send window rather than
+  their original slot: that moment has passed, and the alternative is a mail
+  going out at four in the morning.
+  """
+  def undo_reply(%Prospect{status: "replied"} = prospect) do
+    Repo.transaction(fn ->
+      {:ok, prospect} =
+        prospect
+        |> Ecto.Changeset.change(status: "active", replied_at: nil)
+        |> Repo.update()
+
+      resume_enrollments(prospect)
+      settle_prospect_status(prospect.id)
+
+      Repo.reload!(prospect)
+    end)
+  end
+
+  def undo_reply(%Prospect{}), do: {:error, :not_replied}
+
+  defp resume_enrollments(%Prospect{id: prospect_id}) do
+    Enrollment
+    |> where([e], e.prospect_id == ^prospect_id and e.status == "stopped")
+    |> where([e], e.stopped_reason in ["replied", "answered"])
+    |> preload(campaign: :project)
+    |> Repo.all()
+    |> Enum.each(fn enrollment ->
+      send_at =
+        Window.next_open_slot(
+          enrollment.campaign,
+          enrollment.campaign.project,
+          DateTime.utc_now()
+        )
+
+      enrollment
+      |> Ecto.Changeset.change(status: "active", stopped_reason: nil, next_send_at: send_at)
+      |> Repo.update()
+    end)
+  end
+
+  @doc """
   Every prospect with this address, across all projects.
 
   Plural because the same person can be a prospect for more than one idea, and a

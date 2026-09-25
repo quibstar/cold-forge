@@ -116,6 +116,15 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
      |> load_prospects()}
   end
 
+  def handle_event("undo_reply", %{"id" => id}, socket) do
+    {:ok, _} = id |> Outreach.get_prospect!() |> Outreach.undo_reply()
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Reply undone. Their campaign picks up at the next send window.")
+     |> load_prospects()}
+  end
+
   def handle_event("delete", %{"id" => id}, socket) do
     {:ok, _} = id |> Outreach.get_prospect!() |> Outreach.delete_prospect()
     {:noreply, socket |> put_flash(:info, "Prospect deleted.") |> load_prospects()}
@@ -227,6 +236,15 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
                   title="Stop their campaigns — they got back to you"
                 >
                   Replied
+                </button>
+                <button
+                  :if={p.status == "replied"}
+                  phx-click="undo_reply"
+                  phx-value-id={p.id}
+                  class="btn btn-xs btn-ghost"
+                  title="They didn't really reply — put them back in the campaign"
+                >
+                  Undo reply
                 </button>
                 <button
                   :if={Prospect.mailable?(p)}
