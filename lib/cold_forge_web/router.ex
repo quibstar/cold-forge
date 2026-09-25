@@ -169,7 +169,15 @@ defmodule ColdForgeWeb.Router do
 
     live_session :current_user,
       on_mount: [{ColdForgeWeb.UserAuth, :mount_current_scope}] do
-      live "/users/register", UserLive.Registration, :new
+      # No registration route, deliberately. This is a single-operator tool on a
+      # public hostname — the same one serving tracked links and unsubscribe
+      # pages to strangers — so a signup form is an open door to an admin that
+      # can read every prospect and send mail as the project's from-address.
+      # Operator accounts are created from the console:
+      #
+      #     bin/cold_forge remote
+      #     ColdForge.Accounts.register_user(%{email: "you@example.com"})
+      #
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new
     end
