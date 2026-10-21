@@ -115,10 +115,10 @@ it deliberately, not because a list is large.
 
 ## 6. The content
 
-- [ ] **Postal address** on the project is the registered one for Affordable
-      Startup LLC. It ships with a shouted placeholder on purpose: CAN-SPAM
-      requires a real address, so a _plausible_ placeholder would ship as a lie
-      nobody caught.
+- [x] **Postal address** on the project: Affordable Startup LLC, 4370 Chicago
+      Dr. SW #547, Grandville, MI 49418. One mailbox for every project's drips —
+      CAN-SPAM requires a real address, and this keeps a home address out of
+      mail sent to strangers.
 - [ ] Callback number set, or the voicemail scripts can't be filled in.
 - [ ] Read one rendered email on a phone before sending it to a stranger.
 - [ ] Click the unsubscribe link yourself.

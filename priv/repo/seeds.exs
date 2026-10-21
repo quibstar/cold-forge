@@ -58,11 +58,10 @@ project =
           "landing_url" => "https://exteriorpro.io/demo",
           "signature" =>
             "Kris Utter\nExteriorPro — a product of Affordable Startup LLC\nexteriorpro.io",
-          # Deliberately not a plausible address. CAN-SPAM requires a real one
-          # in commercial mail, so a convincing placeholder would ship as a lie
-          # nobody noticed. Loud beats plausible.
-          "postal_address" =>
-            "Affordable Startup LLC — REPLACE WITH YOUR REGISTERED POSTAL ADDRESS BEFORE SENDING",
+          # Affordable Startup's mailing address, shared by every project's
+          # drips. CAN-SPAM requires a real postal address in commercial mail;
+          # this is a mailbox rather than a home address on purpose.
+          "postal_address" => "Affordable Startup LLC, 4370 Chicago Dr. SW #547, Grandville, MI 49418",
           "merge_defaults_text" => "industry: exterior contractors\nproduct: ExteriorPro",
           "timezone" => "America/New_York"
         })
