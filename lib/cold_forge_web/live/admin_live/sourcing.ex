@@ -137,7 +137,12 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                 · found via {org.source}
               </p>
             </div>
-            <span class={["badge", badge_class(org.status)]}>{label_for(org.status)}</span>
+            <%!-- No status badge: the tab you are on already says it, so a badge
+                  on every card can only ever repeat it. What is worth the
+                  space is the thing you cannot infer — when we last looked. --%>
+            <span :if={org.fetched_at} class="text-xs opacity-60 whitespace-nowrap">
+              looked {Calendar.strftime(org.fetched_at, "%b %-d")}
+            </span>
           </div>
 
           <%!-- The evidence. A reviewer deciding whether to write to someone
@@ -227,11 +232,6 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   defp label_for("rejected"), do: "Left off"
   defp label_for("promoted"), do: "Prospects"
   defp label_for(other), do: humanize_segment(other)
-
-  defp badge_class("fetched"), do: "badge-success"
-  defp badge_class("promoted"), do: "badge-primary"
-  defp badge_class("rejected"), do: "badge-ghost"
-  defp badge_class(_status), do: "badge-neutral"
 
   defp humanize_segment(nil), do: ""
 
