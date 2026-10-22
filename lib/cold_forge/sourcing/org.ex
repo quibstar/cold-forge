@@ -82,7 +82,10 @@ defmodule ColdForge.Sourcing.Org do
       :raw
     ])
     |> validate_required([:name, :segment, :provider, :source_ref])
-    |> validate_inclusion(:segment, @segments)
+    # Any trade a search was written for, not only the built-in ones: a
+    # search for "roofing supply" finds places filed under "roofing supply",
+    # and checking against a fixed list rejected every one of them.
+    |> validate_length(:segment, max: 200)
     |> validate_inclusion(:provider, @providers)
     |> update_change(:website, &normalize_website/1)
     |> put_initial_status()
