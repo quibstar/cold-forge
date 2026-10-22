@@ -25,6 +25,9 @@ defmodule ColdForge.Outreach.Project do
     field :logo_url, :string
     field :logo_path, :string
     field :brand_color, :string
+    # The printed counter flyer. Edited on its own — `changeset/2` doesn't cast
+    # it, so saving the project settings can't wipe it.
+    embeds_one :flyer, ColdForge.Flyers.Content, on_replace: :update
     field :timezone, :string, default: "America/New_York"
     field :active, :boolean, default: true
 

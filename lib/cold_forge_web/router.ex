@@ -86,6 +86,10 @@ defmodule ColdForgeWeb.Router do
 
     get "/a/:token", TrackingController, :answer_form
     post "/a/:token", TrackingController, :answer
+
+    # A printed flyer's QR code. Public because it's scanned by strangers at a
+    # supply-house counter; it counts the scan and sends them on.
+    get "/f/:code", FlyerController, :scan
   end
 
   ## Admin — the whole application. Cold Forge has exactly one operator, so the
@@ -131,6 +135,9 @@ defmodule ColdForgeWeb.Router do
       live "/p/:project_id/prospects/import", AdminLive.Import, :new
       live "/p/:project_id/prospects/:id/edit", AdminLive.Prospects, :edit
 
+      live "/p/:project_id/flyers", AdminLive.Flyers, :index
+      live "/p/:project_id/flyers/:id/edit", AdminLive.Flyers, :edit
+
       live "/p/:project_id/surveys", AdminLive.Surveys, :index
       live "/p/:project_id/surveys/new", AdminLive.Surveys, :new
       live "/p/:project_id/surveys/:id", AdminLive.SurveyShow, :show
@@ -172,6 +179,10 @@ defmodule ColdForgeWeb.Router do
     get "/admin/p/:project_id/campaigns/:id/emails/:step_id/preview",
         PreviewController,
         :email
+
+    # Outside the live_session: a print sheet is a standalone page with its own
+    # stylesheet, Letter-sized, with none of the admin chrome.
+    get "/admin/p/:project_id/flyers/print", FlyerController, :print
   end
 
   scope "/", ColdForgeWeb do

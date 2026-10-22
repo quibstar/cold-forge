@@ -45,6 +45,7 @@ defmodule ColdForgeWeb.ProjectTabs do
       {"Prospects", ~p"/admin/p/#{project.id}/prospects", "hero-users"},
       {"Sourcing", ~p"/admin/p/#{project.id}/sourcing", "hero-magnifying-glass"},
       {"Calls", ~p"/admin/p/#{project.id}/calls", "hero-phone"},
+      {"Flyers", ~p"/admin/p/#{project.id}/flyers", "hero-printer"},
       {"Replies", ~p"/admin/p/#{project.id}/replies", "hero-inbox-arrow-down"},
       {"Activity", ~p"/admin/p/#{project.id}/activity", "hero-envelope"}
     ]
