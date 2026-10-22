@@ -134,6 +134,9 @@ defmodule ColdForge.Sourcing do
 
     searches_total = get_in(source.last_run_summary || %{}, ["queries"]) || 0
 
+    # A flyers search never checks websites, so it's done once it has searched.
+    {checking, stalled} = if Source.flyers?(source), do: {0, 0}, else: {checking, stalled}
+
     %{
       searches_total: searches_total,
       searches_done: max(searches_total - searches_left, 0),
@@ -148,6 +151,8 @@ defmodule ColdForge.Sourcing do
   Queues a check for every website of a source still waiting without one.
   Safe to run any time: a place already queued isn't queued twice.
   """
+  def queue_missing_crawls(%Source{purpose: "flyers"}), do: 0
+
   def queue_missing_crawls(%Source{} = source) do
     queued_ids =
       from(j in Oban.Job,
@@ -391,6 +396,17 @@ defmodule ColdForge.Sourcing do
   where it belongs.
   """
   def promote(%Org{} = org, project_id) do
+    if flyer_org?(org), do: {:error, :flyer_source}, else: do_promote(org, project_id)
+  end
+
+  # Supply houses and lumber yards found for flyers are not customers. Checked
+  # here, not only by hiding buttons, so no path can turn one into a prospect.
+  defp flyer_org?(%Org{source_id: nil}), do: false
+
+  defp flyer_org?(%Org{source_id: source_id}),
+    do: Repo.exists?(from s in Source, where: s.id == ^source_id and s.purpose == "flyers")
+
+  defp do_promote(%Org{} = org, project_id) do
     attrs = %{
       project_id: project_id,
       email: org.email,
@@ -446,6 +462,8 @@ defmodule ColdForge.Sourcing do
   Returns `{:ok, %{added: n, existing: n, failed: n}}`. A row that fails is left
   alone, so one bad record can't undo the rest.
   """
+  def promote_all(%Source{purpose: "flyers"}, _kind), do: {:error, :flyer_source}
+
   def promote_all(%Source{} = source, kind) when kind in [:email, :calls] do
     totals =
       source

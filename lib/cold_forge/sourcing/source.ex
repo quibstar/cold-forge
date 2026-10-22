@@ -27,6 +27,11 @@ defmodule ColdForge.Sourcing.Source do
 
   @providers ~w(places overpass)
 
+  # Prospects to call and email, or places to put up flyers (supply houses,
+  # lumber yards). A flyers search's results can't be added as prospects, and
+  # its websites aren't checked for an email — nobody is going to be emailed.
+  @purposes ~w(prospects flyers)
+
   schema "sourcing_sources" do
     field :name, :string
     field :provider, :string, default: "places"
@@ -42,6 +47,7 @@ defmodule ColdForge.Sourcing.Source do
     field :last_run_at, :utc_datetime
     field :last_run_summary, :map, default: %{}
     field :notes, :string
+    field :purpose, :string, default: "prospects"
 
     belongs_to :project, ColdForge.Outreach.Project
     has_many :orgs, ColdForge.Sourcing.Org, foreign_key: :source_id
@@ -50,6 +56,10 @@ defmodule ColdForge.Sourcing.Source do
   end
 
   def providers, do: @providers
+
+  @doc "True for a search whose results are places to put flyers, not prospects."
+  def flyers?(%__MODULE__{purpose: "flyers"}), do: true
+  def flyers?(_source), do: false
 
   @doc "The segments a provider can search for."
   def segments_for("places"), do: Enum.sort(Places.segments())
@@ -85,12 +95,14 @@ defmodule ColdForge.Sourcing.Source do
       :localities,
       :localities_text,
       :active,
-      :notes
+      :notes,
+      :purpose
     ])
     |> parse_segments()
     |> parse_localities()
     |> validate_required([:name, :project_id, :provider])
     |> validate_inclusion(:provider, @providers)
+    |> validate_inclusion(:purpose, @purposes)
     # Not validate_length/3: it only runs when the field changed, and an
     # untouched set of checkboxes sends no `segments` key at all — so an empty
     # source would save silently.

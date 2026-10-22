@@ -27,11 +27,12 @@ defmodule ColdForge.FlyersTest do
     %{project: project}
   end
 
-  defp org(project, attrs) do
+  defp org(project, attrs, purpose \\ "flyers") do
     source =
       Repo.insert!(%Source{
         name: "Supply houses #{System.unique_integer([:positive])}",
         project_id: project.id,
+        purpose: purpose,
         provider: "places",
         segments: ["roofing supply"],
         localities: ["Michigan"]
@@ -141,6 +142,13 @@ defmodule ColdForge.FlyersTest do
 
       refute contractor.source_id == supply.source_id
       assert Flyers.candidate_orgs(project.id, nil) == []
+    end
+
+    test "never offers a prospect search, even when chosen", %{project: project} do
+      roofer = org(project, %{name: "Above Roofing"}, "prospects")
+
+      assert Flyers.candidate_orgs(project.id, roofer.source_id) == []
+      assert Flyers.add_orgs(project, [roofer.id]) == 0
     end
 
     test "won't add another project's results", %{project: project} do

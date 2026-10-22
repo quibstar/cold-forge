@@ -60,7 +60,14 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
     |> assign(:content, Flyers.content(project))
     |> assign(:content_form, to_form(Flyers.change_content(project), as: :flyer))
     |> assign(:placements, Flyers.list_placements(project.id))
-    |> assign(:sources, Sourcing.list_sources(project_id: project.id))
+    # Only flyer-location searches: a prospect search is the contractors you're
+    # selling to, and none of them belongs on the flyer list.
+    |> assign(
+      :sources,
+      project.id
+      |> then(&Sourcing.list_sources(project_id: &1))
+      |> Enum.filter(&ColdForge.Sourcing.Source.flyers?/1)
+    )
     |> assign(
       :candidates,
       Flyers.candidate_orgs(project.id, socket.assigns[:candidate_source_id])
@@ -389,8 +396,8 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
           <div :if={@sources == []} class="text-sm opacity-60">
             Run a search on the
             <.link navigate={~p"/admin/p/#{@project_id}/sourcing"} class="link">Sourcing</.link>
-            tab for <code>roofing supply, building supply, window distributor</code>, then add
-            what it finds here.
+            tab for <code>roofing supply, building supply, window distributor</code>, with
+            "What these are for" set to <b>Flyer locations</b>, then add what it finds here.
           </div>
 
           <form :if={@sources != []} id="pick-source" phx-change="pick_source">

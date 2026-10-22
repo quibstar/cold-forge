@@ -88,7 +88,14 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     source = socket.assigns.source
 
     socket
-    |> assign(:orgs, Sourcing.list_orgs(source_id: source.id, view: socket.assigns.status))
+    # A flyers search has one list — the places — not the channel tabs.
+    |> assign(
+      :orgs,
+      Sourcing.list_orgs(
+        source_id: source.id,
+        view: if(Source.flyers?(source), do: nil, else: socket.assigns.status)
+      )
+    )
     |> assign(:counts, Sourcing.counts_by_view(source))
     |> assign(:addable, Sourcing.addable_counts(source))
     |> assign(:progress, Sourcing.progress(source))
@@ -315,10 +322,15 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   def handle_event("add_all", %{"kind" => kind}, socket) when kind in ["email", "calls"] do
     source = socket.assigns.source
-    {:ok, totals} = Sourcing.promote_all(source, String.to_existing_atom(kind))
 
-    {:noreply,
-     socket |> put_flash(:info, add_all_message(kind, totals, source)) |> load_results()}
+    case Sourcing.promote_all(source, String.to_existing_atom(kind)) do
+      {:ok, totals} ->
+        {:noreply,
+         socket |> put_flash(:info, add_all_message(kind, totals, source)) |> load_results()}
+
+      {:error, :flyer_source} ->
+        {:noreply, put_flash(socket, :error, describe(:flyer_source))}
+    end
   end
 
   def handle_event("reject", %{"id" => id}, socket) do
@@ -368,6 +380,10 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> Enum.map_join("; ", fn {field, msgs} -> "#{field} #{Enum.join(msgs, ", ")}" end)
   end
 
+  defp describe(:flyer_source),
+    do:
+      "this search is for flyer locations, so its places go on the Flyers tab, not the prospect list."
+
   defp describe(other), do: inspect(other)
 
   ## Render
@@ -400,6 +416,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
         <div class="card-body gap-1">
           <div class="flex items-center gap-2">
             <h3 class="font-semibold flex-1">{source.name}</h3>
+            <span :if={Source.flyers?(source)} class="badge badge-sm badge-info">for flyers</span>
             <span :if={!source.active} class="badge badge-ghost badge-sm">paused</span>
           </div>
           <p class="text-xs opacity-70">
@@ -428,6 +445,20 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             label="Name"
             placeholder="ExteriorPro — West Michigan"
           />
+
+          <.input
+            field={@form[:purpose]}
+            type="select"
+            label="What these are for"
+            options={[
+              {"Prospects — people to call and email", "prospects"},
+              {"Flyer locations — supply houses, lumber yards", "flyers"}
+            ]}
+          />
+          <p class="text-xs opacity-60 -mt-3">
+            Flyer locations can't be added as prospects, and their websites aren't checked for an
+            email. Add them from the Flyers tab.
+          </p>
 
           <.input
             field={@form[:provider]}
@@ -542,7 +573,18 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
       </div>
     </div>
 
-    <div role="tablist" class="tabs tabs-box mb-4">
+    <div :if={Source.flyers?(@source)} id="flyers-note" class="alert alert-info text-sm mb-4">
+      <.icon name="hero-printer" class="size-5 shrink-0" />
+      <span>
+        These are places to put flyers, not prospects.
+        <.link navigate={~p"/admin/p/#{@source.project_id}/flyers"} class="link font-medium">
+          Add them on the Flyers tab
+        </.link>
+        — choose this search under "From a sourcing search".
+      </span>
+    </div>
+
+    <div :if={not Source.flyers?(@source)} role="tablist" class="tabs tabs-box mb-4">
       <button
         :for={status <- @views}
         type="button"
@@ -559,7 +601,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     <%!-- Each tab's own bulk add: the places with an address go to the drip,
           the ones with no website (but a phone) go to the call list. --%>
     <div
-      :if={@status == "email" and @addable.email > 0}
+      :if={not Source.flyers?(@source) and @status == "email" and @addable.email > 0}
       class="flex flex-wrap items-center gap-3 mb-3"
     >
       <button
@@ -576,7 +618,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     </div>
 
     <div
-      :if={@status == "phone" and @addable.calls > 0}
+      :if={not Source.flyers?(@source) and @status == "phone" and @addable.calls > 0}
       class="flex flex-wrap items-center gap-3 mb-3"
     >
       <button
@@ -674,7 +716,10 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
               <td class="text-right whitespace-nowrap">
                 <button
-                  :if={(org.email || org.phone) && !org.no_solicitation && org.status != "promoted"}
+                  :if={
+                    not Source.flyers?(@source) && (org.email || org.phone) && !org.no_solicitation &&
+                      org.status != "promoted"
+                  }
                   type="button"
                   class="btn btn-xs btn-primary"
                   phx-click="promote"
