@@ -1,0 +1,587 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-22T01:16:10Z",
+    "timestamp_areas_base": "2026-10-21T22:11:36Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 7860719071,
+  "lat": 41.9194721,
+  "lon": -86.0203418,
+  "tags": {
+    "addr:city": "Cassopolis",
+    "addr:housenumber": "323",
+    "addr:postcode": "49031",
+    "addr:state": "MI",
+    "addr:street": "North M-62",
+    "amenity": "animal_shelter",
+    "animal_shelter": "dog;cat",
+    "name": "Cass County Animal Control",
+    "opening_hours": "Mo-Fr 08:00-17:00 \"by appointment after 11:00\"",
+    "phone": "+1 269-445-3701"
+  }
+},
+{
+  "type": "node",
+  "id": 9098672589,
+  "lat": 42.3626375,
+  "lon": -83.0851704,
+  "tags": {
+    "addr:city": "Detroit",
+    "addr:housenumber": "6175",
+    "addr:postcode": "48208",
+    "addr:state": "MI",
+    "addr:street": "Trumbull Street",
+    "amenity": "animal_shelter",
+    "name": "Michigan Humane Society"
+  }
+},
+{
+  "type": "node",
+  "id": 9868465575,
+  "lat": 42.6604650,
+  "lon": -83.3297701,
+  "tags": {
+    "addr:city": "Pontiac",
+    "addr:housenumber": "1200",
+    "addr:postcode": "48341",
+    "addr:state": "MI",
+    "addr:street": "North Telegraph Road",
+    "addr:unit": "42E",
+    "amenity": "animal_shelter",
+    "name": "Oakland County Animal Shelter"
+  }
+},
+{
+  "type": "node",
+  "id": 11394787533,
+  "lat": 42.6188024,
+  "lon": -82.8977912,
+  "tags": {
+    "amenity": "animal_shelter",
+    "name": "Macomb County Animal Shelter",
+    "operator": "Macomb County"
+  }
+},
+{
+  "type": "node",
+  "id": 11401528845,
+  "lat": 43.9617437,
+  "lon": -84.4752085,
+  "tags": {
+    "amenity": "animal_shelter",
+    "name": "Gladwin County Animal Shelter"
+  }
+},
+{
+  "type": "node",
+  "id": 11511973971,
+  "lat": 41.9214566,
+  "lon": -85.5145192,
+  "tags": {
+    "addr:city": "Centreville",
+    "addr:housenumber": "652",
+    "addr:postcode": "49032",
+    "addr:state": "MI",
+    "addr:street": "East Main Street",
+    "amenity": "animal_shelter",
+    "name": "St Joseph County Animal Control",
+    "phone": "+1 269-467-6475"
+  }
+},
+{
+  "type": "node",
+  "id": 12063724559,
+  "lat": 43.9751542,
+  "lon": -83.9275299,
+  "tags": {
+    "addr:city": "Standish",
+    "addr:housenumber": "3750",
+    "addr:postcode": "48658",
+    "addr:state": "MI",
+    "addr:street": "Foco Road",
+    "amenity": "animal_shelter",
+    "name": "Arenac County Animal Control"
+  }
+},
+{
+  "type": "way",
+  "id": 256784758,
+  "center": {
+    "lat": 42.3060753,
+    "lon": -83.6549734
+  },
+  "tags": {
+    "addr:city": "Ann Arbor",
+    "addr:housenumber": "3100",
+    "addr:postcode": "48105",
+    "addr:state": "MI",
+    "addr:street": "Cherry Hill Road",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "fax": "+1-734-929-0814",
+    "name": "Humane Society of Huron Valley",
+    "phone": "+1-734-662-5585",
+    "website": "https://www.hshv.org/",
+    "wikidata": "Q16996122",
+    "wikimedia_commons": "File:Humane Society of Huron Valley Superior Township Michigan.JPG"
+  }
+},
+{
+  "type": "way",
+  "id": 422696411,
+  "center": {
+    "lat": 42.3820460,
+    "lon": -83.0665273
+  },
+  "tags": {
+    "addr:city": "Detroit",
+    "addr:housenumber": "8500",
+    "addr:postcode": "48211",
+    "addr:state": "MI",
+    "addr:street": "Cameron Street",
+    "amenity": "animal_shelter",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 439346080,
+  "center": {
+    "lat": 42.4918155,
+    "lon": -83.2940410
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Almost Home Animal Haven of Southfield"
+  }
+},
+{
+  "type": "way",
+  "id": 456602439,
+  "center": {
+    "lat": 44.7141641,
+    "lon": -85.6121370
+  },
+  "tags": {
+    "addr:city": "Traverse City",
+    "addr:housenumber": "1750",
+    "addr:postcode": "49686",
+    "addr:state": "MI",
+    "addr:street": "Ahlberg Road",
+    "amenity": "animal_shelter",
+    "animal_shelter": "dog;cat",
+    "building": "yes",
+    "name": "Cherryland Humane Society"
+  }
+},
+{
+  "type": "way",
+  "id": 470843864,
+  "center": {
+    "lat": 42.2058063,
+    "lon": -83.2110665
+  },
+  "tags": {
+    "addr:city": "Southgate",
+    "addr:housenumber": "14300",
+    "addr:postcode": "48195",
+    "addr:state": "MI",
+    "addr:street": "Reaume Parkway",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "building:year_built": "2013",
+    "name": "Downriver Central Animal Control"
+  }
+},
+{
+  "type": "way",
+  "id": 500501254,
+  "center": {
+    "lat": 47.1035973,
+    "lon": -88.5194366
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "animal_shelter": "dog;cat",
+    "building": "yes",
+    "name": "Copper Country Humane Society",
+    "website": "https://www.cchumanesociety.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 552685962,
+  "center": {
+    "lat": 42.3760913,
+    "lon": -83.0622930
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 580589552,
+  "center": {
+    "lat": 43.0514849,
+    "lon": -83.3326281
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Lapeer County Animal Control"
+  }
+},
+{
+  "type": "way",
+  "id": 653775930,
+  "center": {
+    "lat": 42.5776886,
+    "lon": -83.2821771
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Bloomfield Township Animal Shelter"
+  }
+},
+{
+  "type": "way",
+  "id": 692109538,
+  "center": {
+    "lat": 45.4269160,
+    "lon": -84.8869965
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Little Traverse Bay Humane Society"
+  }
+},
+{
+  "type": "way",
+  "id": 769154714,
+  "center": {
+    "lat": 42.2110004,
+    "lon": -83.2846191
+  },
+  "tags": {
+    "addr:city": "Taylor",
+    "addr:housenumber": "25555",
+    "addr:postcode": "48180",
+    "addr:state": "MI",
+    "addr:street": "Northline Road",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Taylor Animal Shelter"
+  }
+},
+{
+  "type": "way",
+  "id": 787220064,
+  "center": {
+    "lat": 42.2044133,
+    "lon": -83.1529760
+  },
+  "tags": {
+    "addr:city": "Wyandotte",
+    "addr:housenumber": "266",
+    "addr:postcode": "48192",
+    "addr:state": "MI",
+    "addr:street": "Oak Street",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "building:levels": "2",
+    "building:year_built": "1874",
+    "name": "Shelter To Home",
+    "roof:levels": "1"
+  }
+},
+{
+  "type": "way",
+  "id": 790195317,
+  "center": {
+    "lat": 42.5918400,
+    "lon": -83.2856863
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "animal_shelter": "deer",
+    "animal_shelter:release": "yes",
+    "attraction": "animal",
+    "barrier": "fence",
+    "description": "deer rehabilitation enclosure",
+    "operator": "E.L. Johnson Nature Center"
+  }
+},
+{
+  "type": "way",
+  "id": 790195318,
+  "center": {
+    "lat": 42.5919139,
+    "lon": -83.2854433
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "animal_shelter": "red-tailed hawk",
+    "animal_shelter:release": "yes",
+    "attraction": "animal",
+    "building": "yes",
+    "description": "red-tailed hawk rehabilitation enclosure",
+    "operator": "E.L. Johnson Nature Center"
+  }
+},
+{
+  "type": "way",
+  "id": 863154726,
+  "center": {
+    "lat": 45.0632707,
+    "lon": -83.4834516
+  },
+  "tags": {
+    "addr:city": "Alpena",
+    "addr:housenumber": "1110",
+    "addr:postcode": "49707",
+    "addr:state": "MI",
+    "addr:street": "Devere Road",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "email": "SCASalpena@gmail.com",
+    "name": "Second Chance Animal Shelter",
+    "phone": "+1-989-340-1700",
+    "source": "microsoft/BuildingFootprints",
+    "website": "https://www.secondchanceanimalshelter.org/"
+  }
+},
+{
+  "type": "way",
+  "id": 889849337,
+  "center": {
+    "lat": 42.5904650,
+    "lon": -83.2862191
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "animal_shelter": "great horned owl",
+    "animal_shelter:release": "yes",
+    "attraction": "animal",
+    "building": "yes",
+    "description": "great horned owl rehabilitation enclosure",
+    "operator": "E.L. Johnson Nature Center"
+  }
+},
+{
+  "type": "way",
+  "id": 969832544,
+  "center": {
+    "lat": 43.0194549,
+    "lon": -85.7845383
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Humane Society of West Michigan",
+    "website": "https://www.hswestmi.org/"
+  }
+},
+{
+  "type": "way",
+  "id": 975134861,
+  "center": {
+    "lat": 42.6534512,
+    "lon": -85.3038885
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Barry Country Animal Shelter"
+  }
+},
+{
+  "type": "way",
+  "id": 998761057,
+  "center": {
+    "lat": 42.9757692,
+    "lon": -85.6354310
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "animal_shelter": "dog;cat",
+    "animal_shelter:adoption": "yes",
+    "building": "yes",
+    "name": "Kent County Animal Shelter",
+    "opening_hours": "Mo,Fr 09:00-17:00; Tu-Th 13:00-19:00; Sa 10:00-13:00",
+    "operator": "Kent County Health Department",
+    "website": "https://www.accesskent.com/Health/AnimalControl/"
+  }
+},
+{
+  "type": "way",
+  "id": 1025010586,
+  "center": {
+    "lat": 42.3123761,
+    "lon": -83.1990008
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1184338218,
+  "center": {
+    "lat": 42.5258192,
+    "lon": -83.1772043
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "name": "All American Pet Resort"
+  }
+},
+{
+  "type": "way",
+  "id": 1282945594,
+  "center": {
+    "lat": 43.6046588,
+    "lon": -84.2886213
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "animal_shelter": "chicken",
+    "building": "barn",
+    "description": "A chicken coop/shelter",
+    "name": "Chicken coop"
+  }
+},
+{
+  "type": "way",
+  "id": 1288456481,
+  "center": {
+    "lat": 44.0468614,
+    "lon": -84.8168117
+  },
+  "tags": {
+    "addr:city": "Harrison",
+    "addr:housenumber": "4040",
+    "addr:postcode": "48625",
+    "addr:state": "MI",
+    "addr:street": "Hazel Drive",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Clare County Animal Shelter"
+  }
+},
+{
+  "type": "way",
+  "id": 1312114636,
+  "center": {
+    "lat": 45.0423990,
+    "lon": -84.6790741
+  },
+  "tags": {
+    "addr:city": "Gaylord",
+    "addr:housenumber": "256",
+    "addr:postcode": "49735",
+    "addr:state": "MI",
+    "addr:street": "Fairview Road",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Otsego County Animal Shelter",
+    "operator": "Otsego County",
+    "phone": "+1-989-705-7632",
+    "website": "https://www.otsegocountymi.gov/192/Pets-for-Adoption"
+  }
+},
+{
+  "type": "way",
+  "id": 1340093171,
+  "center": {
+    "lat": 42.6475452,
+    "lon": -83.2697823
+  },
+  "tags": {
+    "addr:city": "Pontiac",
+    "addr:housenumber": "790",
+    "addr:postcode": "48342",
+    "addr:state": "MI",
+    "addr:street": "Featherstone Street",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "contact:facebook": "MichiganAnimalRescueLeague",
+    "contact:instagram": "mi_animalrescueleague",
+    "name": "Michigan Animal Rescue League",
+    "phone": "+1-248-335-9290",
+    "website": "https://marl.org/"
+  }
+},
+{
+  "type": "way",
+  "id": 1504535181,
+  "center": {
+    "lat": 42.0938833,
+    "lon": -86.4037480
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Berrien County Animal Services",
+    "office": "government"
+  }
+},
+{
+  "type": "way",
+  "id": 1528535118,
+  "center": {
+    "lat": 45.0070807,
+    "lon": -84.1737569
+  },
+  "tags": {
+    "addr:city": "Atlanta",
+    "addr:housenumber": "11484",
+    "addr:postcode": "49709",
+    "addr:state": "MI",
+    "addr:street": "Youngs Road",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "email": "elkcountrypets@gmail.com",
+    "facebook": "https://www.facebook.com/elkcountryanimalshelter/",
+    "name": "Elk Country Animal Shelter",
+    "opening_hours": "Tu-Fr 11:00-16:00; Sa 10:00-15:00",
+    "phone": "+1-989-785-3738",
+    "website": "https://www.elkcountryanimalshelter.org/"
+  }
+},
+{
+  "type": "way",
+  "id": 1535233931,
+  "center": {
+    "lat": 45.8764587,
+    "lon": -84.7346467
+  },
+  "tags": {
+    "addr:city": "Saint Ignace",
+    "addr:housenumber": "980",
+    "addr:postcode": "49781",
+    "addr:state": "MI",
+    "addr:street": "Cheeseman Road",
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "building:levels": "1",
+    "name": "Mackinac County Animal Shelter",
+    "operator": "Mackinac County",
+    "phone": "+1-906-643-7646",
+    "website": "https://www.mackinaccounty.net/departments/animal-control-shelter/"
+  }
+}
+
+  ]
+}
