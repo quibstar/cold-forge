@@ -65,6 +65,9 @@ defmodule ColdForge.MixProject do
       {:tz, "~> 0.28"},
       {:nimble_csv, "~> 1.2"},
       {:req, "~> 0.5"},
+      # QR codes for printed flyers, rendered as SVG so they print crisp at any
+      # size — no image pipeline, no external CLI.
+      {:eqrcode, "~> 0.2"},
       # Parses the HTML we fetch when looking for a published address.
       {:floki, "~> 0.37"},
       {:telemetry_metrics, "~> 1.0"},

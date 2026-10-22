@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Flyers · Cold Forge</title>
+    <%!-- A standalone page with its own stylesheet: it's printed, not browsed,
+    and the app's layout and CSS would only fight the Letter sheet. Ported from
+    ExteriorPro's docs/flyers/build.mjs, sizes and all. --%>
+    <style>
+      /* Letter, edge to edge — the sheet supplies its own margin so the ink area
+         is the same whatever the printer's default happens to be. */
+      @page { size: letter portrait; margin: 0; }
+
+      :root {
+        --ink: #111111;
+        /* teal-700: mid-dark, so it stays teal on a cheap printer instead of
+           washing out the way a bright brand colour does on paper */
+        --accent: #0f766e;
+        --muted: #4b5563;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .sheet {
+        width: 8.5in;
+        height: 11in;
+        padding: 0.75in 0.8in;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        page-break-after: always;
+        background: #fff;
+      }
+      .sheet:last-child { page-break-after: auto; }
+
+      .eyebrow {
+        margin: 0 0 0.18in;
+        font-size: 14pt;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      /* The one thing that has to work from six feet away. */
+      h1 {
+        margin: 0;
+        font-size: 52pt;
+        line-height: 1.0;
+        letter-spacing: -0.02em;
+        font-weight: 800;
+      }
+
+      .lede {
+        margin: 0.28in 0 0;
+        font-size: 15pt;
+        line-height: 1.4;
+        color: var(--muted);
+        max-width: 6.2in;
+      }
+
+      .steps {
+        margin: 0.3in 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 14pt;
+        line-height: 1.65;
+      }
+      .steps li { padding-left: 0.32in; position: relative; }
+      .steps li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.085in;
+        width: 0.15in;
+        height: 0.15in;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+      .steps b { font-weight: 700; }
+
+      .closing {
+        margin: 0.32in 0 0;
+        font-size: 12.5pt;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      /* The QR and the reason to scan it, side by side — a code with no
+         sentence next to it gets ignored. */
+      .scan {
+        display: flex;
+        align-items: center;
+        gap: 0.4in;
+        border-top: 3px solid var(--ink);
+        border-bottom: 3px solid var(--ink);
+        padding: 0.32in 0;
+      }
+      .qr-box { flex: 0 0 auto; }
+      /* Scannable from arm's length, including by an older phone. */
+      .qr { width: 2.4in; height: 2.4in; display: block; }
+
+      .scan-lead { margin: 0; font-size: 25pt; font-weight: 800; line-height: 1.1; }
+      .scan-url { margin: 0.1in 0 0; font-size: 19pt; font-weight: 700; color: var(--accent); }
+      .scan-terms { margin: 0.14in 0 0; font-size: 13pt; color: var(--muted); }
+
+      .foot {
+        margin: 0;
+        font-size: 11pt;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.3in;
+      }
+
+      /* Which flyer this is, small enough that only the person holding the
+         stack reads it — it's for sorting, not for the contractor. */
+      .code {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 8pt;
+        color: #9ca3af;
+        white-space: nowrap;
+      }
+
+      /* On screen only: the two print settings that ruin a flyer. */
+      .how { padding: 24px; font-size: 14px; color: #374151; background: #f3f4f6; }
+      .how kbd { background: #fff; border: 1px solid #d1d5db; border-radius: 4px; padding: 1px 5px; }
+      @media print { .how { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="how">
+      <%= if @sheets == [] do %>
+        <strong>No flyers selected.</strong> Go back and tick the places to print for.
+      <% else %>
+        <strong>{length(@sheets)} {if length(@sheets) == 1, do: "flyer", else: "flyers"} ready.</strong>
+        Print at <b>100% scale</b>
+        with <b>headers and footers off</b>, or the QR shrinks and
+        the browser writes a URL across the bottom of your flyer. <kbd>⌘P</kbd>
+      <% end %>
+    </div>
+
+    <section :for={sheet <- @sheets} class="sheet" id={"flyer-#{sheet.placement.code}"}>
+      <div class="stack">
+        <p :if={sheet.eyebrow} class="eyebrow">{sheet.eyebrow}</p>
+
+        <h1>
+          <%= for {line, i} <- Enum.with_index(ColdForge.Flyers.Content.headline_lines(@content)) do %>
+            <br :if={i > 0} />{line}
+          <% end %>
+        </h1>
+
+        <p :if={@content.lede not in [nil, ""]} class="lede">{@content.lede}</p>
+
+        <ul :if={ColdForge.Flyers.Content.steps(@content) != []} class="steps">
+          <li :for={{bold, rest} <- ColdForge.Flyers.Content.steps(@content)}>
+            <b :if={bold}>{bold}</b>{rest}
+          </li>
+        </ul>
+
+        <p :if={@content.closing not in [nil, ""]} class="closing">{@content.closing}</p>
+      </div>
+
+      <div class="scan">
+        <div class="qr-box">{Phoenix.HTML.raw(sheet.qr)}</div>
+        <div>
+          <p class="scan-lead">Point your camera here</p>
+          <p class="scan-url">{@display_url}</p>
+          <p :if={@content.terms not in [nil, ""]} class="scan-terms">{@content.terms}</p>
+        </div>
+      </div>
+
+      <p class="foot">
+        <span>{@content.footer}</span>
+        <span class="code">{sheet.placement.code}</span>
+      </p>
+    </section>
+  </body>
+</html>
