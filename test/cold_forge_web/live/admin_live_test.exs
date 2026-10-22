@@ -258,23 +258,36 @@ defmodule ColdForgeWeb.AdminLiveTest do
     end
 
     test "the CSV column mapping renders options inside its selects", ctx do
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/import")
-
-      csv = "Email,First Name\nsam@example.com,Sam\n"
-
-      entry =
-        file_input(view, "#csv-upload-form", :csv, [
-          %{name: "leads.csv", content: csv, type: "text/csv"}
-        ])
-
-      render_upload(entry, "leads.csv")
-      html = view |> element("#csv-upload-form") |> render_submit()
+      # Five columns plus "not in this file" is six choices: a select.
+      html =
+        upload_csv(ctx, "Email,First Name,Last Name,Company,Phone\nsam@example.com,Sam,R,Co,1\n")
 
       assert_selects_are_clean(html, "import mapping")
 
       # And the guessed column is actually offered, pre-selected.
-      assert html =~ ~r{<option value="0"[^>]*selected[^>]*>\s*Email\s*</option>}
+      assert html =~ ~r{<option(?=[^>]*\bselected)(?=[^>]*value="0")[^>]*>\s*Email\s*</option>}
     end
+
+    test "a narrow file's column mapping is radio buttons", ctx do
+      # Two columns plus "not in this file" is three choices — under five, so
+      # radios rather than a select that hides them.
+      html = upload_csv(ctx, "Email,First Name\nsam@example.com,Sam\n")
+
+      refute html =~ ~r{<select[^>]*name="index"}
+      assert html =~ ~r{id="map-email-index_0"[^>]*checked}
+    end
+  end
+
+  defp upload_csv(ctx, csv) do
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/import")
+
+    entry =
+      file_input(view, "#csv-upload-form", :csv, [
+        %{name: "leads.csv", content: csv, type: "text/csv"}
+      ])
+
+    render_upload(entry, "leads.csv")
+    view |> element("#csv-upload-form") |> render_submit()
   end
 
   # Every `<select>` must still contain its options once the HTML has been

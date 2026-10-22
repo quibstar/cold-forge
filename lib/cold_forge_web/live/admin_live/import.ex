@@ -222,16 +222,15 @@ defmodule ColdForgeWeb.AdminLive.Import do
               <span :if={field == :email} class="text-error">*</span>
             </label>
             <input type="hidden" name="field" value={field} />
-            <select class="select select-sm w-full mt-1" name="index">
-              <option value="">— not in this file —</option>
-              <option
-                :for={{header, index} <- Enum.with_index(@headers)}
-                value={index}
-                selected={@mapping[field] == index}
-              >
-                {header}
-              </option>
-            </select>
+            <.input
+              type="choice"
+              id={"map-#{field}-index"}
+              name="index"
+              value={@mapping[field]}
+              prompt="— not in this file —"
+              options={Enum.with_index(@headers)}
+              class="select select-sm w-full mt-1"
+            />
           </form>
         </div>
 

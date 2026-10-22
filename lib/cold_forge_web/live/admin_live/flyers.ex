@@ -402,7 +402,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
 
           <form :if={@sources != []} id="pick-source" phx-change="pick_source">
             <.input
-              type="select"
+              type="choice"
               id="candidate-source"
               name="source_id"
               value={@candidate_source_id}
