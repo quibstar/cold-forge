@@ -13,6 +13,9 @@ defmodule ColdForge.Application do
       {DNSCluster, query: Application.get_env(:cold_forge, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ColdForge.PubSub},
       {Oban, Application.fetch_env!(:cold_forge, Oban)},
+      # Keeps the crawler to one request per host at a time. Started before the
+      # endpoint because crawl jobs can be running before anyone opens the UI.
+      ColdForge.Sourcing.Politeness,
       # Start a worker by calling: ColdForge.Worker.start_link(arg)
       # {ColdForge.Worker, arg},
       # Start to serve requests, typically the last entry
