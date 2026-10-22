@@ -243,7 +243,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             <span :if={!source.active} class="badge badge-ghost badge-sm">paused</span>
           </div>
           <p class="text-xs opacity-70">
-            {segments_sentence(source)} · {places_sentence(source)} · into {source.project.name}
+            {segments_sentence(source)} · {places_sentence(source)}
           </p>
           <p class="text-xs opacity-50">
             {if source.last_run_at,
