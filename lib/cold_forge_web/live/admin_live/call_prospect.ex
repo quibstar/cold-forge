@@ -459,7 +459,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
         business, this one is the next in a four-message cadence and knows
         which have already been left. --%>
         <div :if={@numbered} class="px-5 py-4 space-y-1.5">
-          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/40">
+          <p class="text-xs font-semibold uppercase tracking-wide text-primary">
             Voicemail {@next_script} — {script_note(@next_script)}
           </p>
           <p class="text-sm leading-relaxed whitespace-pre-line">{@numbered}</p>
