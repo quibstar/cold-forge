@@ -150,7 +150,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
       assert html =~ "Summit Roofing LLC"
       assert html =~ "office@summitroofing.test"
-      assert html =~ "published as mailto"
+      assert html =~ "mailto link"
       assert html =~ "https://summitroofing.test/contact"
     end
 
@@ -172,8 +172,11 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org = org_fixture(source) |> with_address()
 
       {:ok, live, html} = live(conn, ~p"/admin/sourcing/#{source.id}")
-      # The button names the destination instead of offering a dropdown.
-      assert html =~ "Add to ExteriorPro"
+      # No dropdown anywhere: the destination is settled when the source is
+      # made, and stated once at the top rather than on three hundred rows.
+      assert html =~ "Prospects go into"
+      assert html =~ "ExteriorPro"
+      refute html =~ ~s(name="project_id")
 
       live
       |> element(~s(button[phx-click="promote"][phx-value-org_id="#{org.id}"]))
@@ -194,7 +197,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
       {:ok, live, html} = live(conn, ~p"/admin/sourcing/#{source.id}")
 
-      assert html =~ "asks not to be solicited"
+      assert html =~ "asked not to be solicited"
       assert html =~ "No unsolicited commercial email."
       refute has_element?(live, ~s(button[phx-click="promote"]))
     end
@@ -208,7 +211,60 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
       rejected = live |> element(~s(button[phx-value-status="rejected"])) |> render_click()
       assert rejected =~ "Phone Only"
-      assert rejected =~ "Add to call list"
+      assert rejected =~ "Call list"
+    end
+
+    test "adds every ready organisation at once, skipping the ones that aren't",
+         %{conn: conn, project: project} do
+      source = source_fixture(project)
+
+      org_fixture(source, %{name: "Has An Address"}) |> with_address()
+
+      org_fixture(source, %{name: "Also Fine", source_ref: "p2"})
+      |> with_address(%{email: "hello@alsofine.test"})
+
+      org_fixture(source, %{name: "Asked Us Not To", source_ref: "p3"})
+      |> with_address(%{no_solicitation: true, notice_text: "No unsolicited commercial email."})
+
+      org_fixture(source, %{name: "Not Crawled Yet", source_ref: "p4"})
+
+      {:ok, live, html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+      assert html =~ "Add all 2"
+
+      live |> element(~s(button[phx-click="promote_ready"])) |> render_click()
+
+      companies =
+        ColdForge.Outreach.Prospect
+        |> Repo.all()
+        |> Enum.map(& &1.company)
+        |> Enum.sort()
+
+      assert companies == ["Also Fine", "Has An Address"]
+      # The notice decides, and an uncrawled row has nothing to decide on yet.
+      refute "Asked Us Not To" in companies
+      refute "Not Crawled Yet" in companies
+    end
+
+    test "two listings sharing an address become one prospect, not two",
+         %{conn: conn, project: project} do
+      source = source_fixture(project)
+
+      # Places returns the same company twice when it has two locations, and
+      # both carry the same office address. Seen for real with Above Roofing.
+      org_fixture(source, %{name: "Above Roofing", source_ref: "loc-1"})
+      |> with_address(%{email: "office@aboveroofing.test"})
+
+      org_fixture(source, %{name: "Above Roofing", source_ref: "loc-2"})
+      |> with_address(%{email: "office@aboveroofing.test"})
+
+      {:ok, live, _html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+
+      html = live |> element(~s(button[phx-click="promote_ready"])) |> render_click()
+
+      assert Repo.aggregate(ColdForge.Outreach.Prospect, :count) == 1
+      # And it says so rather than claiming two.
+      assert html =~ "Added 1"
+      assert html =~ "1 skipped, already there"
     end
 
     test "running a search queues the work and says so", %{conn: conn, project: project} do

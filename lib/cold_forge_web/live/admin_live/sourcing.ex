@@ -88,6 +88,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     socket
     |> assign(:orgs, Sourcing.list_orgs(source_id: source.id, status: socket.assigns.status))
     |> assign(:counts, Sourcing.counts_for_source(source))
+    |> assign(:ready_count, Sourcing.ready_count(source))
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset),
@@ -142,6 +143,21 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Couldn't add that one: #{describe(reason)}")}
     end
+  end
+
+  def handle_event("promote_ready", _params, socket) do
+    source = socket.assigns.source
+    {:ok, %{promoted: promoted, failed: failed}} = Sourcing.promote_ready(source)
+
+    message =
+      case {promoted, failed} do
+        {0, 0} -> "Nothing ready to add."
+        {n, 0} -> "Added #{n} to #{source.project.name}."
+        # No apostrophe: it renders as an entity and reads badly in a flash.
+        {n, f} -> "Added #{n} to #{source.project.name}. #{f} skipped, already there."
+      end
+
+    {:noreply, socket |> put_flash(:info, message) |> load_results()}
   end
 
   def handle_event("reject", %{"id" => id}, socket) do
@@ -320,6 +336,18 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
           <.link navigate={~p"/admin/sourcing/#{@source.id}/edit"} class="btn btn-sm btn-ghost">
             Edit
           </.link>
+          <%!-- Reviewing thirty rows one button at a time is how a review
+                stops happening at all. The per-row buttons stay for the
+                judgement calls; this is for the rest. --%>
+          <button
+            :if={@ready_count > 0}
+            type="button"
+            class="btn btn-sm"
+            phx-click="promote_ready"
+            data-confirm={"Add all #{@ready_count} to #{@source.project.name}?"}
+          >
+            Add all {@ready_count}
+          </button>
           <button
             type="button"
             class="btn btn-sm btn-primary"
@@ -346,94 +374,117 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
       </button>
     </div>
 
-    <p :if={@orgs == []} class="text-sm opacity-70 py-8 text-center">
-      Nothing at this status{if @source.last_run_at, do: ".", else: " — run the search."}
-    </p>
+    <div class="card bg-base-100 shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Organisation</th>
+              <th>Address</th>
+              <th>Also</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :if={@orgs == []}>
+              <td colspan="4" class="text-center text-base-content/50 py-8">
+                Nothing at this status{if @source.last_run_at, do: ".", else: " — run the search."}
+              </td>
+            </tr>
 
-    <div class="grid gap-3">
-      <div :for={org <- @orgs} class="card bg-base-100 shadow-sm">
-        <div class="card-body gap-3">
-          <div class="flex flex-wrap items-start gap-2">
-            <div class="flex-1 min-w-0">
-              <h3 class="font-semibold truncate">{org.name}</h3>
-              <p class="text-xs opacity-70">
-                {humanize(org.segment)}
-                <span :if={org.city}>· {org.city}{if org.region, do: ", #{org.region}"}</span>
-                · via {org.provider}
-              </p>
-            </div>
-            <span :if={org.fetched_at} class="text-xs opacity-60 whitespace-nowrap">
-              looked {Calendar.strftime(org.fetched_at, "%b %-d")}
-            </span>
-          </div>
+            <tr :for={org <- @orgs}>
+              <td class="whitespace-nowrap">
+                <div class="font-medium">{org.name}</div>
+                <div class="text-xs text-base-content/50">
+                  {humanize(org.segment)}
+                  <span :if={org.city}>· {org.city}{if org.region, do: ", #{org.region}"}</span>
+                  <span :if={org.fetched_at}>
+                    · looked {Calendar.strftime(org.fetched_at, "%b %-d")}
+                  </span>
+                </div>
+              </td>
 
-          <%!-- The evidence: the address, how it was published, and one click
-                to the page it was on. --%>
-          <div :if={org.email} class="text-sm">
-            <span class="font-mono">{org.email}</span>
-            <span class="opacity-60">· published as {org.email_presentation}</span>
-            <.link
-              :if={org.email_source_url}
-              href={org.email_source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="link link-primary ml-1"
-            >
-              see the page
-            </.link>
-          </div>
+              <%!-- The evidence, in the column you scan: the address, how it
+                    was published, and one click to the page it was on. --%>
+              <td class="text-sm">
+                <div :if={org.email} class="font-mono text-xs">{org.email}</div>
+                <div :if={org.email} class="text-xs text-base-content/50">
+                  {presentation_phrase(org.email_presentation)}
+                  <.link
+                    :if={org.email_source_url}
+                    href={org.email_source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="link"
+                  >
+                    see the page
+                  </.link>
+                </div>
+                <div :if={!org.email && org.has_contact_form} class="text-xs text-base-content/50">
+                  contact form only
+                </div>
+                <div :if={!org.email && !org.has_contact_form} class="text-xs text-base-content/50">
+                  {if org.reject_reason, do: humanize(org.reject_reason), else: "—"}
+                </div>
+                <%!-- The sentence the notice was found in, on hover: a table
+                      has no room for it, but it is what lets a reviewer judge
+                      whether the notice really applies — "no soliciting" on a
+                      door sign is not "no unsolicited commercial email". --%>
+                <div
+                  :if={org.no_solicitation}
+                  class="text-xs text-warning mt-1 cursor-help"
+                  title={org.notice_text}
+                >
+                  <.icon name="hero-exclamation-triangle" class="size-3" /> asked not to be solicited
+                </div>
+              </td>
 
-          <div :if={org.no_solicitation} class="alert alert-warning text-sm py-2">
-            <.icon name="hero-exclamation-triangle" class="size-4" />
-            <span>
-              This page asks not to be solicited, so the address isn't usable.
-              <span :if={org.notice_text} class="opacity-80">“{org.notice_text}”</span>
-            </span>
-          </div>
+              <td class="text-sm">
+                <div :if={org.phone} class="text-xs">{org.phone}</div>
+                <.link
+                  :if={org.website}
+                  href={org.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="link text-xs text-base-content/50"
+                >
+                  {pretty_host(org.website)}
+                </.link>
+              </td>
 
-          <div class="text-xs opacity-70 flex flex-wrap gap-x-3">
-            <span :if={org.website}>
-              <.link href={org.website} target="_blank" rel="noopener noreferrer" class="link">
-                {pretty_host(org.website)}
-              </.link>
-            </span>
-            <span :if={org.phone}>{org.phone}</span>
-            <span :if={org.has_contact_form}>contact form, no address</span>
-            <span :if={org.reject_reason}>reason: {humanize(org.reject_reason)}</span>
-          </div>
-
-          <div :if={org.status != "promoted"} class="flex flex-wrap gap-2 items-center">
-            <button
-              :if={(org.email || org.phone) && !org.no_solicitation}
-              type="button"
-              class="btn btn-sm btn-primary"
-              phx-click="promote"
-              phx-value-org_id={org.id}
-            >
-              {if org.email, do: "Add to #{@source.project.name}", else: "Add to call list"}
-            </button>
-
-            <button
-              type="button"
-              class="btn btn-sm btn-ghost"
-              phx-click="recrawl"
-              phx-value-id={org.id}
-            >
-              Look again
-            </button>
-
-            <button
-              :if={org.status != "rejected"}
-              type="button"
-              class="btn btn-sm btn-ghost"
-              phx-click="reject"
-              phx-value-id={org.id}
-              data-confirm={"Leave #{org.name} off the list?"}
-            >
-              Not a fit
-            </button>
-          </div>
-        </div>
+              <td class="text-right whitespace-nowrap">
+                <button
+                  :if={(org.email || org.phone) && !org.no_solicitation && org.status != "promoted"}
+                  type="button"
+                  class="btn btn-xs btn-primary"
+                  phx-click="promote"
+                  phx-value-org_id={org.id}
+                >
+                  {if org.email, do: "Add", else: "Call list"}
+                </button>
+                <button
+                  :if={org.status != "promoted"}
+                  type="button"
+                  class="btn btn-xs btn-ghost"
+                  phx-click="recrawl"
+                  phx-value-id={org.id}
+                >
+                  Look again
+                </button>
+                <button
+                  :if={org.status not in ["promoted", "rejected"]}
+                  type="button"
+                  class="btn btn-xs btn-ghost"
+                  phx-click="reject"
+                  phx-value-id={org.id}
+                  data-confirm={"Leave #{org.name} off the list?"}
+                >
+                  Not a fit
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
     """
@@ -447,6 +498,16 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   defp label_for("rejected"), do: "Left off"
   defp label_for("promoted"), do: "Prospects"
   defp label_for(other), do: humanize(other)
+
+  # How the address was published, said rather than named. A reviewer glancing
+  # down this column shouldn't have to know what "plain_text" means, and the
+  # difference matters: an address only in prose is weaker evidence than one
+  # behind a mailto link somebody put there to be written to.
+  defp presentation_phrase("mailto"), do: "mailto link"
+  defp presentation_phrase("cloudflare"), do: "hidden from scrapers"
+  defp presentation_phrase("obfuscated"), do: "written out to dodge scrapers"
+  defp presentation_phrase("plain_text"), do: "in the page text"
+  defp presentation_phrase(other), do: humanize(other)
 
   defp humanize(nil), do: ""
 

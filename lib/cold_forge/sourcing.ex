@@ -223,6 +223,46 @@ defmodule ColdForge.Sourcing do
     end)
   end
 
+  @doc """
+  Promotes every organisation of a source that is ready to be written to.
+
+  Ready means: crawled, carrying an address or a phone, and not sitting behind
+  a notice asking not to be solicited. Reviewing thirty rows one button at a
+  time is how a review stops happening at all — the per-row buttons stay for
+  the judgement calls, and this is for the rest.
+
+  Returns `{:ok, %{promoted: n, failed: n}}`. A row that fails is left alone
+  rather than rolled in with the others, so one bad address can't undo
+  twenty-nine good ones.
+  """
+  def promote_ready(%Source{} = source) do
+    ready =
+      Org
+      |> where([o], o.source_id == ^source.id)
+      |> where([o], o.status == "fetched" and not o.no_solicitation)
+      |> where([o], not is_nil(o.email) or not is_nil(o.phone))
+      |> Repo.all()
+
+    {promoted, failed} =
+      Enum.reduce(ready, {0, 0}, fn org, {ok, bad} ->
+        case promote(org, source.project_id) do
+          {:ok, _} -> {ok + 1, bad}
+          {:error, _} -> {ok, bad + 1}
+        end
+      end)
+
+    {:ok, %{promoted: promoted, failed: failed}}
+  end
+
+  @doc "How many of a source's organisations `promote_ready/1` would take."
+  def ready_count(%Source{} = source) do
+    Org
+    |> where([o], o.source_id == ^source.id)
+    |> where([o], o.status == "fetched" and not o.no_solicitation)
+    |> where([o], not is_nil(o.email) or not is_nil(o.phone))
+    |> Repo.aggregate(:count)
+  end
+
   defp promote_notes(%Org{} = org) do
     [
       "Discovered via #{org.provider}",
