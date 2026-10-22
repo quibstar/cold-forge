@@ -81,12 +81,27 @@ defmodule ColdForge.CallScriptsTest do
     end
 
     test "parts come back in reading order, blanks dropped", ctx do
-      assert CallScripts.parts(ctx.prospect, ctx.project, "original") == [
-               {"Opener", @opener},
-               {"Voicemail", "Hey, it's just Kris."}
-             ]
-
+      assert CallScripts.parts(ctx.prospect, ctx.project, "original") == [{"Opener", @opener}]
       assert CallScripts.parts(ctx.prospect, ctx.project, "direct") == []
+    end
+
+    test "the voicemail is shown under every tab, not just its own", ctx do
+      # Which script you opened with says nothing about whether anybody picks
+      # up, so it cannot belong to one tab.
+      assert CallScripts.always(ctx.prospect, ctx.project) ==
+               [{"Voicemail", "Hey, it's just Kris."}]
+
+      refute {"Voicemail", "Hey, it's just Kris."} in CallScripts.parts(
+               ctx.prospect,
+               ctx.project,
+               "original"
+             )
+    end
+
+    test "no voicemail written is nothing shown, not an empty heading", %{project: project} do
+      bare = prospect_fixture(project, custom_fields: %{"opener" => "Just an opener."})
+
+      assert CallScripts.always(bare, project) == []
     end
   end
 

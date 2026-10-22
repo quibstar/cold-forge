@@ -417,6 +417,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       assigns
       |> assign(:tabs, CallScripts.available(assigns.prospect, assigns.project))
       |> assign(:parts, CallScripts.parts(assigns.prospect, assigns.project, assigns.tab))
+      |> assign(:always, CallScripts.always(assigns.prospect, assigns.project))
       |> assign(
         :numbered,
         assigns.next_script &&
@@ -449,9 +450,19 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
           <p class="text-sm leading-relaxed whitespace-pre-line">{body}</p>
         </div>
 
-        <p :if={@parts == [] && is_nil(@numbered)} class="px-5 py-4 text-sm text-base-content/50">
+        <p
+          :if={@parts == [] && @always == [] && is_nil(@numbered)}
+          class="px-5 py-4 text-sm text-base-content/50"
+        >
           Nothing written for this one yet.
         </p>
+
+        <%!-- Under every tab, not just the one it is grouped with: which
+        script you opened with says nothing about whether anybody picks up. --%>
+        <div :for={{label, body} <- @always} class="px-5 py-4 space-y-1.5">
+          <p class="text-xs font-semibold uppercase tracking-wide text-primary">{label}</p>
+          <p class="text-sm leading-relaxed whitespace-pre-line">{body}</p>
+        </div>
 
         <%!-- The numbered voicemail, directly under the one written for this
         shop, because the choice between them is made in the second after
@@ -460,7 +471,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
         which have already been left. --%>
         <div :if={@numbered} class="px-5 py-4 space-y-1.5">
           <p class="text-xs font-semibold uppercase tracking-wide text-primary">
-            Voicemail {@next_script} — {script_note(@next_script)}
+            Voicemail {@next_script} — {Scripts.note(@next_script)}
           </p>
           <p class="text-sm leading-relaxed whitespace-pre-line">{@numbered}</p>
         </div>
@@ -548,9 +559,4 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
   defp status_label("unsubscribed"), do: "Not interested"
   defp status_label("completed"), do: "Sequence finished"
   defp status_label(other), do: other
-
-  defp script_note(number) do
-    {_, note} = Enum.find(Scripts.catalogue(), fn {n, _} -> n == number end)
-    note
-  end
 end

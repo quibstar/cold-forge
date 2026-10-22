@@ -6,8 +6,9 @@ defmodule ColdForgeWeb.AdminLive.Projects do
   """
   use ColdForgeWeb, :live_view
 
+  alias ColdForge.Calling.Scripts
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.{CallScripts, Project}
+  alias ColdForge.Outreach.{CallScripts, Project, Prospect}
 
   # 2 MB is generous for a logo and well under what a mail client will happily
   # inline. PNG and JPG only — Gmail and Outlook don't render SVG.
@@ -38,6 +39,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
     # would otherwise linger after navigating back to the list.
     |> assign(:breadcrumbs, [])
     |> assign(:project, nil)
+    |> assign(:sample, nil)
   end
 
   defp apply_action(socket, :new, _params) do
@@ -46,6 +48,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
     |> assign(:page_subtitle, nil)
     |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:project, %Project{})
+    |> assign(:sample, nil)
     |> assign_form(Outreach.change_project(%Project{}))
   end
 
@@ -57,6 +60,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
     |> assign(:page_subtitle, nil)
     |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:project, project)
+    |> assign(:sample, project.id |> Outreach.list_prospects() |> List.last())
     |> assign_form(Outreach.change_project(project))
   end
 
@@ -121,6 +125,41 @@ defmodule ColdForgeWeb.AdminLive.Projects do
   defp signature_hint, do: "Kris Utter\nExteriorPro\n(555) 123-4567"
 
   defp script_fields, do: for(key <- CallScripts.keys(), do: {key, CallScripts.label(key)})
+
+  # A prospect's own tags plus the four the project supplies. Without a
+  # prospect to read against — a project being created — the names are still
+  # worth showing, so the values come back blank rather than the list empty.
+  defp placeholders(sample, project) do
+    prospect_tags =
+      case sample do
+        %Prospect{} = prospect ->
+          Prospect.merge_values(prospect)
+
+        _ ->
+          Enum.map(
+            ~w(first_name last_name full_name email company title industry
+                         phone website),
+            &{&1, nil}
+          )
+      end
+
+    prospect_tags ++
+      [
+        {"callback", project && project.phone},
+        {"sender_name", project && project.from_name},
+        {"project", project && project.name},
+        {"link", project && project.landing_url}
+      ]
+  end
+
+  # Empty where the project takes the default — the placeholder shows what that
+  # default says, so an empty box is readable rather than mysterious.
+  defp voicemail_value(form, number) do
+    case form[:voicemail_scripts].value do
+      scripts when is_map(scripts) -> Map.get(scripts, to_string(number), "")
+      _ -> ""
+    end
+  end
 
   # Off the changeset rather than the project, so a half-typed script survives
   # the validate round trip instead of snapping back to what was saved.
@@ -301,6 +340,38 @@ defmodule ColdForgeWeb.AdminLive.Projects do
 
           <div class="divider text-xs text-base-content/40">Call scripts</div>
 
+          <%!-- What you can write into a script or a voicemail, and what it
+          fills in. Shown against a real prospect off this project rather than
+          as a list of names, because the question is never "does {{city}}
+          exist" — it is "what does it say when I read it out". --%>
+          <details class="rounded-lg border border-base-300 p-3">
+            <summary class="text-sm font-medium cursor-pointer">
+              Placeholders
+              <span :if={@sample} class="text-base-content/50 font-normal">
+                — filled in for {Prospect.display_name(@sample)}
+              </span>
+            </summary>
+
+            <dl class="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-1 text-xs">
+              <div :for={{name, value} <- placeholders(@sample, @project)} class="flex gap-2">
+                <dt class="font-mono text-primary shrink-0">{"{{#{name}}}"}</dt>
+                <dd class={[
+                  "truncate",
+                  if(value in [nil, ""], do: "text-base-content/30", else: "text-base-content/70")
+                ]}>
+                  {if value in [nil, ""], do: "— not set —", else: value}
+                </dd>
+              </div>
+            </dl>
+
+            <p class="text-xs text-base-content/50 mt-3">
+              Always give one a fallback after a pipe —
+              <code class="text-primary">{"{{industry|exterior}}"}</code>
+              reads "exterior" when the field is empty, where <code>{"{{industry}}"}</code>
+              leaves a hole in the middle of a sentence you are reading out loud.
+            </p>
+          </details>
+
           <%!-- Written once here, read with one prospect's details in them.
           They used to be copied onto every prospect — 112 copies of four
           paragraphs, which meant changing a line meant changing it 112 times.
@@ -320,6 +391,35 @@ defmodule ColdForgeWeb.AdminLive.Projects do
               rows="6"
               class="textarea w-full mt-1 text-sm"
             >{script_value(@form, key)}</textarea>
+          </div>
+
+          <div class="divider text-xs text-base-content/40">Voicemails</div>
+
+          <%!-- The four-message cadence. Each has a default in
+          `ColdForge.Calling.Scripts`; a box left empty keeps it, so only the
+          ones actually reworded are stored. A voicemail that isn't landing is
+          obvious within a day of dialling, and fixing it shouldn't need a
+          deploy. --%>
+          <p class="text-xs text-base-content/50 -mt-2">
+            Under twenty seconds, the number said twice, one reason to call back.
+            Leave a box empty to keep the wording built in.
+          </p>
+
+          <div :for={{number, note} <- Scripts.catalogue()}>
+            <label for={"project-voicemail-#{number}"} class="text-sm font-medium">
+              Voicemail {number}
+              <span class="text-base-content/50 font-normal">— {note}</span>
+              <span :if={@project && Scripts.rewritten?(number, @project)} class="badge badge-xs">
+                rewritten
+              </span>
+            </label>
+            <textarea
+              id={"project-voicemail-#{number}"}
+              name={"project[voicemail_scripts][#{number}]"}
+              rows="5"
+              placeholder={Scripts.default(number)}
+              class="textarea w-full mt-1 text-sm"
+            >{voicemail_value(@form, number)}</textarea>
           </div>
 
           <div class="divider text-xs text-base-content/40">Branding</div>

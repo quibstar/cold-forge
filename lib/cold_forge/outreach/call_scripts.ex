@@ -45,6 +45,11 @@ defmodule ColdForge.Outreach.CallScripts do
 
   @keys Enum.flat_map(@tabs, fn {_key, _label, parts} -> Enum.map(parts, &elem(&1, 0)) end)
 
+  # Shown under every tab rather than only the one it is grouped with. Nobody
+  # picks a script and then decides whether they might get voicemail — the
+  # answerphone decides that, after you have already opened one.
+  @always ["voicemail"]
+
   @doc "Every tab, as `{key, label, parts}`, whether or not anybody has one."
   def tabs, do: @tabs
 
@@ -125,7 +130,11 @@ defmodule ColdForge.Outreach.CallScripts do
     end
   end
 
-  @doc "The filled parts of one tab, as `{label, body}`, in reading order."
+  @doc """
+  The filled parts of one tab, as `{label, body}`, in reading order.
+
+  Without the ones `always/2` shows, which belong under every tab.
+  """
   def parts(prospect, project, tab_key) do
     case Enum.find(@tabs, fn {key, _label, _parts} -> key == tab_key end) do
       nil ->
@@ -133,9 +142,22 @@ defmodule ColdForge.Outreach.CallScripts do
 
       {_key, _label, parts} ->
         for {part, label} <- parts,
+            part not in @always,
             rendered = body(prospect, project, part),
             do: {label, rendered}
     end
+  end
+
+  @doc """
+  The parts shown under every tab, as `{label, body}`.
+
+  The voicemail, because which script you opened with says nothing about
+  whether anybody picks up.
+  """
+  def always(prospect, project) do
+    for part <- @always,
+        rendered = body(prospect, project, part),
+        do: {label(part), rendered}
   end
 
   @doc """
