@@ -545,6 +545,15 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       assert Repo.get_by!(Source, name: "Supply houses — Michigan").purpose == "flyers"
     end
 
+    test "the choice is two radio buttons, prospects ticked by default",
+         %{conn: conn, project: project} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
+
+      assert has_element?(live, "#source-purpose input[type=radio][value=prospects][checked]")
+      assert has_element?(live, "#source-purpose input[type=radio][value=flyers]")
+      refute has_element?(live, "select[name='source[purpose]']")
+    end
+
     test "running a search queues the work and says so", %{conn: conn, project: project} do
       source = source_fixture(project, %{localities: ["Grand Rapids, MI", "Holland, MI"]})
 

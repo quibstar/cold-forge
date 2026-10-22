@@ -446,23 +446,44 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             placeholder="ExteriorPro — West Michigan"
           />
 
-          <.input
-            field={@form[:purpose]}
-            type="select"
-            label="What these are for"
-            options={[
-              {"Prospects — people to call and email", "prospects"},
-              {"Flyer locations — supply houses, lumber yards", "flyers"}
-            ]}
-          />
-          <p class="text-xs opacity-60 -mt-3">
-            Flyer locations can't be added as prospects, and their websites aren't checked for an
-            email. Add them from the Flyers tab.
-          </p>
+          <%!-- Two choices, both always visible: radios rather than a select,
+                which hides the one you didn't pick. --%>
+          <fieldset id="source-purpose" class="fieldset">
+            <legend class="label mb-1">What these are for</legend>
+            <label
+              :for={
+                {value, title, hint} <- [
+                  {"prospects", "Prospects", "People to call and email."},
+                  {"flyers", "Flyer locations",
+                   "Supply houses, lumber yards. Can't be added as prospects, and their websites aren't checked for an email — add them from the Flyers tab."}
+                ]
+              }
+              class={[
+                "flex items-start gap-3 cursor-pointer rounded-lg border px-3 py-2 transition-colors",
+                if(to_string(@form[:purpose].value || "prospects") == value,
+                  do: "border-primary bg-primary/5",
+                  else: "border-base-300 hover:border-primary/50"
+                )
+              ]}
+            >
+              <input
+                type="radio"
+                id={"source_purpose_#{value}"}
+                name={@form[:purpose].name}
+                value={value}
+                checked={to_string(@form[:purpose].value || "prospects") == value}
+                class="radio radio-sm radio-primary mt-0.5"
+              />
+              <span>
+                <span class="font-medium text-sm">{title}</span>
+                <span class="block text-xs opacity-60">{hint}</span>
+              </span>
+            </label>
+          </fieldset>
 
           <.input
             field={@form[:provider]}
-            type="select"
+            type="radios"
             label="Search with"
             options={[
               {"Google Places — the widest coverage, and the only one that returns websites",
@@ -806,7 +827,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
         )
       ]}>
         <.input
-          type="select"
+          type="radios"
           id="picker-mode"
           name="picker[mode]"
           value={@picker["mode"]}

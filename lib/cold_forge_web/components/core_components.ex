@@ -171,7 +171,7 @@ defmodule ColdForgeWeb.CoreComponents do
   attr :type, :string,
     default: "text",
     values: ~w(checkbox color date datetime-local email file month number password
-               search select tel text textarea time url week hidden)
+               search select tel text textarea time url week hidden radios choice)
 
   attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
@@ -235,6 +235,56 @@ defmodule ColdForgeWeb.CoreComponents do
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
+    """
+  end
+
+  # Fewer than 5 options are radio buttons, not a select: a select hides the
+  # ones you didn't pick, and with so few there's room to show them all.
+  @radio_limit 5
+
+  # `choice` decides by counting, for lists that grow — a project's surveys, a
+  # file's columns. The prompt, when there is one, counts as an option.
+  def input(%{type: "choice"} = assigns) do
+    count = length(assigns.options) + if(assigns.prompt, do: 1, else: 0)
+    input(assign(assigns, :type, if(count < @radio_limit, do: "radios", else: "select")))
+  end
+
+  def input(%{type: "radios"} = assigns) do
+    options =
+      if assigns.prompt,
+        do: [{assigns.prompt, ""} | radio_options(assigns.options)],
+        else: radio_options(assigns.options)
+
+    assigns = assign(assigns, :radio_options, options)
+
+    ~H"""
+    <fieldset class="fieldset mb-2" id={@id}>
+      <legend :if={@label} class="label mb-1">{@label}</legend>
+      <div class="flex flex-wrap gap-2">
+        <label
+          :for={{text, value} <- @radio_options}
+          class={[
+            "flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition-colors",
+            if(to_string(@value) == to_string(value),
+              do: "border-primary bg-primary/5",
+              else: "border-base-300 hover:border-primary/50"
+            )
+          ]}
+        >
+          <input
+            type="radio"
+            id={@id && "#{@id}_#{value}"}
+            name={@name}
+            value={value}
+            checked={to_string(@value) == to_string(value)}
+            class="radio radio-sm radio-primary"
+            {@rest}
+          />
+          <span>{text}</span>
+        </label>
+      </div>
+      <.error :for={msg <- @errors}>{msg}</.error>
+    </fieldset>
     """
   end
 
@@ -501,5 +551,14 @@ defmodule ColdForgeWeb.CoreComponents do
   """
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
+  end
+
+  # Accepts what options_for_select/2 does: {label, value} pairs, keyword
+  # pairs, or bare values that are their own label.
+  defp radio_options(options) do
+    Enum.map(options, fn
+      {label, value} -> {label, value}
+      value -> {value, value}
+    end)
   end
 end

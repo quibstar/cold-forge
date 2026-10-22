@@ -585,17 +585,15 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
             />
 
             <div>
-              <label class="text-sm font-medium">Survey</label>
-              <select name="campaign_step[survey_id]" class="select w-full mt-1">
-                <option value="">— none —</option>
-                <option
-                  :for={survey <- @surveys}
-                  value={survey.id}
-                  selected={to_string(@form[:survey_id].value) == to_string(survey.id)}
-                >
-                  {survey.name}
-                </option>
-              </select>
+              <.input
+                type="choice"
+                id="campaign_step_survey_id"
+                name="campaign_step[survey_id]"
+                value={@form[:survey_id].value}
+                label="Survey"
+                prompt="— none —"
+                options={Enum.map(@surveys, &{&1.name, &1.id})}
+              />
               <p class="text-xs text-base-content/50 mt-1">
                 Put <code class="text-primary">{"{{survey}}"}</code>
                 in the body where it should appear. The first question renders with
