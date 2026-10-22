@@ -9,8 +9,9 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
   import ColdForgeWeb.ProjectTabs
 
+  alias ColdForge.MergeFields
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.Prospect
+  alias ColdForge.Outreach.{CallScripts, Prospect}
 
   @impl true
   def mount(%{"project_id" => project_id}, _session, socket) do
@@ -300,7 +301,9 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
             <%!-- Anything a CSV carried that had no column of its own. Editable
             as one-per-line `key: value` because that is how few of them there
             usually are — a repeating field group would be more machinery than
-            the data deserves. --%>
+            the data deserves. The call scripts are deliberately not in here:
+            they live in the same map, but one of them is a page of prose and a
+            `key: value` line cannot hold it. --%>
             <div>
               <label class="text-sm font-medium">Extra fields</label>
               <textarea
@@ -316,6 +319,36 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
                 in an email.
               </p>
             </div>
+
+            <%!-- What to say to this one shop, which is what the call screen
+            reads from. Folded away unless there is already a script, because
+            six empty boxes on the way to adding one prospect is not a form
+            anybody wants — and open when there is one, because a script you
+            can't see is a script you don't know you are about to overwrite. --%>
+            <details class="rounded-lg border border-base-300 p-3" open={script?(@form)}>
+              <summary class="text-sm font-medium cursor-pointer">
+                Call scripts
+                <span class="text-base-content/50 font-normal">
+                  — read beside the phone, on the calls screen
+                </span>
+              </summary>
+
+              <div class="mt-3 space-y-3">
+                <div :for={{key, label} <- script_fields()}>
+                  <label for={"prospect-script-#{key}"} class="text-sm font-medium">{label}</label>
+                  <textarea
+                    id={"prospect-script-#{key}"}
+                    name={"prospect[call_scripts][#{key}]"}
+                    rows="4"
+                    class="textarea w-full mt-1 text-sm"
+                  >{script_value(@form, key)}</textarea>
+                </div>
+
+                <p class="text-xs text-base-content/50">
+                  Each is a merge tag too — <code>opener</code> is <code>{"{{opener}}"}</code>.
+                </p>
+              </div>
+            </details>
 
             <div class="flex justify-end gap-2 pt-2">
               <.link navigate={~p"/admin/p/#{@project_id}/prospects"} class="btn btn-ghost">
@@ -380,19 +413,27 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
   end
 
   # The map once saved, the raw string mid-edit — the textarea renders both.
+  # The scripts come out either way: they have their own boxes, and a save
+  # folds both halves back together. See `ColdForge.Outreach.CallScripts`.
   defp custom_fields_text(form) do
     case form[:custom_fields_text].value do
-      text when is_binary(text) ->
-        text
+      text when is_binary(text) -> text
+      _ -> form |> saved_custom_fields() |> CallScripts.extras() |> MergeFields.to_text()
+    end
+  end
 
-      _ ->
-        case form[:custom_fields].value do
-          fields when is_map(fields) ->
-            fields |> Enum.sort() |> Enum.map_join("\n", fn {k, v} -> "#{k}: #{v}" end)
+  defp script_fields, do: for(key <- CallScripts.keys(), do: {key, CallScripts.label(key)})
 
-          _ ->
-            ""
-        end
+  # Read off the changeset rather than the prospect, so a half-typed script
+  # survives the validate round trip the same way the extras textarea does.
+  defp script_value(form, key), do: form |> saved_custom_fields() |> Map.get(key, "")
+
+  defp script?(form), do: form |> saved_custom_fields() |> CallScripts.scripts() != %{}
+
+  defp saved_custom_fields(form) do
+    case form[:custom_fields].value do
+      fields when is_map(fields) -> fields
+      _ -> %{}
     end
   end
 

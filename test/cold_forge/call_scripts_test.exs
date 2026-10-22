@@ -1,0 +1,176 @@
+defmodule ColdForge.CallScriptsTest do
+  @moduledoc """
+  The per-business call scripts, and the save that must not lose them.
+
+  The round-trip tests are the point of this file. The scripts are prose
+  somebody hand-wrote and iterated on for months, they live in the same map as
+  the short one-per-line extras, and a `name: value` line cannot hold a page of
+  text — so the first thing to prove is that editing one half never drops the
+  other.
+  """
+  use ColdForge.DataCase, async: true
+
+  import ColdForge.OutreachFixtures
+
+  alias ColdForge.Outreach
+  alias ColdForge.Outreach.{CallScripts, Prospect}
+
+  @opener """
+  "Is the owner in? … Hey, this is just Kris."
+     ↳ STOP. Let them answer.
+
+  Note: this line has a colon in it, which a one-per-line editor would read as
+  a field name.
+  """
+
+  setup do
+    project = project_fixture()
+
+    prospect =
+      prospect_fixture(project,
+        custom_fields: %{
+          "opener" => @opener,
+          "voicemail" => "Hey, it's just Kris.",
+          "city" => "Grand Rapids",
+          "fit" => "High"
+        }
+      )
+
+    %{project: project, prospect: prospect}
+  end
+
+  describe "splitting the map" do
+    test "scripts and extras come apart", ctx do
+      assert CallScripts.scripts(ctx.prospect.custom_fields) == %{
+               "opener" => @opener,
+               "voicemail" => "Hey, it's just Kris."
+             }
+
+      assert CallScripts.extras(ctx.prospect.custom_fields) == %{
+               "city" => "Grand Rapids",
+               "fit" => "High"
+             }
+    end
+
+    test "a nil map is not a crash" do
+      assert CallScripts.scripts(nil) == %{}
+      assert CallScripts.extras(nil) == %{}
+      assert CallScripts.available(%Prospect{custom_fields: nil}) == []
+    end
+  end
+
+  describe "tabs" do
+    test "only the ones this prospect has something on", ctx do
+      assert CallScripts.available(ctx.prospect) == [{"original", "Script 1"}]
+      assert CallScripts.default_tab(ctx.prospect) == "original"
+      assert CallScripts.any?(ctx.prospect)
+    end
+
+    test "opens on whichever script there is, not on a blank tab", %{project: project} do
+      nepq_only = prospect_fixture(project, custom_fields: %{"script_nepq" => "Five stages."})
+
+      assert CallScripts.available(nepq_only) == [{"nepq", "NEPQ Awareness"}]
+      assert CallScripts.default_tab(nepq_only) == "nepq"
+    end
+
+    test "no scripts at all is not a tab", %{project: project} do
+      bare = prospect_fixture(project)
+
+      refute CallScripts.any?(bare)
+      assert CallScripts.available(bare) == []
+    end
+
+    test "parts come back in reading order, blanks dropped", ctx do
+      assert CallScripts.parts(ctx.prospect, "original") == [
+               {"Opener", @opener},
+               {"Voicemail", "Hey, it's just Kris."}
+             ]
+
+      assert CallScripts.parts(ctx.prospect, "direct") == []
+    end
+  end
+
+  describe "saving the form" do
+    test "editing the extras leaves the scripts alone", ctx do
+      # What the prospect form sends when somebody changes a short field: the
+      # one-per-line textarea, which never showed the scripts.
+      {:ok, updated} =
+        Outreach.update_prospect(ctx.prospect, %{
+          "custom_fields_text" => "city: Kalamazoo\nfit: High"
+        })
+
+      assert updated.custom_fields["city"] == "Kalamazoo"
+      assert updated.custom_fields["opener"] == @opener
+      assert updated.custom_fields["voicemail"] == "Hey, it's just Kris."
+    end
+
+    test "editing a script leaves the extras alone", ctx do
+      {:ok, updated} =
+        Outreach.update_prospect(ctx.prospect, %{
+          "custom_fields_text" => "city: Grand Rapids\nfit: High",
+          "call_scripts" => %{"opener" => "A shorter opener.", "script_direct" => "Straight in."}
+        })
+
+      assert updated.custom_fields["opener"] == "A shorter opener."
+      assert updated.custom_fields["script_direct"] == "Straight in."
+      assert updated.custom_fields["city"] == "Grand Rapids"
+      # Submitted blank, so it goes — blanking a textarea means delete.
+      refute Map.has_key?(updated.custom_fields, "voicemail")
+    end
+
+    test "a multi-line script survives a save, colons and all", ctx do
+      {:ok, once} =
+        Outreach.update_prospect(ctx.prospect, %{"call_scripts" => %{"opener" => @opener}})
+
+      # Twice, because the failure this guards against only shows on the second
+      # pass: the first save renders the map into the editor, the second reads
+      # it back.
+      {:ok, twice} =
+        Outreach.update_prospect(once, %{
+          "call_scripts" => %{"opener" => once.custom_fields["opener"]}
+        })
+
+      # Trimmed on the way in — a textarea's trailing newline is not content —
+      # and byte-identical from then on, which is the property that matters.
+      assert twice.custom_fields["opener"] == String.trim(@opener)
+      assert twice.custom_fields["opener"] == once.custom_fields["opener"]
+
+      # The colon-bearing line stayed inside the script instead of becoming a
+      # field of its own, which is what the one-per-line editor would do to it.
+      assert twice.custom_fields |> Map.keys() |> Enum.sort() == ["city", "fit", "opener"]
+    end
+
+    test "whitespace-only is not a script", ctx do
+      {:ok, updated} =
+        Outreach.update_prospect(ctx.prospect, %{"call_scripts" => %{"opener" => "   \n  "}})
+
+      refute Map.has_key?(updated.custom_fields, "opener")
+    end
+
+    test "a key that isn't a script can't be smuggled in through the script form", ctx do
+      {:ok, updated} =
+        Outreach.update_prospect(ctx.prospect, %{
+          "custom_fields_text" => "city: Grand Rapids",
+          "call_scripts" => %{"opener" => "Hi.", "secret" => "nope"}
+        })
+
+      refute Map.has_key?(updated.custom_fields, "secret")
+    end
+
+    test "attrs with atom keys pass straight through, as the importers send them", ctx do
+      {:ok, updated} =
+        Outreach.update_prospect(ctx.prospect, %{custom_fields: %{"roof_type" => "Asphalt"}})
+
+      assert updated.custom_fields == %{"roof_type" => "Asphalt"}
+    end
+  end
+
+  describe "merge tags" do
+    test "a script is reachable from an email, which it wasn't in ExteriorPro", ctx do
+      values = Map.new(Prospect.merge_values(ctx.prospect))
+
+      assert values["opener"] == @opener
+      assert values["fit"] == "High"
+    end
+  end
+end

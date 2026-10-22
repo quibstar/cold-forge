@@ -47,7 +47,7 @@ defmodule ColdForge.Outreach.Prospect do
   @doc false
   def changeset(prospect, attrs) do
     prospect
-    |> cast(ColdForge.MergeFields.parse(attrs, "custom_fields"), [
+    |> cast(prepare_custom_fields(prospect, attrs), [
       :project_id,
       :email,
       :first_name,
@@ -78,6 +78,17 @@ defmodule ColdForge.Outreach.Prospect do
     |> foreign_key_constraint(:project_id)
   end
 
+  # Two editors write this one map: the one-per-line textarea for short extras,
+  # and a textarea each for the per-business call scripts, which are prose and
+  # cannot survive a `name: value` line. `CallScripts` is what they agree on —
+  # without it, saving the form you were shown would silently drop the fields
+  # it didn't show you.
+  defp prepare_custom_fields(prospect, attrs) do
+    attrs
+    |> ColdForge.MergeFields.parse("custom_fields")
+    |> then(&ColdForge.Outreach.CallScripts.put_custom_fields(prospect, &1))
+  end
+
   @doc """
   Every merge tag this prospect resolves, and what it resolves to.
 
@@ -106,6 +117,78 @@ defmodule ColdForge.Outreach.Prospect do
 
     built_in ++ custom
   end
+
+  @doc """
+  Whether the number we hold is actually a number.
+
+  Hand-built lists put "See website", "— look up —" and bare domains in the
+  phone column. A `tel:` link around one of those is dead but looks live, so
+  the presence of digits is what decides whether we offer to dial it.
+  """
+  # Seven digits, the shortest number anyone can actually dial. Counted after
+  # the brackets, spaces and dashes come off, since every list punctuates
+  # differently.
+  def dialable?(%__MODULE__{phone: phone}) when is_binary(phone),
+    do: phone |> String.replace(~r/\D/, "") |> String.length() >= 7
+
+  def dialable?(_), do: false
+
+  @doc """
+  The fit grade carried on the prospect, or `nil`.
+
+  A `custom_fields` value rather than a column because every list that arrives
+  grades differently, and the grade is one word of somebody's judgment, not a
+  fact about the business. `fit_rank/1` is what the call queue sorts on.
+  """
+  def fit(%__MODULE__{} = prospect), do: custom_field(prospect, "fit")
+
+  @doc """
+  One `custom_fields` value, trimmed, or `nil`.
+
+  The column defaults to `%{}` but an older row can still hold a null, and a
+  screen that reads a field straight off the map crashes on one of those.
+  """
+  def custom_field(%__MODULE__{custom_fields: fields}, key) when is_map(fields),
+    do: presence(Map.get(fields, key))
+
+  def custom_field(_prospect, _key), do: nil
+
+  # The words different lists use for the same three grades. Data rather than a
+  # case statement: it is a vocabulary, and it grows every time a list arrives
+  # with its own idea of how to say "call this one first".
+  @fit_ranks %{
+    "high" => 0,
+    "a" => 0,
+    "medium" => 1,
+    "med" => 1,
+    "b" => 1,
+    "verify" => 2,
+    "low" => 2,
+    "c" => 2
+  }
+
+  @unranked 3
+
+  @doc """
+  Sort order for a fit grade, best first.
+
+  Anything unrecognised sorts last: an ungraded row belongs at the bottom of a
+  call list, not silently in the middle of it. `ColdForge.Calling.queue/2`
+  repeats this ranking in SQL, because the queue is limited and an ordering
+  applied after the limit picks the wrong fifty.
+  """
+  def fit_rank(fit) do
+    Map.get(@fit_ranks, fit |> to_string() |> String.downcase() |> String.trim(), @unranked)
+  end
+
+  defp presence(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp presence(_), do: nil
 
   # Email or phone, not necessarily both. A phone-only prospect can be called
   # but never enrolled in a campaign — see `mailable?/1`.

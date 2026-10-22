@@ -31,13 +31,34 @@ defmodule ColdForge.Calling do
   # nuisance.
   @cadence [2, 3, 3, 5]
 
+  # `Outreach.Prospect.fit_rank/1` in SQL. It has to be SQL and not Elixir: the
+  # queue is limited, and a ranking applied to the rows that came back would be
+  # ranking the wrong fifty. Kept beside that function deliberately — if the
+  # vocabulary grows there, it grows here.
+  @fit_rank """
+  case lower(trim(coalesce(?->>'fit', '')))
+    when 'high' then 0
+    when 'a' then 0
+    when 'medium' then 1
+    when 'med' then 1
+    when 'b' then 1
+    when 'verify' then 2
+    when 'low' then 2
+    when 'c' then 2
+    else 3
+  end
+  """
+
   @doc """
-  Who to call, soonest first.
+  Who to call, soonest first, and within that, best fit first.
 
   Never called comes before overdue, because a first attempt is worth more than
-  a fifth. Anyone who asked not to be called, replied, unsubscribed or bounced
-  is excluded — the queue is the only place that decides who gets dialled, so
-  the filtering belongs here rather than in the caller's head.
+  a fifth. Fit breaks the tie, which for a list nobody has started on is the
+  whole ordering: with an hour to make calls the question is which of the shops
+  you have never rung are most worth ringing. Anyone who asked not to be
+  called, replied, unsubscribed or bounced is excluded — the queue is the only
+  place that decides who gets dialled, so the filtering belongs here rather
+  than in the caller's head.
   """
   def queue(project_id, opts \\ []) do
     limit = opts[:limit] || 50
@@ -51,7 +72,11 @@ defmodule ColdForge.Calling do
     |> where([p], p.status in ["new", "active", "completed"])
     |> where([p], not is_nil(p.phone) and p.phone != "")
     |> where([p], is_nil(p.next_call_at) or p.next_call_at <= ^now)
-    |> order_by([p], asc_nulls_first: p.next_call_at, asc: p.inserted_at)
+    |> order_by([p],
+      asc_nulls_first: p.next_call_at,
+      asc: fragment(@fit_rank, p.custom_fields),
+      asc: p.inserted_at
+    )
     |> limit(^limit)
     |> Repo.all()
   end

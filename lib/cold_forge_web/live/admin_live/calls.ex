@@ -13,7 +13,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
 
   alias ColdForge.{Calling, Outreach}
   alias ColdForge.Calling.{Call, Scripts}
-  alias ColdForge.Outreach.Prospect
+  alias ColdForge.Outreach.{CallScripts, Prospect}
 
   @impl true
   def mount(%{"project_id" => project_id}, _session, socket) do
@@ -23,6 +23,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
      |> assign(:page_title, socket.assigns.current_project.name)
      |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
      |> assign(:selected, nil)
+     |> assign(:script_tab, "original")
      |> assign(:notes, "")
      |> load()}
   end
@@ -42,6 +43,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
     |> assign(:selected, prospect)
     |> assign(:history, Calling.list_calls(prospect.id))
     |> assign(:next_script, Calling.next_script(prospect.id))
+    |> assign(:script_tab, CallScripts.default_tab(prospect))
     |> assign(:notes, "")
   end
 
@@ -52,6 +54,10 @@ defmodule ColdForgeWeb.AdminLive.Calls do
 
   def handle_event("deselect", _params, socket) do
     {:noreply, assign(socket, :selected, nil)}
+  end
+
+  def handle_event("script_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, :script_tab, tab)}
   end
 
   def handle_event("notes", %{"notes" => notes}, socket) do
@@ -98,8 +104,11 @@ defmodule ColdForgeWeb.AdminLive.Calls do
       <.stat label="Interested" value={@stats.interested} tone="text-primary" />
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-3">
-      <div class="lg:col-span-2 space-y-4">
+    <%!-- Five columns rather than three so the panel gets about 30rem. The
+    scripts are hard-wrapped prose meant to be read aloud, and at a third of
+    the width every authored line wrapped again into three ragged ones. --%>
+    <div class="grid gap-4 lg:grid-cols-5">
+      <div class="lg:col-span-3 space-y-4">
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body">
             <h2 class="card-title text-base">
@@ -125,11 +134,19 @@ defmodule ColdForgeWeb.AdminLive.Calls do
                     <span class="min-w-0">
                       <span class="block font-medium truncate">{Prospect.display_name(p)}</span>
                       <span class="block text-xs text-base-content/50 truncate">
-                        {p.company} · {p.phone}
+                        {queue_subtitle(p)}
                       </span>
                     </span>
-                    <span class="text-xs text-base-content/40 shrink-0">
-                      {attempt_label(p)}
+                    <span class="flex items-center gap-1.5 shrink-0">
+                      <%!-- The grade the list gave them, and what the queue is
+                      ordered by once nobody has been called yet. --%>
+                      <span :if={Prospect.fit(p)} class={["badge badge-xs", fit_tone(p)]}>
+                        {Prospect.fit(p)}
+                      </span>
+                      <span :if={not Prospect.dialable?(p)} class="badge badge-xs badge-warning">
+                        no number
+                      </span>
+                      <span class="text-xs text-base-content/40">{attempt_label(p)}</span>
                     </span>
                   </div>
                 </button>
@@ -159,10 +176,11 @@ defmodule ColdForgeWeb.AdminLive.Calls do
         project={@current_project}
         history={@history}
         next_script={@next_script}
+        script_tab={@script_tab}
         notes={@notes}
       />
 
-      <div :if={is_nil(@selected)} class="card bg-base-100 shadow-sm h-fit">
+      <div :if={is_nil(@selected)} class="card bg-base-100 shadow-sm h-fit lg:col-span-2">
         <div class="card-body">
           <h2 class="card-title text-base">Recent calls</h2>
           <p :if={@recent == []} class="text-sm text-base-content/50">Nothing logged yet.</p>
@@ -187,6 +205,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
   attr :project, :map, required: true
   attr :history, :list, required: true
   attr :next_script, :integer, default: nil
+  attr :script_tab, :string, required: true
   attr :notes, :string, default: ""
 
   defp call_panel(assigns) do
@@ -198,13 +217,18 @@ defmodule ColdForgeWeb.AdminLive.Calls do
       )
 
     ~H"""
-    <div class="card bg-base-100 shadow-sm h-fit lg:sticky lg:top-20">
+    <div class="card bg-base-100 shadow-sm h-fit lg:col-span-2 lg:sticky lg:top-20">
       <div class="card-body">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <h2 class="card-title text-base">{Prospect.display_name(@prospect)}</h2>
-            <p class="text-sm text-base-content/60 truncate">
-              {@prospect.company}
+            <p
+              :if={@prospect.company != Prospect.display_name(@prospect) or @prospect.title}
+              class="text-sm text-base-content/60 truncate"
+            >
+              <span :if={@prospect.company != Prospect.display_name(@prospect)}>
+                {@prospect.company}
+              </span>
               <span :if={@prospect.title}>· {@prospect.title}</span>
             </p>
           </div>
@@ -214,10 +238,24 @@ defmodule ColdForgeWeb.AdminLive.Calls do
         </div>
 
         <%!-- A tel: link so this works from a phone or a softphone rather than
-        making somebody retype a number they are looking straight at. --%>
-        <a href={"tel:#{@prospect.phone}"} class="btn btn-primary btn-sm mt-1">
+        making somebody retype a number they are looking straight at — but only
+        when there is a number. Rows that came over from the call sheet with
+        "— look up —" in the phone column would otherwise get a dead link that
+        looks live. --%>
+        <a
+          :if={Prospect.dialable?(@prospect)}
+          href={"tel:#{@prospect.phone}"}
+          class="btn btn-primary btn-sm mt-1"
+        >
           <.icon name="hero-phone" class="size-4" /> {@prospect.phone}
         </a>
+
+        <p :if={not Prospect.dialable?(@prospect)} class="text-sm mt-1">
+          <span class="badge badge-sm badge-warning">No number</span>
+          <span class="text-base-content/60 ml-1">{@prospect.phone}</span>
+        </p>
+
+        <.call_script :if={CallScripts.any?(@prospect)} prospect={@prospect} tab={@script_tab} />
 
         <div :if={@script} class="mt-3">
           <div class="text-xs text-base-content/40">
@@ -231,7 +269,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
           this is a call to have or a file to close.
         </p>
 
-        <form phx-change="notes" class="mt-3">
+        <form id="call-notes" phx-change="notes" class="mt-3">
           <textarea
             name="notes"
             rows="2"
@@ -297,6 +335,54 @@ defmodule ColdForgeWeb.AdminLive.Calls do
     """
   end
 
+  attr :prospect, :map, required: true
+  attr :tab, :string, required: true
+
+  # What to say to *this* shop, verbatim. Three ways to open the same call, and
+  # the choice is made mid-dial, so they are tabs on one card rather than three
+  # cards to scroll past — and a tab this prospect has no script for is not
+  # drawn at all, because an empty tab is a thing you click once, find nothing
+  # in, and never trust again.
+  #
+  # Sits above the generic voicemail rather than replacing it: these are the
+  # first-call scripts somebody wrote for one company, and the numbered
+  # cadence underneath is what gets left on attempts two, three and four.
+  defp call_script(assigns) do
+    assigns =
+      assigns
+      |> assign(:tabs, CallScripts.available(assigns.prospect))
+      |> assign(:parts, CallScripts.parts(assigns.prospect, assigns.tab))
+
+    ~H"""
+    <section class="mt-3 rounded-xl border border-primary/25 overflow-hidden">
+      <div class="px-3 py-2 bg-primary/5 border-b border-primary/15 flex flex-wrap items-center gap-1.5">
+        <span class="text-xs font-semibold mr-1">What to say</span>
+        <button
+          :for={{key, label} <- @tabs}
+          type="button"
+          phx-click="script_tab"
+          phx-value-tab={key}
+          class={["btn btn-xs", @tab == key && "btn-primary", @tab != key && "btn-ghost"]}
+        >
+          {label}
+        </button>
+      </div>
+
+      <div class="divide-y divide-base-200">
+        <div :for={{label, body} <- @parts} class="px-3 py-2.5 space-y-1">
+          <p class="text-xs font-semibold uppercase tracking-wide text-primary">{label}</p>
+          <p class="text-sm leading-relaxed whitespace-pre-line">{body}</p>
+        </div>
+      </div>
+
+      <%!-- Reachable when a tab was open and the prospect changed under it. --%>
+      <p :if={@parts == []} class="px-3 py-2.5 text-sm text-base-content/50">
+        Nothing written for this one yet.
+      </p>
+    </section>
+    """
+  end
+
   attr :label, :string, required: true
   attr :value, :integer, required: true
   attr :tone, :string, default: ""
@@ -310,6 +396,24 @@ defmodule ColdForgeWeb.AdminLive.Calls do
       </div>
     </div>
     """
+  end
+
+  # Everything under the name that is worth a glance before dialling: the
+  # number, and where they are. `display_name/1` already falls back to the
+  # company for a prospect with no contact name, which most of a bought or
+  # hand-built call sheet is, so repeating it here would print it twice.
+  defp queue_subtitle(prospect) do
+    [prospect.phone, Prospect.custom_field(prospect, "city")]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" · ")
+  end
+
+  defp fit_tone(prospect) do
+    case prospect |> Prospect.fit() |> Prospect.fit_rank() do
+      0 -> "badge-primary"
+      1 -> "badge-ghost"
+      _ -> "badge-ghost opacity-60"
+    end
   end
 
   defp attempt_label(%{call_attempts: 0}), do: "never called"
