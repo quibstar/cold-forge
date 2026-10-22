@@ -11,7 +11,6 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
 
       mix cold_forge.prospects.import_exteriorpro                   # the plan
       mix cold_forge.prospects.import_exteriorpro --write           # apply it
-      mix cold_forge.prospects.import_exteriorpro --write --replace-scripts
 
   **A dry run is the default and it writes nothing.** This moves somebody's
   working sales list between two live databases, and the mapping has judgment
@@ -29,8 +28,6 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
       invented by an import script is one nobody notices is wrong until it has
       sent mail.
     * `--write` — actually do it.
-    * `--replace-scripts` — on a re-run, let a newer call script overwrite the
-      one already here. Off by default: everything else fills blanks only.
 
   Safe to run twice. Rows are matched on the ExteriorPro id kept in
   `custom_fields`, and a second run fills in what is missing rather than
@@ -52,13 +49,12 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
   def run(argv) do
     {opts, _args, _invalid} =
       OptionParser.parse(argv,
-        strict: [from: :string, project: :string, write: :boolean, replace_scripts: :boolean]
+        strict: [from: :string, project: :string, write: :boolean]
       )
 
     Mix.Task.run("app.start")
 
     write? = Keyword.get(opts, :write, false)
-    replace_scripts? = Keyword.get(opts, :replace_scripts, false)
     slug = Keyword.get(opts, :project, @default_slug)
 
     url =
@@ -66,9 +62,9 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
 
     rows = read_source(url)
     project = find_project(slug)
-    results = Enum.map(rows, &{&1, classify(&1, project, replace_scripts?)})
+    results = Enum.map(rows, &{&1, classify(&1, project)})
 
-    report(results, url, slug, project, replace_scripts?)
+    report(results, url, slug, project)
 
     if write? do
       project = project || create_project!(slug)
@@ -116,10 +112,10 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
 
   ## Classifying
 
-  defp classify(row, project, replace_scripts?) do
+  defp classify(row, project) do
     project_id = project && project.id
 
-    ExteriorproImport.classify(row, project_id, existing(project, row["id"]), replace_scripts?)
+    ExteriorproImport.classify(row, project_id, existing(project, row["id"]))
   end
 
   # Matched on the ExteriorPro id kept in `custom_fields`, which is exact. A
@@ -136,7 +132,7 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
 
   ## Reporting
 
-  defp report(results, url, slug, project, replace_scripts?) do
+  defp report(results, url, slug, project) do
     counts = Enum.frequencies_by(results, fn {_row, result} -> bucket(result) end)
 
     Mix.shell().info([
@@ -145,7 +141,6 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
       :reset,
       "\n  from     #{redact(url)}",
       "\n  into     #{project_line(slug, project)}",
-      "\n  scripts  #{if replace_scripts?, do: "replaced where newer", else: "filled only where blank"}",
       "\n"
     ])
 
@@ -177,7 +172,6 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
           Prospect.dialable?(%Prospect{phone: attrs.phone})
         end)
 
-      scripted = Enum.count(new, fn {_row, attrs} -> scripts?(attrs) end)
       emailed = Enum.count(new, fn {_row, attrs} -> attrs.email end)
 
       Mix.shell().info("\nOf the #{length(new)} to create:\n")
@@ -186,8 +180,6 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
       Mix.shell().info(
         "  #{pad(length(placeholders))}  have something else in the phone column#{sample(placeholders)}"
       )
-
-      Mix.shell().info("  #{pad(scripted)}  carry call scripts")
 
       Mix.shell().info(
         "  #{pad(emailed)}  have an email address — the rest can be called but never emailed"
@@ -323,8 +315,6 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
   defp bucket({:changed, _changes, _fields}), do: :changed
   defp bucket({:invalid, _reason}), do: :invalid
   defp bucket(:unchanged), do: :unchanged
-
-  defp scripts?(attrs), do: ColdForge.Outreach.CallScripts.any?(attrs)
 
   defp sample([]), do: ""
 

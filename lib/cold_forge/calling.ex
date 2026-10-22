@@ -123,19 +123,31 @@ defmodule ColdForge.Calling do
     outcome = attrs["outcome"] || attrs[:outcome]
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     attempts = prospect.call_attempts + 1
-    next_at = next_call_at(outcome, attempts, now)
+
+    # "Call back on Thursday" beats any cadence this could compute. A date the
+    # person on the call was given is a promise; the cadence is a guess for
+    # when nobody made one.
+    next_at =
+      case booked_callback(attrs) do
+        nil -> next_call_at(outcome, attempts, now)
+        booked -> booked
+      end
 
     Repo.transaction(fn ->
       call =
         %Call{}
-        |> Call.changeset(%{
-          prospect_id: prospect.id,
-          outcome: outcome,
-          notes: attrs["notes"] || attrs[:notes],
-          voicemail_script: parse_script(attrs["voicemail_script"] || attrs[:voicemail_script]),
-          called_at: now,
-          next_call_at: next_at
-        })
+        |> Call.changeset(
+          attrs
+          |> string_keys()
+          |> Map.merge(%{
+            "prospect_id" => prospect.id,
+            "outcome" => outcome,
+            "voicemail_script" =>
+              parse_script(attrs["voicemail_script"] || attrs[:voicemail_script]),
+            "called_at" => now,
+            "next_call_at" => next_at
+          })
+        )
         |> Repo.insert!()
 
       prospect
@@ -155,7 +167,8 @@ defmodule ColdForge.Calling do
 
   # A conversation is engagement, so the cold sequence stops — the same rule a
   # reply or a survey answer follows.
-  defp apply_side_effects(outcome, prospect) when outcome in ["connected", "interested"] do
+  defp apply_side_effects(outcome, prospect)
+       when outcome in ["connected", "interested", "demo_sent"] do
     Outreach.mark_replied(prospect)
   end
 
@@ -182,7 +195,7 @@ defmodule ColdForge.Calling do
       Call.closing?(outcome) ->
         nil
 
-      outcome in ["connected", "interested"] ->
+      outcome in ["connected", "interested", "demo_sent"] ->
         # A conversation sets its own next step; the queue should not guess one.
         nil
 
@@ -237,6 +250,75 @@ defmodule ColdForge.Calling do
       by_outcome: counts
     }
   end
+
+  @doc "One call. Raises if it doesn't exist."
+  def get_call!(id), do: Repo.get!(Call, id)
+
+  @doc """
+  Corrects a call that was logged wrong.
+
+  History is editable because a call logged against the wrong company is the
+  mistake people actually make, and an append-only log of a cold-call list is a
+  filing cabinet nobody can correct. Only the record changes — the prospect's
+  queue position was decided when the call was logged and is the caller's to
+  move, not something a typo correction should silently redo.
+  """
+  def update_call(%Call{} = call, attrs) do
+    call |> Call.changeset(attrs) |> Repo.update()
+  end
+
+  @doc """
+  Removes a call, and repairs what the call had changed.
+
+  `last_called_at` and `call_attempts` are recomputed from whatever calls
+  remain, because a delete otherwise leaves the prospect claiming a
+  conversation that no longer exists — and `call_attempts` is what the cadence
+  counts, so an inflated one silently stretches the gaps to the next call.
+  """
+  def delete_call(%Call{} = call) do
+    Repo.transaction(fn ->
+      {:ok, _} = Repo.delete(call)
+
+      prospect = Repo.get!(Prospect, call.prospect_id)
+      remaining = Repo.all(from c in Call, where: c.prospect_id == ^prospect.id)
+
+      prospect
+      |> Ecto.Changeset.change(
+        call_attempts: length(remaining),
+        last_called_at: remaining |> Enum.map(& &1.called_at) |> latest()
+      )
+      |> Repo.update!()
+    end)
+  end
+
+  defp latest([]), do: nil
+  defp latest(times), do: Enum.max(times, DateTime)
+
+  # The date somebody was actually given on the phone, as a timestamp the queue
+  # can compare. 13:00 UTC is nine in the morning in the project's timezone —
+  # midnight would make the row due the evening before.
+  defp booked_callback(attrs) do
+    case attrs["next_call_on"] || attrs[:next_call_on] do
+      %Date{} = date ->
+        booked_from(date)
+
+      date when is_binary(date) ->
+        # Straight off a date input, so an empty box and a half-typed one both
+        # mean "no date given" rather than a crash.
+        case Date.from_iso8601(date) do
+          {:ok, date} -> booked_from(date)
+          {:error, _} -> nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp booked_from(date),
+    do: date |> DateTime.new!(~T[13:00:00], "Etc/UTC") |> DateTime.truncate(:second)
+
+  defp string_keys(attrs), do: Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
 
   defp parse_script(nil), do: nil
   defp parse_script(""), do: nil

@@ -164,24 +164,6 @@ defmodule ColdForge.ExteriorproImportTest do
     end
   end
 
-  describe "the six scripts" do
-    test "land in custom_fields under their own names" do
-      fields = ExteriorproImport.custom_fields(row())
-
-      assert fields["opener"] == "Is the owner in?"
-      assert fields["problem_question"] == "How are you keeping track?"
-      assert fields["objections"] == "Too busy -> that's not a problem."
-      assert fields["voicemail"] == "Hey, it's just Kris."
-    end
-
-    test "a script nobody wrote is absent rather than blank" do
-      fields = ExteriorproImport.custom_fields(row())
-
-      refute Map.has_key?(fields, "script_direct")
-      refute Map.has_key?(fields, "script_nepq")
-    end
-  end
-
   describe "provenance" do
     test "source says where the row came from, forever" do
       attrs = ExteriorproImport.to_attrs(row(), "p")
@@ -248,7 +230,7 @@ defmodule ColdForge.ExteriorproImportTest do
           last_name: nil,
           company: "Moore & Sons Roofing",
           notes: "Spoke to Dave, call back after the storm.",
-          custom_fields: %{"exteriorpro_id" => row()["id"], "opener" => "An older opener."}
+          custom_fields: %{"exteriorpro_id" => row()["id"]}
         )
 
       %{project: project, existing: existing}
@@ -260,8 +242,11 @@ defmodule ColdForge.ExteriorproImportTest do
       assert {:changed, _changes, fields} =
                ExteriorproImport.classify(row(), ctx.project.id, ctx.existing)
 
-      assert "problem_question" in fields
+      # The city and the fit grade it is missing — not the scripts, which are
+      # the project's now and never land on a prospect.
+      assert "city" in fields
       refute "notes" in fields
+      refute "opener" in fields
     end
 
     test "blanks are filled, typed values are not touched", ctx do
@@ -273,16 +258,6 @@ defmodule ColdForge.ExteriorproImportTest do
 
       # The note on the Cold Forge row was typed after a call. It wins.
       refute Map.has_key?(changes, :notes)
-    end
-
-    test "a script already here is kept unless you ask for it to be replaced", ctx do
-      attrs = ExteriorproImport.to_attrs(row(), ctx.project.id)
-
-      kept = ExteriorproImport.changes(ctx.existing, attrs)
-      assert kept.custom_fields["opener"] == "An older opener."
-
-      replaced = ExteriorproImport.changes(ctx.existing, attrs, true)
-      assert replaced.custom_fields["opener"] == "Is the owner in?"
     end
 
     test "the working state a re-import must never reset", ctx do

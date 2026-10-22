@@ -1,6 +1,6 @@
 defmodule ColdForgeWeb.CallScriptsLiveTest do
   @moduledoc """
-  The script panel beside the call, and the form that edits it.
+  The scripts screen and the call page that reads from it.
 
   This is the half of the ExteriorPro move that had to be built rather than
   copied: the scripts came across as data, but a call list you can't read a
@@ -13,82 +13,220 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
   import ColdForge.AccountsFixtures
   import ColdForge.OutreachFixtures
 
-  alias ColdForge.Outreach
+  alias ColdForge.{Calling, Outreach}
 
   setup %{conn: conn} do
     project = project_fixture(name: "ExteriorPro", phone: "(616) 555-0142")
 
-    scripted =
+    {:ok, script} =
+      Outreach.create_call_script(%{
+        project_id: project.id,
+        kind: "script",
+        name: "Script 1",
+        body: "Is the owner in? This is about {{company}} in {{city|West Michigan}}."
+      })
+
+    {:ok, nepq} =
+      Outreach.create_call_script(%{
+        project_id: project.id,
+        kind: "script",
+        name: "NEPQ Awareness",
+        body: "The five stages, for a {{industry|exterior}} shop."
+      })
+
+    {:ok, voicemail} =
+      Outreach.create_call_script(%{
+        project_id: project.id,
+        kind: "voicemail",
+        name: "First attempt",
+        body: "Hey, it's Kris on {{callback}} about {{company}}."
+      })
+
+    prospect =
       prospect_fixture(project,
         email: nil,
         phone: "(616) 779-5824",
         company: "Moore & Sons Roofing",
         first_name: nil,
         last_name: nil,
-        custom_fields: %{
-          "opener" => "Is the owner in?",
-          "voicemail" => "Hey, it's just Kris.",
-          "script_direct" => "Straight pitch, thirty seconds.",
-          "city" => "Grand Rapids",
-          "fit" => "High"
-        }
+        industry: "roofing",
+        custom_fields: %{"city" => "Grand Rapids", "fit" => "High"}
       )
 
-    %{conn: log_in_user(conn, user_fixture()), project: project, scripted: scripted}
+    %{
+      conn: log_in_user(conn, user_fixture()),
+      project: project,
+      prospect: prospect,
+      script: script,
+      nepq: nepq,
+      voicemail: voicemail
+    }
   end
 
-  defp calls_path(project), do: ~p"/admin/p/#{project.id}/calls"
+  defp scripts_path(project), do: ~p"/admin/p/#{project.id}/scripts"
+  defp queue_path(project), do: ~p"/admin/p/#{project.id}/calls"
+  defp call_path(project, prospect), do: ~p"/admin/p/#{project.id}/calls/#{prospect.id}"
 
-  describe "the script panel" do
-    test "shows the script written for this shop once you select them", ctx do
-      {:ok, view, _html} = live(ctx.conn, calls_path(ctx.project))
+  describe "the scripts screen" do
+    test "lists the scripts and the voicemails apart", ctx do
+      {:ok, _view, html} = live(ctx.conn, scripts_path(ctx.project))
 
-      html = view |> element("button[phx-value-id='#{ctx.scripted.id}']") |> render_click()
-
-      assert html =~ "What to say"
-      assert html =~ "Is the owner in?"
-      assert html =~ "Hey, it&#39;s just Kris."
+      assert html =~ "Script 1"
+      assert html =~ "NEPQ Awareness"
+      assert html =~ "First attempt"
+      assert html =~ "Scripts"
+      assert html =~ "Voicemails"
     end
 
-    test "only draws tabs there is a script for", ctx do
-      {:ok, view, _html} = live(ctx.conn, calls_path(ctx.project))
-      view |> element("button[phx-value-id='#{ctx.scripted.id}']") |> render_click()
+    test "one can be added", ctx do
+      {:ok, view, _html} = live(ctx.conn, scripts_path(ctx.project))
 
-      assert has_element?(view, "button[phx-value-tab='original']")
-      assert has_element?(view, "button[phx-value-tab='direct']")
-      # Nothing was written for the NEPQ script, so there is no tab to click
-      # into and find empty.
-      refute has_element?(view, "button[phx-value-tab='nepq']")
+      view |> element("button[phx-click='new'][phx-value-kind='script']") |> render_click()
+
+      view
+      |> form("#script-form", call_script: %{"name" => "Script 2", "body" => "Straight pitch."})
+      |> render_submit()
+
+      names = ctx.project.id |> Outreach.list_call_scripts("script") |> Enum.map(& &1.name)
+      assert "Script 2" in names
     end
 
-    test "switching tabs swaps the script without leaving the queue", ctx do
-      {:ok, view, _html} = live(ctx.conn, calls_path(ctx.project))
-      view |> element("button[phx-value-id='#{ctx.scripted.id}']") |> render_click()
+    test "a new one lands at the end rather than colliding", ctx do
+      {:ok, view, _html} = live(ctx.conn, scripts_path(ctx.project))
 
-      html = view |> element("button[phx-value-tab='direct']") |> render_click()
+      view |> element("button[phx-click='new'][phx-value-kind='script']") |> render_click()
 
-      assert html =~ "Straight pitch, thirty seconds."
+      view
+      |> form("#script-form", call_script: %{"name" => "Third", "body" => "Hi."})
+      |> render_submit()
+
+      assert ctx.project.id
+             |> Outreach.list_call_scripts("script")
+             |> Enum.map(& &1.position) == [1, 2, 3]
+    end
+
+    test "one can be edited", ctx do
+      {:ok, view, _html} = live(ctx.conn, scripts_path(ctx.project))
+
+      view
+      |> element("button[phx-value-id='#{ctx.script.id}'][phx-click='edit']")
+      |> render_click()
+
+      view
+      |> form("#script-form", call_script: %{"name" => "Script 1", "body" => "Reworded."})
+      |> render_submit()
+
+      assert Outreach.get_call_script!(ctx.script.id).body == "Reworded."
+    end
+
+    test "one can be thrown out", ctx do
+      {:ok, view, _html} = live(ctx.conn, scripts_path(ctx.project))
+
+      view
+      |> element("button[phx-value-id='#{ctx.nepq.id}'][phx-click='delete']")
+      |> render_click()
+
+      names = ctx.project.id |> Outreach.list_call_scripts("script") |> Enum.map(& &1.name)
+      refute "NEPQ Awareness" in names
+    end
+
+    test "they can be reordered without two ever sharing a number", ctx do
+      {:ok, view, _html} = live(ctx.conn, scripts_path(ctx.project))
+
+      view
+      |> element("button[phx-click='move'][phx-value-id='#{ctx.nepq.id}'][phx-value-by='-1']")
+      |> render_click()
+
+      assert ctx.project.id
+             |> Outreach.list_call_scripts("script")
+             |> Enum.map(&{&1.name, &1.position}) == [{"NEPQ Awareness", 1}, {"Script 1", 2}]
+    end
+
+    test "the placeholders are listed against a real prospect", ctx do
+      {:ok, _view, html} = live(ctx.conn, scripts_path(ctx.project))
+
+      assert html =~ "Placeholders"
+      assert html =~ "Moore &amp; Sons Roofing"
+      assert html =~ "Grand Rapids"
+      assert html =~ "(616) 555-0142"
+    end
+
+    test "a tag that would render blank is flagged", ctx do
+      # No first name on this prospect, and no fallback on the tag, so the
+      # script reads "Hey , it's Kris" out loud.
+      {:ok, _} = Outreach.update_call_script(ctx.script, %{"body" => "Hey {{first_name}}, Kris."})
+
+      {:ok, _view, html} = live(ctx.conn, scripts_path(ctx.project))
+
+      assert html =~ "renders blank"
+      assert html =~ "{{first_name}}"
+    end
+
+    test "a tag without a fallback whose field is filled in is left alone", ctx do
+      # `{{company}}` has no fallback either, but every row on this list has a
+      # company — flagging it would put a badge on every script and teach
+      # nobody anything.
+      {:ok, _} = Outreach.update_call_script(ctx.script, %{"body" => "Is this {{company}}?"})
+
+      {:ok, _view, html} = live(ctx.conn, scripts_path(ctx.project))
+
+      refute html =~ "renders blank"
+    end
+  end
+
+  describe "the call page" do
+    test "shows the project's script with this prospect's details in it", ctx do
+      {:ok, _view, html} = live(ctx.conn, call_path(ctx.project, ctx.prospect))
+
+      assert html =~ "Is the owner in? This is about Moore &amp; Sons Roofing in Grand Rapids."
+    end
+
+    test "a tab per script, opening on the first", ctx do
+      {:ok, view, _html} = live(ctx.conn, call_path(ctx.project, ctx.prospect))
+
+      assert has_element?(view, "button[phx-value-tab='#{ctx.script.id}']")
+      assert has_element?(view, "button[phx-value-tab='#{ctx.nepq.id}']")
+
+      html = view |> element("button[phx-value-tab='#{ctx.nepq.id}']") |> render_click()
+      assert html =~ "The five stages, for a roofing shop."
       refute html =~ "Is the owner in?"
-      # Still the same screen, queue and all.
-      assert has_element?(view, "button[phx-value-id='#{ctx.scripted.id}']")
     end
 
-    test "no script means no panel, not an empty one", ctx do
-      bare = prospect_fixture(ctx.project, phone: "(616) 555-0199", email: nil)
+    test "the voicemail shows under every tab", ctx do
+      {:ok, view, _html} = live(ctx.conn, call_path(ctx.project, ctx.prospect))
 
-      {:ok, view, _html} = live(ctx.conn, calls_path(ctx.project))
-      html = view |> element("button[phx-value-id='#{bare.id}']") |> render_click()
+      # Which script you opened with says nothing about whether anybody picks up.
+      assert render(view) =~
+               "Hey, it&#39;s Kris on (616) 555-0142 about Moore &amp; Sons Roofing."
 
-      refute html =~ "What to say"
+      html = view |> element("button[phx-value-tab='#{ctx.nepq.id}']") |> render_click()
+      assert html =~ "Hey, it&#39;s Kris on (616) 555-0142 about Moore &amp; Sons Roofing."
+    end
+
+    test "the one due next is marked", ctx do
+      {:ok, _view, html} = live(ctx.conn, call_path(ctx.project, ctx.prospect))
+
+      assert html =~ "due next"
+    end
+
+    test "a project with nothing written says so and points at the screen", ctx do
+      bare = project_fixture(name: "Bare", phone: "(616) 555-0000")
+      lonely = prospect_fixture(bare, phone: "(616) 555-0001", email: nil)
+
+      {:ok, _view, html} = live(ctx.conn, call_path(bare, lonely))
+
+      assert html =~ "Nothing written yet."
+      assert html =~ ~s|/admin/p/#{bare.id}/scripts|
     end
   end
 
   describe "the queue" do
-    test "shows the fit grade it is ordered by, and where they are", ctx do
-      {:ok, _view, html} = live(ctx.conn, calls_path(ctx.project))
+    test "each row links to that prospect's own page", ctx do
+      {:ok, view, _html} = live(ctx.conn, queue_path(ctx.project))
 
-      assert html =~ "High"
-      assert html =~ "Grand Rapids"
+      assert view |> element("#queue-#{ctx.prospect.id}") |> render_click() ==
+               {:error,
+                {:live_redirect, %{kind: :push, to: call_path(ctx.project, ctx.prospect)}}}
     end
 
     test "best fit first among people nobody has rung", ctx do
@@ -101,82 +239,17 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
           custom_fields: %{"fit" => "Medium"}
         )
 
-      ids = ctx.project.id |> ColdForge.Calling.queue() |> Enum.map(& &1.id)
+      ids = ctx.project.id |> Calling.queue() |> Enum.map(& &1.id)
 
-      assert Enum.take(ids, 3) == [ctx.scripted.id, medium.id, low.id]
+      assert Enum.take(ids, 3) == [ctx.prospect.id, medium.id, low.id]
     end
 
-    test "a placeholder where the number should be is marked, not offered", ctx do
-      no_number =
-        prospect_fixture(ctx.project, phone: "— look up —", email: nil, company: "Ace Roofing")
+    test "a placeholder where the number should be is marked", ctx do
+      prospect_fixture(ctx.project, phone: "— look up —", email: nil, company: "Ace Roofing")
 
-      {:ok, view, html} = live(ctx.conn, calls_path(ctx.project))
+      {:ok, _view, html} = live(ctx.conn, queue_path(ctx.project))
+
       assert html =~ "no number"
-
-      panel = view |> element("button[phx-value-id='#{no_number.id}']") |> render_click()
-
-      # A tel: link around "— look up —" is dead but looks live.
-      refute panel =~ ~s|href="tel:— look up —"|
-      assert panel =~ "No number"
-    end
-
-    test "a real number is offered as a tel: link", ctx do
-      {:ok, view, _html} = live(ctx.conn, calls_path(ctx.project))
-      panel = view |> element("button[phx-value-id='#{ctx.scripted.id}']") |> render_click()
-
-      assert panel =~ ~s|href="tel:(616) 779-5824"|
-    end
-  end
-
-  describe "editing a prospect's scripts" do
-    test "the form shows each script in a box of its own", ctx do
-      {:ok, _view, html} =
-        live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/#{ctx.scripted.id}/edit")
-
-      assert html =~ "Call scripts"
-      assert html =~ ~s|name="prospect[call_scripts][opener]"|
-      assert html =~ "Is the owner in?"
-      # Not in the one-per-line box, which cannot hold a page of prose.
-      refute html =~ "opener: Is the owner in?"
-    end
-
-    test "the one-per-line box holds the extras and only the extras", ctx do
-      {:ok, _view, html} =
-        live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/#{ctx.scripted.id}/edit")
-
-      assert html =~ "city: Grand Rapids"
-      assert html =~ "fit: High"
-    end
-
-    test "saving the form keeps both halves", ctx do
-      {:ok, view, _html} =
-        live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects/#{ctx.scripted.id}/edit")
-
-      view
-      |> form("#prospect-form",
-        prospect: %{
-          "company" => "Moore & Sons Roofing",
-          "phone" => "(616) 779-5824",
-          "custom_fields_text" => "city: Kalamazoo\nfit: High",
-          "call_scripts" => %{
-            "opener" => "A reworked opener.\n\nWith a second line: and a colon.",
-            "voicemail" => "Hey, it's just Kris.",
-            "script_direct" => "Straight pitch, thirty seconds.",
-            "problem_question" => "",
-            "objections" => "",
-            "script_nepq" => ""
-          }
-        }
-      )
-      |> render_submit()
-
-      reloaded = Outreach.get_prospect!(ctx.scripted.id)
-
-      assert reloaded.custom_fields["opener"] ==
-               "A reworked opener.\n\nWith a second line: and a colon."
-
-      assert reloaded.custom_fields["city"] == "Kalamazoo"
-      assert reloaded.custom_fields["script_direct"] == "Straight pitch, thirty seconds."
     end
   end
 end

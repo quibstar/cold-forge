@@ -288,6 +288,20 @@ defmodule ColdForgeWeb.AdminLive.Projects do
             </p>
           </div>
 
+          <div class="divider text-xs text-base-content/40">Call scripts</div>
+
+          <p class="text-sm text-base-content/60 -mt-2">
+            The scripts and voicemails for this project are edited on their own screen,
+            where they can be added, reordered and thrown out.
+            <.link
+              :if={@project && @project.id}
+              navigate={~p"/admin/p/#{@project.id}/scripts"}
+              class="link"
+            >
+              Open them
+            </.link>
+          </p>
+
           <div class="divider text-xs text-base-content/40">Branding</div>
 
           <.input

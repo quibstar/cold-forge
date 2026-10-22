@@ -89,6 +89,10 @@ defmodule ColdForge.Sending.Renderer do
       "website" => prospect.website,
       "sender_name" => project.from_name,
       "project" => project.name,
+      # The number to ring back. A call script that says "grab me at —" with
+      # nothing after it is a wasted call, which is why `Calling.Scripts`
+      # refuses to render at all without one; here the fallback carries it.
+      "callback" => project.phone,
       # The whole point of the redirect: authors write {{link}}, and it becomes
       # a tracked hop out to the project's landing page.
       "link" => project.landing_url
