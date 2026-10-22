@@ -12,6 +12,7 @@ defmodule ColdForge.Sourcing do
   import Ecto.Query
 
   alias ColdForge.Outreach
+  alias ColdForge.Outreach.Prospect
   alias ColdForge.Repo
   alias ColdForge.Sourcing.{Org, Source}
   alias ColdForge.Workers.{CrawlOrg, RunSource}
@@ -100,6 +101,7 @@ defmodule ColdForge.Sourcing do
   def list_orgs(opts \\ []) do
     Org
     |> maybe_status(Keyword.get(opts, :status))
+    |> maybe_view(Keyword.get(opts, :view))
     |> maybe_segment(Keyword.get(opts, :segment))
     |> maybe_source(Keyword.get(opts, :source_id))
     |> order_by([o], desc: o.updated_at)
@@ -131,6 +133,67 @@ defmodule ColdForge.Sourcing do
   defp maybe_status(query, nil), do: query
   defp maybe_status(query, "all"), do: query
   defp maybe_status(query, status), do: where(query, [o], o.status == ^status)
+
+  # Reasons a place was rejected that still leave it worth a phone call: its
+  # website had no address on it, or it has no website at all. Every other
+  # reason — a no-solicitation notice, "not a fit" — is a real decision to
+  # leave it alone.
+  @phone_reasons ~w(no_address_published no_website)
+
+  # What the review page shows, by what can be done with each place rather
+  # than by the crawler's internal status. "Rejected" used to be one tab, and
+  # it was almost entirely shops whose website simply didn't list an email —
+  # call-list material, filed under a name that said they'd been thrown out.
+  @views ~w(email phone checking left_off added)
+
+  @doc "The review tabs, in order."
+  def views, do: @views
+
+  defp maybe_view(query, nil), do: query
+  defp maybe_view(query, "email"), do: where(query, [o], o.status == "fetched")
+
+  defp maybe_view(query, "phone"),
+    do:
+      where(
+        query,
+        [o],
+        o.status == "needs_website" or
+          (o.status == "rejected" and o.reject_reason in ^@phone_reasons)
+      )
+
+  defp maybe_view(query, "checking"), do: where(query, [o], o.status == "discovered")
+
+  defp maybe_view(query, "left_off"),
+    do:
+      where(
+        query,
+        [o],
+        o.status == "rejected" and
+          (is_nil(o.reject_reason) or o.reject_reason not in ^@phone_reasons)
+      )
+
+  defp maybe_view(query, "added"), do: where(query, [o], o.status == "promoted")
+
+  @doc "How many of a source's organisations are in each review tab."
+  def counts_by_view(%Source{} = source) do
+    Map.new(@views, fn view ->
+      count =
+        Org
+        |> where([o], o.source_id == ^source.id)
+        |> maybe_view(view)
+        |> Repo.aggregate(:count)
+
+      {view, count}
+    end)
+  end
+
+  @doc "Which review tab an organisation is in."
+  def view_of(%Org{status: "fetched"}), do: "email"
+  def view_of(%Org{status: "needs_website"}), do: "phone"
+  def view_of(%Org{status: "rejected", reject_reason: r}) when r in @phone_reasons, do: "phone"
+  def view_of(%Org{status: "rejected"}), do: "left_off"
+  def view_of(%Org{status: "discovered"}), do: "checking"
+  def view_of(%Org{status: "promoted"}), do: "added"
 
   @doc "Organisations with a website we haven't crawled yet."
   def crawlable(opts \\ []) do
@@ -171,6 +234,26 @@ defmodule ColdForge.Sourcing do
     })
     |> Repo.update()
   end
+
+  @doc """
+  Records a look at a website that found no address on it.
+
+  Usually that files the place as phone-only. But if an earlier look already
+  found an address, it stays: a site that has since dropped its contact page
+  doesn't make a known address wrong, and this used to file places that had an
+  email under "no address published".
+  """
+  def record_nothing_found(%Org{email: email} = org) when is_binary(email) and email != "" do
+    org
+    |> Org.crawl_changeset(%{
+      status: "fetched",
+      reject_reason: nil,
+      fetched_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> Repo.update()
+  end
+
+  def record_nothing_found(%Org{} = org), do: reject(org, :no_address_published)
 
   @doc """
   Records that this organisation is not an email target, and why.
@@ -228,44 +311,114 @@ defmodule ColdForge.Sourcing do
   end
 
   @doc """
-  Promotes every organisation of a source that is ready to be written to.
-
-  Ready means: crawled, carrying an address or a phone, and not sitting behind
-  a notice asking not to be solicited. Reviewing thirty rows one button at a
-  time is how a review stops happening at all — the per-row buttons stay for
-  the judgement calls, and this is for the rest.
-
-  Returns `{:ok, %{promoted: n, failed: n}}`. A row that fails is left alone
-  rather than rolled in with the others, so one bad address can't undo
-  twenty-nine good ones.
+  How many of a source's organisations each "Add all" would take, and how many
+  websites are still being checked (and may yet turn up an email address).
   """
-  def promote_ready(%Source{} = source) do
-    ready =
-      Org
-      |> where([o], o.source_id == ^source.id)
-      |> where([o], o.status == "fetched" and not o.no_solicitation)
-      |> where([o], not is_nil(o.email) or not is_nil(o.phone))
-      |> Repo.all()
+  def addable_counts(%Source{} = source) do
+    %{
+      email: source |> addable(:email) |> Repo.aggregate(:count),
+      calls: source |> addable(:calls) |> Repo.aggregate(:count),
+      checking:
+        Org
+        |> where([o], o.source_id == ^source.id and o.status == "discovered")
+        |> Repo.aggregate(:count)
+    }
+  end
 
-    {promoted, failed} =
-      Enum.reduce(ready, {0, 0}, fn org, {ok, bad} ->
-        case promote(org, source.project_id) do
-          {:ok, _} -> {ok + 1, bad}
-          {:error, _} -> {ok, bad + 1}
+  @doc """
+  Adds every organisation of a source that suits one channel, as prospects of
+  its project.
+
+    * `:email` — a published address, website checked, for the drip.
+    * `:calls` — a phone and no address: no website, or a website that didn't
+      list one. A search for owner-operated trades turns these up by the
+      hundred, and they used to be left behind entirely.
+
+  Either way, a page asking not to be solicited keeps a place out. Somebody
+  already a prospect — matched by email or by phone digits, since Places lists
+  the same company once per location — is linked rather than added again.
+
+  Returns `{:ok, %{added: n, existing: n, failed: n}}`. A row that fails is left
+  alone, so one bad record can't undo the rest.
+  """
+  def promote_all(%Source{} = source, kind) when kind in [:email, :calls] do
+    totals =
+      source
+      |> addable(kind)
+      |> Repo.all()
+      |> Enum.reduce(%{added: 0, existing: 0, failed: 0}, fn org, acc ->
+        case existing_prospect(source.project_id, org) do
+          nil ->
+            case promote(org, source.project_id) do
+              {:ok, _} -> Map.update!(acc, :added, &(&1 + 1))
+              {:error, _} -> Map.update!(acc, :failed, &(&1 + 1))
+            end
+
+          prospect ->
+            {:ok, _} =
+              org
+              |> Ecto.Changeset.change(%{status: "promoted", prospect_id: prospect.id})
+              |> Repo.update()
+
+            Map.update!(acc, :existing, &(&1 + 1))
         end
       end)
 
-    {:ok, %{promoted: promoted, failed: failed}}
+    {:ok, totals}
   end
 
-  @doc "How many of a source's organisations `promote_ready/1` would take."
-  def ready_count(%Source{} = source) do
+  defp addable(%Source{id: source_id}, :email) do
     Org
-    |> where([o], o.source_id == ^source.id)
-    |> where([o], o.status == "fetched" and not o.no_solicitation)
-    |> where([o], not is_nil(o.email) or not is_nil(o.phone))
-    |> Repo.aggregate(:count)
+    |> where([o], o.source_id == ^source_id and o.status == "fetched")
+    |> where([o], not o.no_solicitation and not is_nil(o.email) and o.email != "")
   end
+
+  # Exactly the Phone only tab, so the button's count matches the tab's.
+  defp addable(%Source{id: source_id}, :calls) do
+    Org
+    |> where([o], o.source_id == ^source_id)
+    |> maybe_view("phone")
+    |> where([o], not o.no_solicitation)
+    |> where([o], not is_nil(o.phone) and o.phone != "")
+  end
+
+  # Matched on whichever the place has: its email, or its phone's digits, so
+  # "(616) 555-0100" and "616-555-0100" are the same shop.
+  defp existing_prospect(project_id, %Org{} = org) do
+    email = org.email |> to_string() |> String.trim() |> String.downcase()
+    digits = phone_digits(org.phone)
+
+    conditions =
+      Enum.filter(
+        [
+          email != "" && dynamic([p], fragment("lower(?)", p.email) == ^email),
+          digits != "" &&
+            dynamic(
+              [p],
+              fragment("regexp_replace(coalesce(?, ''), '\\D', '', 'g')", p.phone) == ^digits
+            )
+        ],
+        & &1
+      )
+
+    case conditions do
+      [] ->
+        nil
+
+      [first | rest] ->
+        match =
+          Enum.reduce(rest, first, fn condition, acc -> dynamic([p], ^acc or ^condition) end)
+
+        Prospect
+        |> where([p], p.project_id == ^project_id)
+        |> where(^match)
+        |> limit(1)
+        |> Repo.one()
+    end
+  end
+
+  defp phone_digits(nil), do: ""
+  defp phone_digits(phone), do: String.replace(phone, ~r/\D/, "")
 
   defp promote_notes(%Org{} = org) do
     [

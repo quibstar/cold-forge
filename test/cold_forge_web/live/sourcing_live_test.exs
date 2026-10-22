@@ -317,12 +317,34 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
 
-      rejected = live |> element(~s(button[phx-value-status="rejected"])) |> render_click()
-      assert rejected =~ "Phone Only"
-      assert rejected =~ "Call list"
+      phone = live |> element(~s(button[phx-value-status="phone"])) |> render_click()
+      assert phone =~ "Phone Only"
+      assert phone =~ "Call list"
     end
 
-    test "adds every ready organisation at once, skipping the ones that aren't",
+    test "a website with no email is Phone only, not Left off", %{conn: conn, project: project} do
+      source = source_fixture(project)
+      org = org_fixture(source, %{name: "Quiet Website Roofing", phone: "616-555-0110"})
+      {:ok, _} = Sourcing.reject(org, :no_address_published)
+
+      decided = org_fixture(source, %{name: "Not A Roofer", source_ref: "p9"})
+      {:ok, _} = Sourcing.reject(decided, :out_of_segment)
+
+      {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      assert html =~ "Phone only"
+
+      phone = live |> element(~s(button[phx-value-status="phone"])) |> render_click()
+      assert phone =~ "Quiet Website Roofing"
+      assert phone =~ "no email on their website"
+      assert phone =~ "Add all 1 for calling"
+      refute phone =~ "Not A Roofer"
+
+      left_off = live |> element(~s(button[phx-value-status="left_off"])) |> render_click()
+      assert left_off =~ "Not A Roofer"
+      refute left_off =~ "Quiet Website Roofing"
+    end
+
+    test "adds every place with an email for the drip, skipping the ones that aren't ready",
          %{conn: conn, project: project} do
       source = source_fixture(project)
 
@@ -337,9 +359,12 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org_fixture(source, %{name: "Not Crawled Yet", source_ref: "p4"})
 
       {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
-      assert html =~ "Add all 2"
+      # Found an address is the tab the page opens on, and the button is in it.
+      assert html =~ "Add all 2 for email drip"
+      # Its website hasn't been checked yet, so it may still turn up an address.
+      assert html =~ "1 websites still being checked"
 
-      live |> element(~s(button[phx-click="promote_ready"])) |> render_click()
+      live |> element("#add-all-email") |> render_click()
 
       companies =
         ColdForge.Outreach.Prospect
@@ -367,12 +392,76 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
 
-      html = live |> element(~s(button[phx-click="promote_ready"])) |> render_click()
+      html = live |> element("#add-all-email") |> render_click()
 
       assert Repo.aggregate(ColdForge.Outreach.Prospect, :count) == 1
       # And it says so rather than claiming two.
       assert html =~ "Added 1"
-      assert html =~ "1 skipped, already there"
+      assert html =~ "1 already there"
+    end
+
+    test "the No website yet tab adds every place in it that has a phone, for calling",
+         %{conn: conn, project: project} do
+      source = source_fixture(project)
+
+      # What a trades search turns up by the hundred: a listing, a phone, no site.
+      org_fixture(source, %{name: "No Site Roofing", website: nil, phone: "(616) 555-0101"})
+
+      org_fixture(source, %{
+        name: "No Site Gutters",
+        website: nil,
+        phone: "616-555-0104",
+        source_ref: "p5"
+      })
+
+      org_fixture(source, %{name: "No Site, No Phone", website: nil, source_ref: "p2"})
+
+      org_fixture(source, %{name: "Has An Address", phone: "616-555-0103", source_ref: "p4"})
+      |> with_address()
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      # Each button lives in its own tab.
+      assert has_element?(live, "#add-all-email")
+      refute has_element?(live, "#add-all-calls")
+
+      html = live |> element(~s(button[phx-value-status="phone"])) |> render_click()
+      assert html =~ "Add all 2 for calling"
+      refute has_element?(live, "#add-all-email")
+
+      live |> element("#add-all-calls") |> render_click()
+
+      added = Repo.all(ColdForge.Outreach.Prospect)
+
+      assert Enum.map(added, & &1.company) |> Enum.sort() == [
+               "No Site Gutters",
+               "No Site Roofing"
+             ]
+
+      assert Enum.all?(added, &is_nil(&1.email))
+      # Phone-only, so they're on the call list and can never be emailed.
+      assert length(ColdForge.Calling.queue(project.id)) == 2
+    end
+
+    test "a shop already a prospect, matched by phone, is linked not added twice",
+         %{conn: conn, project: project} do
+      {:ok, _} =
+        ColdForge.Outreach.create_prospect(%{
+          project_id: project.id,
+          company: "Imported Earlier",
+          phone: "616.555.0101"
+        })
+
+      source = source_fixture(project)
+      org = org_fixture(source, %{name: "No Site Roofing", website: nil, phone: "(616) 555-0101"})
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      live |> element(~s(button[phx-value-status="phone"])) |> render_click()
+      html = live |> element("#add-all-calls") |> render_click()
+
+      assert Repo.aggregate(ColdForge.Outreach.Prospect, :count) == 1
+      assert html =~ "1 already there"
+      assert Repo.reload(org).status == "promoted"
     end
 
     test "running a search queues the work and says so", %{conn: conn, project: project} do

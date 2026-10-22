@@ -22,11 +22,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   alias ColdForge.Sourcing
   alias ColdForge.Sourcing.{Source, Towns}
 
-  @statuses ~w(fetched discovered needs_website rejected promoted)
-
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :statuses, @statuses)}
+    {:ok, assign(socket, :views, Sourcing.views())}
   end
 
   @impl true
@@ -82,7 +80,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/p/#{source.project_id}/sourcing"}])
     |> assign(:source, source)
     |> assign(:plan, Source.plan(source))
-    |> assign(:status, "fetched")
+    |> assign(:status, "email")
     |> load_results()
   end
 
@@ -90,9 +88,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     source = socket.assigns.source
 
     socket
-    |> assign(:orgs, Sourcing.list_orgs(source_id: source.id, status: socket.assigns.status))
-    |> assign(:counts, Sourcing.counts_for_source(source))
-    |> assign(:ready_count, Sourcing.ready_count(source))
+    |> assign(:orgs, Sourcing.list_orgs(source_id: source.id, view: socket.assigns.status))
+    |> assign(:counts, Sourcing.counts_by_view(source))
+    |> assign(:addable, Sourcing.addable_counts(source))
   end
 
   # The plan is worked out from whatever has been typed, valid or not, so the
@@ -275,19 +273,12 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     end
   end
 
-  def handle_event("promote_ready", _params, socket) do
+  def handle_event("add_all", %{"kind" => kind}, socket) when kind in ["email", "calls"] do
     source = socket.assigns.source
-    {:ok, %{promoted: promoted, failed: failed}} = Sourcing.promote_ready(source)
+    {:ok, totals} = Sourcing.promote_all(source, String.to_existing_atom(kind))
 
-    message =
-      case {promoted, failed} do
-        {0, 0} -> "Nothing ready to add."
-        {n, 0} -> "Added #{n} to #{source.project.name}."
-        # No apostrophe: it renders as an entity and reads badly in a flash.
-        {n, f} -> "Added #{n} to #{source.project.name}. #{f} skipped, already there."
-      end
-
-    {:noreply, socket |> put_flash(:info, message) |> load_results()}
+    {:noreply,
+     socket |> put_flash(:info, add_all_message(kind, totals, source)) |> load_results()}
   end
 
   def handle_event("reject", %{"id" => id}, socket) do
@@ -483,6 +474,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                 do: "Last run #{Calendar.strftime(@source.last_run_at, "%b %-d at %-I:%M %p")}",
                 else: "Never run"}
             </p>
+            <p :if={@addable.checking > 0} class="text-xs opacity-60">
+              {@addable.checking} websites still being checked for an email address.
+            </p>
           </div>
 
           <.link
@@ -494,15 +488,6 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
           <%!-- Reviewing thirty rows one button at a time is how a review
                 stops happening at all. The per-row buttons stay for the
                 judgement calls; this is for the rest. --%>
-          <button
-            :if={@ready_count > 0}
-            type="button"
-            class="btn btn-sm"
-            phx-click="promote_ready"
-            data-confirm={"Add all #{@ready_count} to #{@source.project.name}?"}
-          >
-            Add all {@ready_count}
-          </button>
           <button
             type="button"
             class="btn btn-sm btn-primary"
@@ -520,7 +505,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
     <div role="tablist" class="tabs tabs-box mb-4">
       <button
-        :for={status <- @statuses}
+        :for={status <- @views}
         type="button"
         role="tab"
         class={["tab", @status == status && "tab-active"]}
@@ -530,6 +515,44 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
         {label_for(status)}
         <span class="badge badge-sm ml-1">{Map.get(@counts, status, 0)}</span>
       </button>
+    </div>
+
+    <%!-- Each tab's own bulk add: the places with an address go to the drip,
+          the ones with no website (but a phone) go to the call list. --%>
+    <div
+      :if={@status == "email" and @addable.email > 0}
+      class="flex flex-wrap items-center gap-3 mb-3"
+    >
+      <button
+        type="button"
+        id="add-all-email"
+        class="btn btn-sm btn-primary"
+        phx-click="add_all"
+        phx-value-kind="email"
+        data-confirm={"Add #{@addable.email} with an email address to #{@source.project.name}, ready for a campaign?"}
+      >
+        <.icon name="hero-envelope" class="size-4" /> Add all {@addable.email} for email drip
+      </button>
+      <span class="text-xs opacity-60">They become prospects you can add to a campaign.</span>
+    </div>
+
+    <div
+      :if={@status == "phone" and @addable.calls > 0}
+      class="flex flex-wrap items-center gap-3 mb-3"
+    >
+      <button
+        type="button"
+        id="add-all-calls"
+        class="btn btn-sm btn-primary"
+        phx-click="add_all"
+        phx-value-kind="calls"
+        data-confirm={"Add #{@addable.calls} phone-only places to #{@source.project.name}'s call list?"}
+      >
+        <.icon name="hero-phone" class="size-4" /> Add all {@addable.calls} for calling
+      </button>
+      <span class="text-xs opacity-60">
+        No email anywhere — they go on the call list and are never emailed.
+      </span>
     </div>
 
     <div class="card bg-base-100 shadow-sm">
@@ -582,7 +605,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                   contact form only
                 </div>
                 <div :if={!org.email && !org.has_contact_form} class="text-xs text-base-content/50">
-                  {if org.reject_reason, do: humanize(org.reject_reason), else: "—"}
+                  {no_address_note(org)}
                 </div>
                 <%!-- The sentence the notice was found in, on hover: a table
                       has no room for it, but it is what lets a reviewer judge
@@ -630,7 +653,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                   Look again
                 </button>
                 <button
-                  :if={org.status not in ["promoted", "rejected"]}
+                  :if={Sourcing.view_of(org) not in ["added", "left_off"]}
                   type="button"
                   class="btn btn-xs btn-ghost"
                   phx-click="reject"
@@ -650,11 +673,16 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   ## Wording
 
-  defp label_for("fetched"), do: "Found an address"
-  defp label_for("discovered"), do: "Waiting to crawl"
-  defp label_for("needs_website"), do: "No website yet"
-  defp label_for("rejected"), do: "Left off"
-  defp label_for("promoted"), do: "Prospects"
+  defp no_address_note(%{status: "needs_website"}), do: "no website"
+  defp no_address_note(%{reject_reason: "no_address_published"}), do: "no email on their website"
+  defp no_address_note(%{reject_reason: nil}), do: "—"
+  defp no_address_note(%{reject_reason: reason}), do: humanize(reason)
+
+  defp label_for("email"), do: "Email"
+  defp label_for("phone"), do: "Phone only"
+  defp label_for("checking"), do: "Checking website"
+  defp label_for("left_off"), do: "Left off"
+  defp label_for("added"), do: "Added"
   defp label_for(other), do: humanize(other)
 
   # How the address was published, said rather than named. A reviewer glancing
@@ -861,6 +889,22 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   defp money(amount) when amount < 1, do: "$" <> :erlang.float_to_binary(amount / 1, decimals: 2)
   defp money(amount), do: "$" <> Integer.to_string(round(amount))
+
+  # No apostrophes: they render as entities and read badly in a flash.
+  defp add_all_message(kind, %{added: added, existing: existing, failed: failed}, source) do
+    where_to =
+      if kind == "email",
+        do: "#{source.project.name} — add them to a campaign from its page",
+        else: "the #{source.project.name} call list"
+
+    [
+      if(added > 0, do: "Added #{added} to #{where_to}.", else: "Nothing new to add."),
+      existing > 0 && "#{existing} already there, so linked rather than added twice.",
+      failed > 0 && "#{failed} could not be added."
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(" ")
+  end
 
   defp humanize(nil), do: ""
 
