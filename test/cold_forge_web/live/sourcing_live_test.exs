@@ -126,6 +126,83 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       assert html =~ "about $"
     end
 
+    test "the state picker adds every town above a population to Where",
+         %{conn: conn, project: project} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
+
+      live
+      |> form("#source-form", picker: %{mode: "state", state: "MI", min_population: "100000"})
+      |> render_change()
+
+      assert has_element?(live, "#town-picker", "Grand Rapids, MI")
+      refute has_element?(live, "#town-picker", "Holland, MI")
+
+      live |> element("#add-towns") |> render_click()
+
+      textarea = live |> element("#source_localities_text") |> render()
+      assert textarea =~ "Detroit, MI"
+      assert textarea =~ "Grand Rapids, MI"
+      refute textarea =~ "Holland, MI"
+    end
+
+    test "the radius picker adds nearby towns, minus any unticked",
+         %{conn: conn, project: project} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
+
+      live
+      |> form("#source-form", picker: %{mode: "radius", state: "MI"})
+      |> render_change()
+
+      live
+      |> form("#source-form",
+        picker: %{center: "Grand Rapids, MI", miles: "10", min_population: "1000"}
+      )
+      |> render_change()
+
+      assert has_element?(live, "#town-picker", "Grandville, MI")
+
+      live
+      |> element("input[phx-value-label='Walker, MI']")
+      |> render_click()
+
+      live |> element("#add-towns") |> render_click()
+
+      textarea = live |> element("#source_localities_text") |> render()
+      assert textarea =~ "Grandville, MI"
+      refute textarea =~ "Walker, MI"
+    end
+
+    test "adding towns keeps what was already in Where, without repeats",
+         %{conn: conn, project: project} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
+
+      live
+      |> form("#source-form",
+        source: %{
+          name: "Mixed",
+          provider: "places",
+          localities_text: "Toledo, OH\nGrand Rapids, MI"
+        },
+        picker: %{mode: "state", state: "MI", min_population: "100000"}
+      )
+      |> render_change()
+
+      live |> element("#add-towns") |> render_click()
+
+      textarea = live |> element("#source_localities_text") |> render()
+      assert textarea =~ "Toledo, OH"
+      assert length(Regex.scan(~r/Grand Rapids, MI/, textarea)) == 1
+    end
+
+    test "OpenStreetMap searches regions, so there's no town picker",
+         %{conn: conn, project: project} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
+
+      live |> form("#source-form", source: %{provider: "overpass"}) |> render_change()
+
+      refute has_element?(live, "#town-picker")
+    end
+
     test "the run button says what it will cost before it starts",
          %{conn: conn, project: project} do
       source = source_fixture(project, %{localities: ["Michigan"]})

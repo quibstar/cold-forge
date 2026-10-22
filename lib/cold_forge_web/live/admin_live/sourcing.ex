@@ -20,7 +20,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   import ColdForgeWeb.ProjectTabs
 
   alias ColdForge.Sourcing
-  alias ColdForge.Sourcing.Source
+  alias ColdForge.Sourcing.{Source, Towns}
 
   @statuses ~w(fetched discovered needs_website rejected promoted)
 
@@ -49,6 +49,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> assign(:page_subtitle, nil)
     |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/p/#{project_id}/sourcing"}])
     |> assign(:source, %Source{project_id: project_id})
+    |> reset_picker()
     |> assign_form(Sourcing.change_source(%Source{project_id: project_id}))
   end
 
@@ -60,6 +61,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> assign(:page_subtitle, "What it looks for, and where.")
     |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/p/#{source.project_id}/sourcing"}])
     |> assign(:source, source)
+    |> reset_picker()
     |> assign_form(
       Sourcing.change_source(source, %{
         segments_text: Source.segments_text(source),
@@ -95,6 +97,66 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   # The plan is worked out from whatever has been typed, valid or not, so the
   # cost of a typo or of a whole state is on screen before Save.
+  @default_picker %{
+    "mode" => "state",
+    "state" => "",
+    "center" => "",
+    "miles" => "50",
+    "min_population" => "5000"
+  }
+
+  # The town picker's own state. It never saves anything itself: "Add" writes
+  # the ticked towns into "Where" as ordinary lines, so what gets searched is
+  # always visible and editable there, and a saved search can't quietly change
+  # when the population estimates do.
+  defp reset_picker(socket) do
+    socket
+    |> assign(:picker, @default_picker)
+    |> assign(:picker_towns, [])
+    |> assign(:picker_skipped, MapSet.new())
+  end
+
+  defp update_picker(socket, nil), do: socket
+
+  defp update_picker(socket, params) do
+    picker = Map.merge(socket.assigns.picker, Map.take(params, Map.keys(@default_picker)))
+
+    # A centre from another state no longer makes sense once the state changes.
+    picker =
+      if picker["state"] != socket.assigns.picker["state"],
+        do: Map.put(picker, "center", ""),
+        else: picker
+
+    changed? = picker != socket.assigns.picker
+
+    socket
+    |> assign(:picker, picker)
+    |> assign(:picker_towns, picker_towns(picker))
+    |> then(fn s -> if changed?, do: assign(s, :picker_skipped, MapSet.new()), else: s end)
+  end
+
+  defp picker_towns(%{"mode" => "radius", "center" => ""}), do: []
+
+  defp picker_towns(%{"mode" => "radius"} = picker) do
+    Towns.near(picker["center"], to_int(picker["miles"]), to_int(picker["min_population"])) || []
+  end
+
+  defp picker_towns(%{"state" => ""}), do: []
+
+  defp picker_towns(picker),
+    do: Towns.in_state(picker["state"], to_int(picker["min_population"]))
+
+  defp to_int(value) when is_integer(value), do: value
+
+  defp to_int(value) do
+    case Integer.parse(to_string(value)) do
+      {n, _} -> n
+      :error -> 0
+    end
+  end
+
+  defp picked(towns, skipped), do: Enum.reject(towns, &MapSet.member?(skipped, &1.label))
+
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     socket
     |> assign(:form, to_form(changeset))
@@ -104,13 +166,74 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   ## Events
 
   @impl true
-  def handle_event("validate", %{"source" => params}, socket) do
-    changeset =
-      socket.assigns.source
-      |> Sourcing.change_source(params)
-      |> Map.put(:action, :validate)
+  def handle_event("validate", params, socket) do
+    socket = update_picker(socket, params["picker"])
 
-    {:noreply, assign_form(socket, changeset)}
+    case params["source"] do
+      nil ->
+        {:noreply, socket}
+
+      source_params ->
+        changeset =
+          socket.assigns.source
+          |> Sourcing.change_source(source_params)
+          |> Map.put(:action, :validate)
+
+        {:noreply, assign_form(socket, changeset)}
+    end
+  end
+
+  def handle_event("toggle_town", %{"label" => label}, socket) do
+    skipped = socket.assigns.picker_skipped
+
+    skipped =
+      if MapSet.member?(skipped, label),
+        do: MapSet.delete(skipped, label),
+        else: MapSet.put(skipped, label)
+
+    {:noreply, assign(socket, :picker_skipped, skipped)}
+  end
+
+  def handle_event("pick_all", _params, socket),
+    do: {:noreply, assign(socket, :picker_skipped, MapSet.new())}
+
+  def handle_event("pick_none", _params, socket) do
+    labels = MapSet.new(socket.assigns.picker_towns, & &1.label)
+    {:noreply, assign(socket, :picker_skipped, labels)}
+  end
+
+  # Appends the ticked towns to "Where", skipping any already there, and leaves
+  # the rest of the form exactly as typed.
+  def handle_event("add_towns", _params, socket) do
+    params = socket.assigns.form.params || %{}
+
+    existing =
+      (params["localities_text"] || "")
+      |> String.split(["\r\n", "\n"])
+      |> Enum.map(&String.trim/1)
+
+    added =
+      socket.assigns.picker_towns
+      |> picked(socket.assigns.picker_skipped)
+      |> Enum.map(& &1.label)
+      |> Enum.reject(&(&1 in existing))
+
+    lines = Enum.reject(existing, &(&1 == "")) ++ added
+
+    changeset =
+      Sourcing.change_source(
+        socket.assigns.source,
+        Map.put(params, "localities_text", Enum.join(lines, "\n"))
+      )
+
+    {:noreply,
+     socket
+     |> assign_form(changeset)
+     |> assign(:picker_skipped, MapSet.new())
+     |> put_flash(
+       :info,
+       "Added #{length(added)} #{if length(added) == 1, do: "town", else: "towns"} to Where."
+     )}
   end
 
   def handle_event("save", %{"source" => params}, socket) do
@@ -316,8 +439,16 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
           />
           <p class="text-xs opacity-60 -mt-3">
             {Source.locality_hint(@form[:provider].value || "places")}. Places caps a search at
-            60 results, so a state is searched town by town — every town of 5,000+.
+            60 results, so a state is searched town by town — every town of 5,000+. For smaller
+            towns or a radius, use Add towns below.
           </p>
+
+          <.town_picker
+            :if={(@form[:provider].value || "places") == "places"}
+            picker={@picker}
+            towns={@picker_towns}
+            skipped={@picker_skipped}
+          />
 
           <.plan_summary plan={@plan} id="source-plan" />
 
@@ -535,6 +666,130 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   defp presentation_phrase("obfuscated"), do: "written out to dodge scrapers"
   defp presentation_phrase("plain_text"), do: "in the page text"
   defp presentation_phrase(other), do: humanize(other)
+
+  attr :picker, :map, required: true
+  attr :towns, :list, required: true
+  attr :skipped, :any, required: true
+
+  # Inside the source form so it needs no form of its own; its fields post
+  # under `picker[...]`, which the save handler never reads.
+  defp town_picker(assigns) do
+    assigns = assign(assigns, :picked, picked(assigns.towns, assigns.skipped))
+
+    ~H"""
+    <div id="town-picker" class="rounded-box border border-base-300 p-3 space-y-3">
+      <div>
+        <p class="font-medium text-sm">Add towns</p>
+        <p class="text-xs opacity-60">
+          Pick a state and a population cutoff, or every town near one. Small towns reach rural
+          businesses a big-town search misses.
+        </p>
+      </div>
+
+      <div class={[
+        "grid gap-2",
+        if(@picker["mode"] == "radius",
+          do: "sm:grid-cols-2 lg:grid-cols-5",
+          else: "sm:grid-cols-3"
+        )
+      ]}>
+        <.input
+          type="select"
+          id="picker-mode"
+          name="picker[mode]"
+          value={@picker["mode"]}
+          options={[{"In a state", "state"}, {"Near a town", "radius"}]}
+        />
+        <.input
+          type="select"
+          id="picker-state"
+          name="picker[state]"
+          value={@picker["state"]}
+          prompt="Choose a state"
+          options={Towns.state_options()}
+        />
+        <.input
+          :if={@picker["mode"] == "radius"}
+          type="select"
+          id="picker-center"
+          name="picker[center]"
+          value={@picker["center"]}
+          prompt={if @picker["state"] == "", do: "Choose a state first", else: "Choose a town"}
+          options={center_options(@picker["state"])}
+          disabled={@picker["state"] == ""}
+        />
+        <.input
+          :if={@picker["mode"] == "radius"}
+          type="select"
+          id="picker-miles"
+          name="picker[miles]"
+          value={@picker["miles"]}
+          options={Enum.map(Towns.mile_options(), &{"within #{&1} miles", &1})}
+        />
+        <.input
+          type="select"
+          id="picker-population"
+          name="picker[min_population]"
+          value={@picker["min_population"]}
+          options={Enum.map(Towns.population_options(), &{"#{format_number(&1)}+ people", &1})}
+        />
+      </div>
+
+      <div :if={@towns != []} class="space-y-2">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span class="opacity-70">
+            {length(@picked)} of {count(length(@towns), "town", "towns")} ticked
+          </span>
+          <button type="button" class="btn btn-xs btn-ghost" phx-click="pick_all">All</button>
+          <button type="button" class="btn btn-xs btn-ghost" phx-click="pick_none">None</button>
+        </div>
+
+        <div class="max-h-64 overflow-y-auto grid gap-x-4 gap-y-1 sm:grid-cols-2 pr-1">
+          <label
+            :for={town <- @towns}
+            class="flex items-center gap-2 text-sm cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              class="checkbox checkbox-xs"
+              checked={not MapSet.member?(@skipped, town.label)}
+              phx-click="toggle_town"
+              phx-value-label={town.label}
+            />
+            <span class="truncate">{town.label}</span>
+            <span class="ml-auto text-xs opacity-50 whitespace-nowrap">
+              {format_number(town.population)}{if Map.has_key?(town, :miles),
+                do: " · #{round(town.miles)} mi"}
+            </span>
+          </label>
+        </div>
+
+        <button
+          type="button"
+          id="add-towns"
+          class="btn btn-sm"
+          phx-click="add_towns"
+          disabled={@picked == []}
+        >
+          Add {count(length(@picked), "town", "towns")} to Where
+        </button>
+      </div>
+
+      <p
+        :if={@towns == [] and @picker["mode"] == "radius" and @picker["center"] != ""}
+        class="text-xs opacity-60"
+      >
+        No towns that size within that distance.
+      </p>
+    </div>
+    """
+  end
+
+  defp center_options(""), do: []
+
+  defp center_options(state) do
+    state |> Towns.in_state(1_000) |> Enum.map(& &1.label) |> Enum.sort()
+  end
 
   attr :plan, :map, required: true
   attr :id, :string, required: true
