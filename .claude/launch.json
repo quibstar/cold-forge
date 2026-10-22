@@ -3,12 +3,15 @@
   "configurations": [
     {
       "name": "cold_forge",
-      "runtimeExecutable": "mix",
-      "runtimeArgs": [
-        "phx.server"
-      ],
-      "port": 4000,
-      "autoPort": true
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PORT=4012", "mix", "phx.server"],
+      "port": 4012
+    },
+    {
+      "name": "cold_forge_prod_copy",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PORT=4013", "DEV_DATABASE=cold_forge_prod_copy", "mix", "phx.server"],
+      "port": 4013
     }
   ]
 }

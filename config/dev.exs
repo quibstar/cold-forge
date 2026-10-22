@@ -5,7 +5,9 @@ config :cold_forge, ColdForge.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "cold_forge_dev",
+  # Overridable so a second local server can run against a copy of production
+  # without touching cold_forge_dev, which other checkouts share.
+  database: System.get_env("DEV_DATABASE") || "cold_forge_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   # Modest, because this machine runs several Phoenix apps against one Postgres
