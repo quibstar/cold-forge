@@ -106,16 +106,20 @@ defmodule ColdForgeWeb.Router do
       live "/projects/new", AdminLive.Projects, :new
       live "/projects/:id/edit", AdminLive.Projects, :edit
 
-      live "/sourcing", AdminLive.Sourcing, :index
-      live "/sourcing/new", AdminLive.Sourcing, :new
-      live "/sourcing/:id", AdminLive.Sourcing, :show
-      live "/sourcing/:id/edit", AdminLive.Sourcing, :edit
       live "/suppressions", AdminLive.Suppressions, :index
       live "/guide", AdminLive.Guide, :index
 
       # A project is one place with three views. Campaigns is the project root
       # rather than a `/campaigns` child, because it's what you came for.
       live "/p/:project_id", AdminLive.Campaigns, :index
+
+      # Sourcing lives under the project because that is what it fills. The
+      # project used to be a field on the form; being here means it is simply
+      # where you are.
+      live "/p/:project_id/sourcing", AdminLive.Sourcing, :index
+      live "/p/:project_id/sourcing/new", AdminLive.Sourcing, :new
+      live "/p/:project_id/sourcing/:id", AdminLive.Sourcing, :show
+      live "/p/:project_id/sourcing/:id/edit", AdminLive.Sourcing, :edit
       live "/p/:project_id/campaigns/new", AdminLive.Campaigns, :new
       live "/p/:project_id/campaigns/:id", AdminLive.CampaignShow, :show
       live "/p/:project_id/campaigns/:id/people", AdminLive.CampaignShow, :people

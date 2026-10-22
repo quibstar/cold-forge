@@ -66,8 +66,8 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
   end
 
   describe "the list of saved searches" do
-    test "says what to do when there are none", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/admin/sourcing")
+    test "says what to do when there are none", %{conn: conn, project: project} do
+      {:ok, _live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing")
       assert html =~ "No searches yet"
     end
 
@@ -81,7 +81,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
         localities: ["Grand Rapids, MI", "Holland, MI"]
       })
 
-      {:ok, _live, html} = live(conn, ~p"/admin/sourcing")
+      {:ok, _live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing")
 
       assert html =~ "ExteriorPro — West Michigan"
       assert html =~ "Roofing and Gutters"
@@ -92,8 +92,8 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
   end
 
   describe "creating one" do
-    test "needs a project, a segment and somewhere to look", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/admin/sourcing/new")
+    test "needs a segment and somewhere to look", %{conn: conn, project: project} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
 
       html =
         live
@@ -106,13 +106,12 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
     test "parses the towns out of the textarea, one per line",
          %{conn: conn, project: project} do
-      {:ok, live, _html} = live(conn, ~p"/admin/sourcing/new")
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
 
       live
       |> form("#source-form",
         source: %{
           name: "ExteriorPro — Lakeshore",
-          project_id: project.id,
           provider: "places",
           segments_text: "Roofing, Siding",
           localities_text: "Grand Rapids, MI\nHolland, MI\n\n  Muskegon, MI  \n"
@@ -146,7 +145,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       source = source_fixture(project)
       org_fixture(source) |> with_address()
 
-      {:ok, _live, html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+      {:ok, _live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
 
       assert html =~ "Summit Roofing LLC"
       assert html =~ "office@summitroofing.test"
@@ -161,7 +160,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org_fixture(mine, %{name: "Belongs To Mine"}) |> with_address()
       org_fixture(theirs, %{name: "Belongs To Theirs"}) |> with_address()
 
-      {:ok, _live, html} = live(conn, ~p"/admin/sourcing/#{mine.id}")
+      {:ok, _live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{mine.id}")
 
       assert html =~ "Belongs To Mine"
       refute html =~ "Belongs To Theirs"
@@ -171,12 +170,13 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       source = source_fixture(project)
       org = org_fixture(source) |> with_address()
 
-      {:ok, live, html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+      {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
       # No dropdown anywhere: the destination is settled when the source is
       # made, and stated once at the top rather than on three hundred rows.
-      assert html =~ "Prospects go into"
-      assert html =~ "ExteriorPro"
+      # No project field and no dropdown anywhere: being inside the project is
+      # the answer to "which project".
       refute html =~ ~s(name="project_id")
+      refute html =~ ~s(name="source[project_id]")
 
       live
       |> element(~s(button[phx-click="promote"][phx-value-org_id="#{org.id}"]))
@@ -195,7 +195,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org_fixture(source, %{name: "Asked Us Not To"})
       |> with_address(%{no_solicitation: true, notice_text: "No unsolicited commercial email."})
 
-      {:ok, live, html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+      {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
 
       assert html =~ "asked not to be solicited"
       assert html =~ "No unsolicited commercial email."
@@ -207,7 +207,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org = org_fixture(source, %{website: nil, phone: "(616) 555-0101", name: "Phone Only"})
       {:ok, _} = Sourcing.reject(org, :no_address_published)
 
-      {:ok, live, _html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
 
       rejected = live |> element(~s(button[phx-value-status="rejected"])) |> render_click()
       assert rejected =~ "Phone Only"
@@ -228,7 +228,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
       org_fixture(source, %{name: "Not Crawled Yet", source_ref: "p4"})
 
-      {:ok, live, html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+      {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
       assert html =~ "Add all 2"
 
       live |> element(~s(button[phx-click="promote_ready"])) |> render_click()
@@ -257,7 +257,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org_fixture(source, %{name: "Above Roofing", source_ref: "loc-2"})
       |> with_address(%{email: "office@aboveroofing.test"})
 
-      {:ok, live, _html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
 
       html = live |> element(~s(button[phx-click="promote_ready"])) |> render_click()
 
@@ -270,7 +270,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
     test "running a search queues the work and says so", %{conn: conn, project: project} do
       source = source_fixture(project, %{localities: ["Grand Rapids, MI", "Holland, MI"]})
 
-      {:ok, live, _html} = live(conn, ~p"/admin/sourcing/#{source.id}")
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
 
       html = live |> element(~s(button[phx-click="run"])) |> render_click()
       assert html =~ "Searching"

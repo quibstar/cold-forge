@@ -18,13 +18,17 @@ defmodule ColdForge.Sourcing do
 
   ## Sources — saved searches
 
-  @doc "Every saved search, with its project."
-  def list_sources do
+  @doc "A project's saved searches. Without `:project_id`, every one of them."
+  def list_sources(opts \\ []) do
     Source
+    |> maybe_project(Keyword.get(opts, :project_id))
     |> order_by([s], asc: s.name)
     |> preload(:project)
     |> Repo.all()
   end
+
+  defp maybe_project(query, nil), do: query
+  defp maybe_project(query, project_id), do: where(query, [s], s.project_id == ^project_id)
 
   def get_source!(id), do: Source |> Repo.get!(id) |> Repo.preload(:project)
 

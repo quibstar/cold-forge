@@ -2,12 +2,14 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   @moduledoc """
   Saved searches, and what each one turned up.
 
-  A source is made the way a project is: name it after what you are selling,
-  point it at the project its prospects belong to, give it the trades and the
-  towns, and run it. The project is decided here, once, rather than row by row
-  at promotion time — you know which project a search is for when you set it
-  up, and being asked again three hundred rows later is only a chance to get
-  it wrong.
+  A source belongs to the project it fills, so it lives under that project
+  rather than in the sidebar: there is no "which project" field because being
+  here is the answer. Name it after what you are selling, give it the trades
+  and the towns, and run it.
+
+  Promotion asks nothing either. The destination was settled the moment you
+  opened this project, and being asked again three hundred rows later is only
+  a chance to get it wrong.
 
   The results list is a review queue because the crawler is good at reading a
   page and bad at judging whether an organisation is worth writing to. A
@@ -15,7 +17,8 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   """
   use ColdForgeWeb, :live_view
 
-  alias ColdForge.Outreach
+  import ColdForgeWeb.ProjectTabs
+
   alias ColdForge.Sourcing
   alias ColdForge.Sourcing.Source
 
@@ -31,23 +34,22 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
-  defp apply_action(socket, :index, _params) do
+  defp apply_action(socket, :index, %{"project_id" => project_id}) do
     socket
     |> assign(:page_title, "Sourcing")
-    |> assign(:page_subtitle, "Saved searches. One per thing you're selling.")
+    |> assign(:page_subtitle, "Saved searches that fill this project.")
     |> assign(:breadcrumbs, [])
     |> assign(:source, nil)
-    |> assign(:sources, Sourcing.list_sources())
+    |> assign(:sources, Sourcing.list_sources(project_id: project_id))
   end
 
-  defp apply_action(socket, :new, _params) do
+  defp apply_action(socket, :new, %{"project_id" => project_id}) do
     socket
     |> assign(:page_title, "New source")
     |> assign(:page_subtitle, nil)
-    |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/sourcing"}])
-    |> assign(:source, %Source{})
-    |> assign(:projects, Outreach.list_projects())
-    |> assign_form(Sourcing.change_source(%Source{}))
+    |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/p/#{project_id}/sourcing"}])
+    |> assign(:source, %Source{project_id: project_id})
+    |> assign_form(Sourcing.change_source(%Source{project_id: project_id}))
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -56,9 +58,8 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     socket
     |> assign(:page_title, source.name)
     |> assign(:page_subtitle, "What it looks for, and where.")
-    |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/sourcing"}])
+    |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/p/#{source.project_id}/sourcing"}])
     |> assign(:source, source)
-    |> assign(:projects, Outreach.list_projects())
     |> assign_form(
       Sourcing.change_source(source, %{
         segments_text: Source.segments_text(source),
@@ -76,7 +77,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
       :page_subtitle,
       "Looking for #{segments_sentence(source)} in #{places_sentence(source)}."
     )
-    |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/sourcing"}])
+    |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/p/#{source.project_id}/sourcing"}])
     |> assign(:source, source)
     |> assign(:status, "fetched")
     |> load_results()
@@ -118,7 +119,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
         {:noreply,
          socket
          |> put_flash(:info, "Searching #{places_sentence(source)}. Results appear as they land.")
-         |> push_patch(to: ~p"/admin/sourcing/#{source.id}")}
+         |> push_patch(to: ~p"/admin/p/#{source.project_id}/sourcing/#{source.id}")}
 
       {:error, _reason} ->
         {:noreply, put_flash(socket, :error, "Couldn't start that search.")}
@@ -172,12 +173,16 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   end
 
   defp save(socket, :new, params) do
+    # Taken from the URL rather than the params: a project field on the form
+    # would be a second chance to disagree with the page you are standing on.
+    params = Map.put(params, "project_id", socket.assigns.source.project_id)
+
     case Sourcing.create_source(params) do
       {:ok, source} ->
         {:noreply,
          socket
          |> put_flash(:info, "#{source.name} is ready. Run it when you are.")
-         |> push_navigate(to: ~p"/admin/sourcing/#{source.id}")}
+         |> push_navigate(to: ~p"/admin/p/#{source.project_id}/sourcing/#{source.id}")}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -190,7 +195,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
         {:noreply,
          socket
          |> put_flash(:info, "Saved.")
-         |> push_navigate(to: ~p"/admin/sourcing/#{source.id}")}
+         |> push_navigate(to: ~p"/admin/p/#{source.project_id}/sourcing/#{source.id}")}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -210,8 +215,13 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   @impl true
   def render(%{live_action: :index} = assigns) do
     ~H"""
+    <.project_tabs project={@current_project} current_path={@current_path} />
+
     <div class="flex justify-end mb-4">
-      <.link navigate={~p"/admin/sourcing/new"} class="btn btn-primary btn-sm">
+      <.link
+        navigate={~p"/admin/p/#{@current_project.id}/sourcing/new"}
+        class="btn btn-primary btn-sm"
+      >
         New source
       </.link>
     </div>
@@ -224,7 +234,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     <div class="grid gap-3">
       <.link
         :for={source <- @sources}
-        navigate={~p"/admin/sourcing/#{source.id}"}
+        navigate={~p"/admin/p/#{@current_project.id}/sourcing/#{source.id}"}
         class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow"
       >
         <div class="card-body gap-1">
@@ -248,6 +258,8 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   def render(%{live_action: action} = assigns) when action in [:new, :edit] do
     ~H"""
+    <.project_tabs project={@current_project} current_path={@current_path} />
+
     <.form for={@form} id="source-form" phx-change="validate" phx-submit="save" class="grid gap-4">
       <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-4">
@@ -255,14 +267,6 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             field={@form[:name]}
             label="Name"
             placeholder="ExteriorPro — West Michigan"
-          />
-
-          <.input
-            field={@form[:project_id]}
-            type="select"
-            label="Prospects go into"
-            prompt="Pick a project"
-            options={Enum.map(@projects, &{&1.name, &1.id})}
           />
 
           <.input
@@ -308,7 +312,12 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
       <div class="flex gap-2">
         <button type="submit" class="btn btn-primary">Save</button>
-        <.link navigate={~p"/admin/sourcing"} class="btn btn-ghost">Cancel</.link>
+        <.link
+          navigate={~p"/admin/p/#{@source.project_id}/sourcing"}
+          class="btn btn-ghost"
+        >
+          Cancel
+        </.link>
       </div>
     </.form>
     """
@@ -316,16 +325,12 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   def render(%{live_action: :show} = assigns) do
     ~H"""
+    <.project_tabs project={@current_project} current_path={@current_path} />
+
     <div class="card bg-base-100 shadow-sm mb-4">
       <div class="card-body gap-3">
         <div class="flex flex-wrap items-center gap-2">
           <div class="flex-1 min-w-0">
-            <p class="text-sm">
-              Prospects go into
-              <.link navigate={~p"/admin/p/#{@source.project_id}"} class="link link-primary">
-                {@source.project.name}
-              </.link>
-            </p>
             <p class="text-xs opacity-60">
               {if @source.last_run_at,
                 do: "Last run #{Calendar.strftime(@source.last_run_at, "%b %-d at %-I:%M %p")}",
@@ -333,7 +338,10 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             </p>
           </div>
 
-          <.link navigate={~p"/admin/sourcing/#{@source.id}/edit"} class="btn btn-sm btn-ghost">
+          <.link
+            navigate={~p"/admin/p/#{@source.project_id}/sourcing/#{@source.id}/edit"}
+            class="btn btn-sm btn-ghost"
+          >
             Edit
           </.link>
           <%!-- Reviewing thirty rows one button at a time is how a review

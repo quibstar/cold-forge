@@ -115,13 +115,6 @@ defmodule ColdForgeWeb.Layouts do
               Projects
             </.nav_link>
             <.nav_link
-              navigate={~p"/admin/sourcing"}
-              icon="hero-magnifying-glass"
-              active={nav_active(@current_path, "/admin/sourcing")}
-            >
-              Sourcing
-            </.nav_link>
-            <.nav_link
               navigate={~p"/admin/suppressions"}
               icon="hero-no-symbol"
               active={nav_active(@current_path, "/admin/suppressions")}
