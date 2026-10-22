@@ -91,7 +91,38 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> assign(:orgs, Sourcing.list_orgs(source_id: source.id, view: socket.assigns.status))
     |> assign(:counts, Sourcing.counts_by_view(source))
     |> assign(:addable, Sourcing.addable_counts(source))
+    |> assign(:progress, Sourcing.progress(source))
+    |> schedule_refresh()
   end
+
+  # While a run is going, the page re-reads itself every few seconds so the
+  # progress and the tabs move without a reload. It stops once there's
+  # nothing left to wait for, and never runs twice at once.
+  @refresh_ms 5_000
+
+  defp schedule_refresh(socket) do
+    running? = not socket.assigns.progress.done and socket.assigns.source.last_run_at != nil
+
+    if connected?(socket) and running? and not Map.get(socket.assigns, :refresh_scheduled, false) do
+      Process.send_after(self(), :refresh, @refresh_ms)
+      assign(socket, :refresh_scheduled, true)
+    else
+      socket
+    end
+  end
+
+  @impl true
+  def handle_info(:refresh, %{assigns: %{live_action: :show}} = socket) do
+    source = Sourcing.get_source!(socket.assigns.source.id)
+
+    {:noreply,
+     socket
+     |> assign(:source, source)
+     |> assign(:refresh_scheduled, false)
+     |> load_results()}
+  end
+
+  def handle_info(:refresh, socket), do: {:noreply, assign(socket, :refresh_scheduled, false)}
 
   # The plan is worked out from whatever has been typed, valid or not, so the
   # cost of a typo or of a whole state is on screen before Save.
@@ -236,6 +267,15 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   def handle_event("save", %{"source" => params}, socket) do
     save(socket, socket.assigns.live_action, params)
+  end
+
+  def handle_event("queue_missing", _params, socket) do
+    queued = Sourcing.queue_missing_crawls(socket.assigns.source)
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Queued #{queued} website checks.")
+     |> load_results()}
   end
 
   def handle_event("run", %{"id" => id}, socket) do
@@ -474,9 +514,6 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                 do: "Last run #{Calendar.strftime(@source.last_run_at, "%b %-d at %-I:%M %p")}",
                 else: "Never run"}
             </p>
-            <p :if={@addable.checking > 0} class="text-xs opacity-60">
-              {@addable.checking} websites still being checked for an email address.
-            </p>
           </div>
 
           <.link
@@ -498,6 +535,8 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             Run search
           </button>
         </div>
+
+        <.run_progress progress={@progress} counts={@counts} source={@source} />
 
         <.plan_summary plan={@plan} id="run-plan" />
       </div>
@@ -817,6 +856,71 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   defp center_options(state) do
     state |> Towns.in_state(1_000) |> Enum.map(& &1.label) |> Enum.sort()
+  end
+
+  attr :progress, :map, required: true
+  attr :counts, :map, required: true
+  attr :source, :any, required: true
+
+  # Where a run has got to: the Google searches, then the website checks, then
+  # done. Re-rendered every few seconds while it's going.
+  defp run_progress(%{source: %{last_run_at: nil}} = assigns), do: ~H""
+
+  defp run_progress(assigns) do
+    total = assigns.counts |> Map.values() |> Enum.sum()
+    checked = total - assigns.progress.checking
+
+    assigns =
+      assigns
+      |> assign(:total, total)
+      |> assign(:checked, checked)
+
+    ~H"""
+    <div id="run-progress" class="rounded-box bg-base-200/60 p-3 space-y-2 text-sm">
+      <%= if @progress.done do %>
+        <p class="flex items-center gap-2 font-medium text-success">
+          <.icon name="hero-check-circle" class="size-5" />
+          Done — every search has run and every website has been checked.
+        </p>
+      <% else %>
+        <div :if={@progress.searches_total > 0}>
+          <div class="flex justify-between text-xs mb-1">
+            <span>
+              Searching Google
+              <span :if={@progress.searches_left == 0} class="text-success">· finished</span>
+            </span>
+            <span class="opacity-70">
+              {@progress.searches_done} of {@progress.searches_total}
+            </span>
+          </div>
+          <progress
+            class="progress progress-primary w-full"
+            value={@progress.searches_done}
+            max={@progress.searches_total}
+          />
+        </div>
+
+        <div :if={@total > 0}>
+          <div class="flex justify-between text-xs mb-1">
+            <span>Checking websites for an email address</span>
+            <span class="opacity-70">{@progress.checking} left</span>
+          </div>
+          <progress class="progress progress-primary w-full" value={@checked} max={@total} />
+        </div>
+
+        <p :if={@progress.stalled > 0} class="flex flex-wrap items-center gap-2 text-xs">
+          <span class="text-warning">
+            {@progress.stalled} websites have no check queued, so this won't finish on its own.
+          </span>
+          <button type="button" class="btn btn-xs" phx-click="queue_missing">
+            Queue them
+          </button>
+        </p>
+
+        <p class="text-xs opacity-50">Updates by itself every few seconds.</p>
+      <% end %>
+    </div>
+    """
   end
 
   attr :plan, :map, required: true

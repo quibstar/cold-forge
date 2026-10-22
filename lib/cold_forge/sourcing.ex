@@ -76,19 +76,124 @@ defmodule ColdForge.Sourcing do
     |> Map.new()
   end
 
-  @doc "Stores rows from a discovery source, skipping ones already seen."
+  @doc """
+  Stores rows from a discovery source, skipping ones already seen. Returns the
+  counts and the organisations actually inserted, so the caller queues checks
+  for those and nothing else.
+  """
   @spec record_discovered([map()]) ::
-          {:ok, %{inserted: non_neg_integer(), skipped: non_neg_integer()}}
+          {:ok, %{inserted: non_neg_integer(), skipped: non_neg_integer(), orgs: [Org.t()]}}
   def record_discovered(rows) when is_list(rows) do
-    {inserted, skipped} =
-      Enum.reduce(rows, {0, 0}, fn attrs, {ins, skip} ->
+    {orgs, skipped} =
+      Enum.reduce(rows, {[], 0}, fn attrs, {orgs, skip} ->
         case %Org{} |> Org.discovery_changeset(attrs) |> Repo.insert() do
-          {:ok, _org} -> {ins + 1, skip}
-          {:error, _changeset} -> {ins, skip + 1}
+          {:ok, org} -> {[org | orgs], skip}
+          {:error, _changeset} -> {orgs, skip + 1}
         end
       end)
 
-    {:ok, %{inserted: inserted, skipped: skipped}}
+    {:ok, %{inserted: length(orgs), skipped: skipped, orgs: Enum.reverse(orgs)}}
+  end
+
+  @crawl_worker "ColdForge.Workers.CrawlOrg"
+  @search_worker "ColdForge.Workers.RunSourceQuery"
+  @incomplete ~w(available scheduled executing retryable)
+
+  @doc """
+  Where a source's run has got to: searches still to run, websites still to
+  check, and whether it's finished.
+
+  Searches come from the job queue (pending only — finished jobs are pruned
+  after a week), measured against the total the last run queued. `stalled`
+  counts websites waiting with no check queued for them: nonzero means the run
+  can't finish on its own, and `queue_missing_crawls/1` is the cure.
+  """
+  def progress(%Source{} = source) do
+    searches_left =
+      Oban.Job
+      |> where([j], j.worker == @search_worker and j.state in @incomplete)
+      |> where([j], fragment("?->>'source_id'", j.args) == ^source.id)
+      |> Repo.aggregate(:count)
+
+    checking =
+      Org
+      |> where([o], o.source_id == ^source.id and o.status == "discovered")
+      |> Repo.aggregate(:count)
+
+    queued_ids =
+      from(j in Oban.Job,
+        where: j.worker == @crawl_worker and j.state in @incomplete,
+        select: fragment("?->>'org_id'", j.args)
+      )
+
+    stalled =
+      Org
+      |> where([o], o.source_id == ^source.id and o.status == "discovered")
+      |> where([o], type(o.id, :string) not in subquery(queued_ids))
+      |> Repo.aggregate(:count)
+
+    searches_total = get_in(source.last_run_summary || %{}, ["queries"]) || 0
+
+    %{
+      searches_total: searches_total,
+      searches_done: max(searches_total - searches_left, 0),
+      searches_left: searches_left,
+      checking: checking,
+      stalled: stalled,
+      done: source.last_run_at != nil and searches_left == 0 and checking == 0
+    }
+  end
+
+  @doc """
+  Queues a check for every website of a source still waiting without one.
+  Safe to run any time: a place already queued isn't queued twice.
+  """
+  def queue_missing_crawls(%Source{} = source) do
+    queued_ids =
+      from(j in Oban.Job,
+        where: j.worker == @crawl_worker and j.state in @incomplete,
+        select: fragment("?->>'org_id'", j.args)
+      )
+
+    Org
+    |> where([o], o.source_id == ^source.id and o.status == "discovered")
+    |> where([o], not is_nil(o.website))
+    |> where([o], type(o.id, :string) not in subquery(queued_ids))
+    |> Repo.all()
+    |> enqueue_crawls()
+  end
+
+  @doc """
+  Deletes queued website checks that would do nothing: second and later copies
+  for the same place, and checks for places already settled. Returns how many.
+  Running checks are left alone.
+  """
+  def clear_redundant_crawls do
+    waiting = ~w(available scheduled retryable)
+
+    keep =
+      from(j in Oban.Job,
+        where: j.worker == @crawl_worker and j.state in ^@incomplete,
+        group_by: fragment("?->>'org_id'", j.args),
+        select: min(j.id)
+      )
+
+    settled =
+      from(o in Org,
+        where: o.status != "discovered",
+        select: type(o.id, :string)
+      )
+
+    {deleted, _} =
+      Oban.Job
+      |> where([j], j.worker == @crawl_worker and j.state in ^waiting)
+      |> where(
+        [j],
+        j.id not in subquery(keep) or fragment("?->>'org_id'", j.args) in subquery(settled)
+      )
+      |> Repo.delete_all()
+
+    deleted
   end
 
   def get_org!(id), do: Repo.get!(Org, id)

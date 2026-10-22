@@ -361,8 +361,6 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
       # Found an address is the tab the page opens on, and the button is in it.
       assert html =~ "Add all 2 for email drip"
-      # Its website hasn't been checked yet, so it may still turn up an address.
-      assert html =~ "1 websites still being checked"
 
       live |> element("#add-all-email") |> render_click()
 
@@ -462,6 +460,24 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       assert Repo.aggregate(ColdForge.Outreach.Prospect, :count) == 1
       assert html =~ "1 already there"
       assert Repo.reload(org).status == "promoted"
+    end
+
+    test "shows the run's progress, and says when it's done", %{conn: conn, project: project} do
+      source = source_fixture(project)
+      {:ok, source} = Sourcing.touch_run(source, %{"queries" => 1})
+      waiting = org_fixture(source, %{name: "Still Waiting"})
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      assert has_element?(live, "#run-progress", "Checking websites")
+      # Nothing queued for it, so it can't finish on its own — and it says so.
+      assert has_element?(live, "#run-progress button[phx-click='queue_missing']")
+
+      live |> element("#run-progress button[phx-click='queue_missing']") |> render_click()
+      refute has_element?(live, "#run-progress button[phx-click='queue_missing']")
+
+      {:ok, _} = Sourcing.reject(waiting, :no_address_published)
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      assert has_element?(live, "#run-progress", "Done")
     end
 
     test "running a search queues the work and says so", %{conn: conn, project: project} do
