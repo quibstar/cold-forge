@@ -113,6 +113,29 @@ defmodule ColdForge.Sourcing.CrawlQueueTest do
     assert job.args["org_id"] == waiting.id
   end
 
+  test "clicking Run twice queues one run, not two", %{source: source} do
+    {:ok, _} = Sourcing.run_source(source)
+    {:ok, _} = Sourcing.run_source(source)
+
+    assert length(all_enqueued(worker: ColdForge.Workers.RunSource)) == 1
+    assert Sourcing.progress(source).waiting_to_start
+    refute Sourcing.progress(source).done
+  end
+
+  test "the same search in the same town is queued once", %{source: source} do
+    args = %{source_id: source.id, segment: "roofing", query: "roofer", locality: "Holland, MI"}
+
+    args |> ColdForge.Workers.RunSourceQuery.new() |> Oban.insert!()
+    args |> ColdForge.Workers.RunSourceQuery.new() |> Oban.insert!()
+
+    assert length(all_enqueued(worker: ColdForge.Workers.RunSourceQuery)) == 1
+  end
+
+  test "searches run on their own queue, not behind website checks", %{source: source} do
+    {:ok, _} = Sourcing.run_source(source)
+    assert [%{queue: "search"}] = all_enqueued(worker: ColdForge.Workers.RunSource)
+  end
+
   describe "progress/1" do
     test "isn't done before it has ever run", %{source: source} do
       refute Sourcing.progress(source).done

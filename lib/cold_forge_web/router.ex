@@ -2,6 +2,7 @@ defmodule ColdForgeWeb.Router do
   use ColdForgeWeb, :router
 
   import ColdForgeWeb.UserAuth
+  import Oban.Web.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -94,6 +95,15 @@ defmodule ColdForgeWeb.Router do
 
   ## Admin — the whole application. Cold Forge has exactly one operator, so the
   ## signed-in user *is* the admin; there's no second identity to model.
+
+  # Oban's dashboard: every queue and job, with cancel, retry and delete. Its
+  # own scope and live_session — the macro defines one — behind the same login,
+  # checked again on the socket so a stale tab can't reconnect without it.
+  scope "/admin" do
+    pipe_through [:browser, :require_authenticated_user]
+
+    oban_dashboard("/oban", on_mount: [{ColdForgeWeb.UserAuth, :require_authenticated}])
+  end
 
   scope "/admin", ColdForgeWeb do
     pipe_through [:browser, :require_authenticated_user]

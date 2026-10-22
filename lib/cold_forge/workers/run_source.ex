@@ -10,7 +10,13 @@ defmodule ColdForge.Workers.RunSource do
   runs.
   """
 
-  use Oban.Worker, queue: :crawl, max_attempts: 3
+  # Its own queue, so it never waits behind website checks. Unique per source
+  # while one is waiting or running: clicking Run twice must not run — and pay
+  # for — every search twice.
+  use Oban.Worker,
+    queue: :search,
+    max_attempts: 3,
+    unique: [keys: [:source_id], states: :incomplete, period: :infinity]
 
   alias ColdForge.Sourcing
   alias ColdForge.Sourcing.Source

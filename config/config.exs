@@ -71,7 +71,9 @@ config :elixir, :time_zone_database, Tz.TimeZoneDatabase
 # looks like a burst.
 config :cold_forge, Oban,
   repo: ColdForge.Repo,
-  queues: [scheduler: 1, sending: 3, crawl: 4],
+  # Searches have their own queue so a new run starts straight away instead of
+  # waiting behind a previous run's website checks on :crawl.
+  queues: [scheduler: 1, sending: 3, crawl: 4, search: 2],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     {Oban.Plugins.Cron,

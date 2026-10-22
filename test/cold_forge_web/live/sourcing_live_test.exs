@@ -554,6 +554,17 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       refute has_element?(live, "select[name='source[purpose]']")
     end
 
+    test "while a run is waiting to start, it says so and Run can't be pressed again",
+         %{conn: conn, project: project} do
+      source = source_fixture(project)
+      {:ok, _} = Sourcing.run_source(source)
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      assert has_element?(live, "#run-progress", "Waiting to start")
+      assert has_element?(live, "button[phx-click='run'][disabled]")
+    end
+
     test "running a search queues the work and says so", %{conn: conn, project: project} do
       source = source_fixture(project, %{localities: ["Grand Rapids, MI", "Holland, MI"]})
 
