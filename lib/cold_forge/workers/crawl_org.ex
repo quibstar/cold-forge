@@ -20,6 +20,11 @@ defmodule ColdForge.Workers.CrawlOrg do
 
   use Oban.Worker, queue: :crawl, max_attempts: 3
 
+  # A gap we will sit out in the job rather than requeueing for. Covers the
+  # default per-host pace; anything longer than this is a site asking for real
+  # patience, and that belongs on the queue.
+  @inline_wait_ms 5_000
+
   require Logger
 
   alias ColdForge.Sourcing
@@ -74,8 +79,15 @@ defmodule ColdForge.Workers.CrawlOrg do
             crawl(note_form(org, result), rest)
         end
 
-      # The host was hit too recently. Back on the queue rather than holding a
-      # worker, and the whole job retries from its first URL, which is cheap.
+      # The host was hit too recently. Every candidate page is on the same host,
+      # so a short gap is waited out here: snoozing instead would cost one job
+      # attempt per page and a four-page site would exhaust max_attempts before
+      # reaching its contact page. A long gap — a site asking for a big
+      # Crawl-delay — goes back on the queue rather than parking a worker.
+      {:error, {:wait, ms}} when ms <= @inline_wait_ms ->
+        Process.sleep(ms)
+        crawl(org, [url | rest])
+
       {:error, {:wait, ms}} ->
         {:snooze, max(div(ms, 1000), 1)}
 
