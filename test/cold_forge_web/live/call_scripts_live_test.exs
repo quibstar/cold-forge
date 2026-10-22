@@ -116,12 +116,30 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
       assert has_element?(view, "#log-call-form")
     end
 
-    test "no script means no panel, not an empty one", ctx do
+    test "no script means no tabs, but the voicemail is still there", ctx do
       bare = prospect_fixture(ctx.project, phone: "(616) 555-0199", email: nil)
 
-      {:ok, _view, html} = live(ctx.conn, call_path(ctx.project, bare))
+      {:ok, view, html} = live(ctx.conn, call_path(ctx.project, bare))
 
-      refute html =~ "What to say"
+      # Nothing written for this shop, so no tab to click into and find empty.
+      refute has_element?(view, "button[phx-value-tab='original']")
+      refute has_element?(view, "button[phx-value-tab='direct']")
+      refute has_element?(view, "button[phx-value-tab='nepq']")
+
+      # The numbered voicemail lives in the panel now, and it is the whole
+      # reason to open the page for somebody nobody has written a script for.
+      assert html =~ "Voicemail 1"
+    end
+
+    test "the numbered voicemail sits directly under the one written for the shop", ctx do
+      {:ok, _view, html} = live(ctx.conn, call_path(ctx.project, ctx.scripted))
+
+      # The choice between them is made in the second after nobody picks up,
+      # so they have to be next to each other.
+      written = :binary.match(html, "Hey, it&#39;s just Kris.") |> elem(0)
+      numbered = :binary.match(html, "Voicemail 1") |> elem(0)
+
+      assert written < numbered
     end
   end
 

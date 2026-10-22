@@ -171,10 +171,15 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       ragged lines, which is hard to read aloud. --%>
       <div class="flex flex-col xl:flex-row gap-6 xl:items-start">
         <aside
-          :if={CallScripts.any?(@prospect, @current_project)}
+          :if={CallScripts.any?(@prospect, @current_project) || @next_script}
           class="xl:w-[30rem] xl:shrink-0 xl:order-last"
         >
-          <.call_script prospect={@prospect} project={@current_project} tab={@script_tab} />
+          <.call_script
+            prospect={@prospect}
+            project={@current_project}
+            tab={@script_tab}
+            next_script={@next_script}
+          />
         </aside>
 
         <div class="flex-1 min-w-0 max-w-4xl space-y-6">
@@ -268,27 +273,6 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
               {@prospect.notes}
             </p>
           </section>
-
-          <%!-- The numbered voicemail, which is a different thing from the
-          scripts beside it: those are written for this one shop, this one is
-          the next in a four-message cadence and knows which have been left. --%>
-          <section
-            :if={@next_script && Scripts.render(@next_script, @prospect, @current_project)}
-            class="rounded-2xl border border-base-300 bg-base-100 p-6"
-          >
-            <h3 class="font-semibold">
-              Voicemail {@next_script}
-              <span class="font-normal text-base-content/50">— {script_note(@next_script)}</span>
-            </h3>
-            <p class="mt-2 text-sm leading-relaxed whitespace-pre-line bg-base-200 rounded-lg p-4">
-              {Scripts.render(@next_script, @prospect, @current_project)}
-            </p>
-          </section>
-
-          <p :if={is_nil(@next_script)} class="text-sm text-base-content/50">
-            All four voicemails have been left. There is no fifth message that helps —
-            this is a call to have or a file to close.
-          </p>
 
           <section class="rounded-2xl border border-base-300 bg-base-100 p-6">
             <h3 class="font-semibold">After the call</h3>
@@ -418,6 +402,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
   attr :prospect, :map, required: true
   attr :project, :map, required: true
   attr :tab, :string, required: true
+  attr :next_script, :integer, default: nil
 
   # What to say, in the order it gets said. Verbatim rather than paraphrased:
   # the wording is the point of a script, and somebody reading it cold needs the
@@ -432,6 +417,11 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       assigns
       |> assign(:tabs, CallScripts.available(assigns.prospect, assigns.project))
       |> assign(:parts, CallScripts.parts(assigns.prospect, assigns.project, assigns.tab))
+      |> assign(
+        :numbered,
+        assigns.next_script &&
+          Scripts.render(assigns.next_script, assigns.prospect, assigns.project)
+      )
 
     ~H"""
     <%!-- The card keeps its look, but not its scrollbar: no max-height, no
@@ -459,8 +449,25 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
           <p class="text-sm leading-relaxed whitespace-pre-line">{body}</p>
         </div>
 
-        <p :if={@parts == []} class="px-5 py-4 text-sm text-base-content/50">
+        <p :if={@parts == [] && is_nil(@numbered)} class="px-5 py-4 text-sm text-base-content/50">
           Nothing written for this one yet.
+        </p>
+
+        <%!-- The numbered voicemail, directly under the one written for this
+        shop, because the choice between them is made in the second after
+        nobody picks up. They are different things: the one above names the
+        business, this one is the next in a four-message cadence and knows
+        which have already been left. --%>
+        <div :if={@numbered} class="px-5 py-4 space-y-1.5">
+          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/40">
+            Voicemail {@next_script} — {script_note(@next_script)}
+          </p>
+          <p class="text-sm leading-relaxed whitespace-pre-line">{@numbered}</p>
+        </div>
+
+        <p :if={is_nil(@numbered)} class="px-5 py-4 text-xs text-base-content/50">
+          All four voicemails have been left. There is no fifth message that helps —
+          this is a call to have or a file to close.
         </p>
       </div>
     </section>
