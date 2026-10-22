@@ -18,7 +18,13 @@ defmodule ColdForge.Workers.CrawlOrg do
   stop costing us attempts.
   """
 
-  use Oban.Worker, queue: :crawl, max_attempts: 3
+  # One check per place at a time. Without this every finished search re-queued
+  # the same places, and a Michigan run built a queue of 105,875 checks for
+  # about 1,600 websites.
+  use Oban.Worker,
+    queue: :crawl,
+    max_attempts: 3,
+    unique: [keys: [:org_id], states: :incomplete, period: :infinity]
 
   # A gap we will sit out in the job rather than requeueing for. Covers the
   # default per-host pace; anything longer than this is a site asking for real

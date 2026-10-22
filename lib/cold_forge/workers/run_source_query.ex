@@ -33,8 +33,12 @@ defmodule ColdForge.Workers.RunSourceQuery do
     with {:ok, rows} <- discover(source.provider, segment, phrase, locality),
          rows = Enum.map(rows, &Map.put(&1, :source_id, source.id)),
          {:ok, counts} <- Sourcing.record_discovered(rows) do
+      # Only what this search just found. Re-queuing "the oldest 200 not yet
+      # checked" after every search queued the same places hundreds of times
+      # and never reached the newer ones at all.
       queued =
-        Sourcing.crawlable(source_id: source.id, segment: segment, limit: 200)
+        counts.orgs
+        |> Enum.filter(&(&1.status == "discovered"))
         |> Sourcing.enqueue_crawls()
 
       Logger.info(
