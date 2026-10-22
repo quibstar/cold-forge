@@ -289,9 +289,14 @@ defmodule ColdForge.Sending.Renderer do
   @doc """
   Everything a message will look like, without writing anything to the database.
 
-  Used by the preview pane and the test send. Link tokens are fake — creating
-  real ones would mean a `tracked_links` row per keystroke, and a click count
-  polluted by your own previews.
+  Used by the preview pane and the test send.
+
+  Links keep their real destination rather than becoming tracked `/c/` links.
+  A real tracked link would mean a `tracked_links` row per keystroke and a click
+  count polluted by your own previews; a fake one (`/c/preview0`, as this used
+  to produce) resolves to nothing, so the one link you most want to check — the
+  call to action — was dead in both the preview and the test email. Showing the
+  destination is the useful version anyway: it answers "where does this go?"
   """
   def preview_message(subject, body, %Prospect{} = prospect, %Project{} = project, opts \\ []) do
     base_url = opts[:base_url] || ColdForgeWeb.Endpoint.url()
@@ -306,7 +311,6 @@ defmodule ColdForge.Sending.Renderer do
       body
       |> apply_tags(values)
       |> preview_survey(question, base_url)
-      |> fake_tracked_links(base_url)
       |> append_footer(prospect, project, base_url)
 
     %{
@@ -336,20 +340,6 @@ defmodule ColdForge.Sending.Renderer do
       end
 
     String.replace(body, "{{survey}}", block)
-  end
-
-  # Mirrors rewrite_links/3 exactly, minus the inserts — so what you see in the
-  # preview is the shape of what goes out.
-  defp fake_tracked_links(body, base_url) do
-    body
-    |> extract_urls()
-    |> Enum.reject(&internal?(&1, base_url))
-    |> Enum.uniq()
-    |> Enum.sort_by(&String.length/1, :desc)
-    |> Enum.with_index()
-    |> Enum.reduce(body, fn {url, index}, acc ->
-      String.replace(acc, url, "#{base_url}/c/preview#{index}")
-    end)
   end
 
   defp preview_pixel(base_url), do: "#{base_url}/o/preview.png"

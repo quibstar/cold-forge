@@ -141,9 +141,10 @@ defmodule ColdForgeWeb.AdminLiveTest do
       # Merge tags resolved, not shown raw.
       assert html =~ "Quick question about Northside Siding"
       assert html =~ "Hi Dana,"
-      # And the parts the old preview didn't show: the tokenised link and the
-      # compliance footer that get added on send.
-      assert html =~ "/c/preview0"
+      # The link shows where it actually goes, and the compliance footer that
+      # gets added on send is there too.
+      assert html =~ "https://exteriorpro.io/demo"
+      refute html =~ "/c/preview"
       assert html =~ "Unsubscribe"
     end
   end
@@ -157,10 +158,11 @@ defmodule ColdForgeWeb.AdminLiveTest do
 
       html = view |> element("button[phx-click='preview_email']") |> render_click()
 
-      # Merge tags resolved, link tokenised, footer attached — the whole point
-      # of previewing rather than re-reading the body.
+      # Merge tags resolved, the link pointing at its real destination, footer
+      # attached — the whole point of previewing rather than re-reading the body.
       assert html =~ "Quick question about Northside Siding"
-      assert html =~ "/c/preview0"
+      assert html =~ "https://exteriorpro.io/demo"
+      refute html =~ "/c/preview"
       assert html =~ "Unsubscribe"
 
       html = view |> element("button[phx-click='close_preview']") |> render_click()
