@@ -1,6 +1,7 @@
 defmodule ColdForgeWeb.AdminLive.Prospects do
   @moduledoc """
-  The prospect list for one project, with search and a status filter.
+  The prospect list for one project, with search, a status filter and a
+  trade filter.
 
   Status is shown prominently because it's what decides whether someone will be
   mailed again — a list that hides "unsubscribed" invites you to re-add them.
@@ -19,7 +20,8 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
      socket
      |> assign(:project_id, project_id)
      |> assign(:search, "")
-     |> assign(:status, "all")}
+     |> assign(:status, "all")
+     |> assign(:trade, "")}
   end
 
   @impl true
@@ -69,19 +71,21 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
     prospects =
       Outreach.list_prospects(socket.assigns.project_id,
         search: socket.assigns.search,
-        status: socket.assigns.status
+        status: socket.assigns.status,
+        trade: socket.assigns.trade
       )
 
     socket
     |> assign(:prospects, prospects)
+    |> assign(:trades, Outreach.list_trades(socket.assigns.project_id))
     |> assign(:counts, Outreach.count_prospects_by_status(socket.assigns.project_id))
   end
 
   @impl true
-  def handle_event("filter", %{"search" => search, "status" => status}, socket) do
+  def handle_event("filter", %{"search" => search, "status" => status} = params, socket) do
     {:noreply,
      socket
-     |> assign(search: search, status: status)
+     |> assign(search: search, status: status, trade: Map.get(params, "trade", ""))
      |> load_prospects()}
   end
 
@@ -163,13 +167,17 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
     <.project_tabs project={@current_project} current_path={@current_path} />
 
     <div class="flex flex-col sm:flex-row gap-3 sm:items-end justify-between mb-4">
-      <form id="prospect-filters" phx-change="filter" class="flex gap-2 flex-1 max-w-lg">
+      <form
+        id="prospect-filters"
+        phx-change="filter"
+        class="flex flex-wrap gap-2 flex-1 max-w-3xl items-center"
+      >
         <input
           type="search"
           name="search"
           value={@search}
           placeholder="Search name, email or company…"
-          class="input input-sm flex-1"
+          class="input input-sm flex-1 min-w-48"
           phx-debounce="300"
         />
         <select name="status" class="select select-sm">
@@ -178,6 +186,16 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
             {String.capitalize(s)} ({Map.get(@counts, s, 0)})
           </option>
         </select>
+        <div :if={length(@trades) > 1} class="basis-full">
+          <.input
+            type="choice"
+            id="prospect-trade"
+            name="trade"
+            value={@trade}
+            prompt="All trades"
+            options={Enum.map(@trades, &{"#{&1.label} (#{&1.count})", &1.key})}
+          />
+        </div>
       </form>
 
       <div class="flex gap-2">

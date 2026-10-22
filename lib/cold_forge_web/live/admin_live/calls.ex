@@ -20,6 +20,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
 
   alias ColdForge.Calling
   alias ColdForge.Calling.Call
+  alias ColdForge.Outreach
   alias ColdForge.Outreach.Prospect
 
   @impl true
@@ -29,15 +30,23 @@ defmodule ColdForgeWeb.AdminLive.Calls do
      |> assign(:project_id, project_id)
      |> assign(:page_title, socket.assigns.current_project.name)
      |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
+     |> assign(:trade, "")
      |> load()}
+  end
+
+  @impl true
+  def handle_event("trade", params, socket) do
+    {:noreply, socket |> assign(:trade, Map.get(params, "trade", "")) |> load()}
   end
 
   defp load(socket) do
     project_id = socket.assigns.project_id
+    trade = socket.assigns.trade
 
     socket
-    |> assign(:queue, Calling.queue(project_id))
-    |> assign(:scheduled, Calling.scheduled(project_id, limit: 10))
+    |> assign(:trades, Outreach.list_trades(project_id))
+    |> assign(:queue, Calling.queue(project_id, trade: trade))
+    |> assign(:scheduled, Calling.scheduled(project_id, limit: 10, trade: trade))
     |> assign(:recent, Calling.recent_calls(project_id, 10))
     |> assign(:stats, Calling.stats(project_id))
   end
@@ -57,6 +66,17 @@ defmodule ColdForgeWeb.AdminLive.Calls do
         </.link>
       </span>
     </div>
+
+    <form :if={length(@trades) > 1} id="call-trade-filter" phx-change="trade" class="mb-2 max-w-md">
+      <.input
+        type="choice"
+        id="call-trade"
+        name="trade"
+        value={@trade}
+        prompt="All trades"
+        options={Enum.map(@trades, &{"#{&1.label} (#{&1.count})", &1.key})}
+      />
+    </form>
 
     <div class="grid gap-3 sm:grid-cols-4 mb-4">
       <.stat label="Calls made" value={@stats.calls} />

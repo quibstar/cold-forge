@@ -72,6 +72,7 @@ defmodule ColdForge.Calling do
     |> where([p], p.status in ["new", "active", "completed"])
     |> where([p], not is_nil(p.phone) and p.phone != "")
     |> where([p], is_nil(p.next_call_at) or p.next_call_at <= ^now)
+    |> Outreach.filter_by_trade(project_id, opts[:trade])
     |> order_by([p],
       asc_nulls_first: p.next_call_at,
       asc: fragment(@fit_rank, p.custom_fields),
@@ -88,6 +89,7 @@ defmodule ColdForge.Calling do
     Prospect
     |> where([p], p.project_id == ^project_id)
     |> where([p], not p.do_not_call and not is_nil(p.next_call_at) and p.next_call_at > ^now)
+    |> Outreach.filter_by_trade(project_id, opts[:trade])
     |> order_by([p], asc: p.next_call_at)
     |> limit(^(opts[:limit] || 50))
     |> Repo.all()
