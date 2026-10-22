@@ -61,7 +61,8 @@ project =
           # Affordable Startup's mailing address, shared by every project's
           # drips. CAN-SPAM requires a real postal address in commercial mail;
           # this is a mailbox rather than a home address on purpose.
-          "postal_address" => "Affordable Startup LLC, 4370 Chicago Dr. SW #547, Grandville, MI 49418",
+          "postal_address" =>
+            "Affordable Startup LLC, 4370 Chicago Dr. SW #547, Grandville, MI 49418",
           "merge_defaults_text" => "industry: exterior contractors\nproduct: ExteriorPro",
           "timezone" => "America/New_York"
         })

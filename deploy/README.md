@@ -70,10 +70,58 @@ first — failures count against Let's Encrypt rate limits.
 Pull, build, migrate one-off on the new image (the old container keeps serving
 through the build), swap, health-check on loopback 4010.
 
-There is no GitHub Action yet, because this repo has no remote. If you add one,
-copy ExteriorPro's `.github/workflows/deploy.yml` pattern: CI-gated, SSHing in
-with a dedicated key whose forced command can run only this one script — so a
-leak of the secret cannot open a shell.
+Or let `.github/workflows/deploy.yml` do it: CI green on `main` and the box
+gets told to run exactly the line above. Run it by hand when you are on the
+server anyway, or when CI is red and a hotfix can't wait — that is what the
+workflow's `workflow_dispatch` override is for too.
+
+## Wiring up the GitHub deploy
+
+Four steps, and the workflow does nothing until all four are done. **The third
+is the one that matters**: without the forced command, the secret is a root
+shell on the box that also serves exteriorpro.io, rather than permission to run
+one script.
+
+On the server:
+
+```bash
+# 1. A deploy key of its own. No passphrase — a workflow cannot type one.
+ssh-keygen -t ed25519 -f /root/.ssh/cold_forge_deploy -N "" -C "github-deploy-cold-forge"
+
+# 2. The one thing that key is allowed to do.
+cat > /root/deploy-cold-forge.sh <<'EOF'
+#!/usr/bin/env bash
+exec /apps/cold-forge/deploy/remote-deploy.sh
+EOF
+chmod +x /root/deploy-cold-forge.sh
+
+# 3. Bind the key to that script. `command=` runs it whatever the client asks
+#    for; the no-* options drop the ways an SSH session can become something
+#    other than this script.
+printf 'command="/root/deploy-cold-forge.sh",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty %s\n' \
+  "$(cat /root/.ssh/cold_forge_deploy.pub)" >> /root/.ssh/authorized_keys
+```
+
+Then, locally:
+
+```bash
+# 4. The private half becomes the repo secret the workflow reads.
+gh secret set DEPLOY_SSH_KEY --repo quibstar/cold-forge < /root/.ssh/cold_forge_deploy
+```
+
+Check it before trusting it. From a machine holding the private key:
+
+```bash
+ssh -i cold_forge_deploy root@5.78.120.185 "echo this should not print"
+```
+
+It should run the deploy and ignore the command entirely. If `this should not
+print` appears, the forced command is not in place and the key is a shell —
+fix step 3 before putting the secret anywhere.
+
+The host key pinned in the workflow is the box's own, the same one
+exteriorpro.io's deploy pins. If it ever changes, both workflows need the new
+one.
 
 ## After it's up
 

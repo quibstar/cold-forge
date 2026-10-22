@@ -1,0 +1,49 @@
+name: Deploy
+
+# CI green on main → the box pulls, builds, migrates on the new image, swaps,
+# and health-checks. The same pattern exteriorpro.io uses, on the same Hetzner
+# box; `deploy/remote-deploy.sh` in this repo is the sequence that actually
+# runs there, and `deploy/README.md` is the runbook behind it.
+#
+# The SSH key (secret DEPLOY_SSH_KEY) must be a dedicated deploy key whose
+# forced command on the server can ONLY run /root/deploy-cold-forge.sh — a leak
+# of this secret then cannot open a shell, forward ports, or run anything else.
+# See "Wiring up the GitHub deploy" in deploy/README.md for the two lines that
+# set that up; without them this workflow hands a shell to anyone who reads the
+# secret.
+#
+# Gated on CI rather than on the push: the suite has to be green before the box
+# is told to pull. `workflow_dispatch` stays as the deliberate override — a red
+# or stuck suite must not be able to hold a hotfix hostage, but skipping the
+# gate should be someone's decision rather than the default.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # A manual run has no `workflow_run` payload, so it carries no conclusion to
+    # check — that's the override, and it's why the second clause is here.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Deploy over SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # The box's host key, pinned — not secret, just not spoofable. Same
+          # machine exteriorpro.io deploys to.
+          echo "5.78.120.185 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHLOLxBLj+ts96lcQNjxDO6slVcxnFhLpsOyMCs2gzv1" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes root@5.78.120.185
