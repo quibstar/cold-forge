@@ -10,6 +10,7 @@ defmodule ColdForge.Outreach do
   alias ColdForge.Sending.Window
 
   alias ColdForge.Outreach.{
+    CallScript,
     Enrollment,
     Message,
     Project,
@@ -45,6 +46,79 @@ defmodule ColdForge.Outreach do
 
   def change_project(%Project{} = project, attrs \\ %{}),
     do: Project.changeset(project, attrs)
+
+  ## Call scripts and voicemails
+
+  @doc """
+  One project's scripts, or its voicemails, in the order they are read.
+
+  Position orders them because for a voicemail it is also its number in the
+  cadence — `ColdForge.Calling.next_script/1` asks for the next one by it.
+  """
+  def list_call_scripts(project_id, kind) when kind in ["script", "voicemail"] do
+    CallScript
+    |> where([s], s.project_id == ^project_id and s.kind == ^kind)
+    |> order_by([s], asc: s.position, asc: s.inserted_at)
+    |> Repo.all()
+  end
+
+  def get_call_script!(id), do: Repo.get!(CallScript, id)
+
+  @doc """
+  Adds one, at the end of its list unless a position is given.
+
+  Numbering it for you matters more than it looks: a voicemail with no number
+  has no place in the cadence, and the first thing anybody adding one wants is
+  for it to come after the ones already there.
+  """
+  def create_call_script(attrs) do
+    attrs = string_keys(attrs)
+
+    # An empty "Order" box means "after the ones already there", which is what
+    # anybody adding one wants and what a blank number input actually sends.
+    attrs =
+      case attrs["position"] do
+        blank when blank in [nil, ""] -> Map.put(attrs, "position", next_position(attrs))
+        _given -> attrs
+      end
+
+    %CallScript{} |> CallScript.changeset(attrs) |> Repo.insert()
+  end
+
+  def update_call_script(%CallScript{} = script, attrs) do
+    # Clearing the box on an edit means "leave it where it is" — there is no
+    # sensible reading of a script with no position, and the column is NOT NULL.
+    attrs =
+      attrs |> string_keys() |> Map.reject(fn {k, v} -> k == "position" and v in [nil, ""] end)
+
+    script |> CallScript.changeset(attrs) |> Repo.update()
+  end
+
+  def delete_call_script(%CallScript{} = script), do: Repo.delete(script)
+
+  def change_call_script(%CallScript{} = script, attrs \\ %{}),
+    do: CallScript.changeset(script, attrs)
+
+  defp next_position(attrs) do
+    attrs = string_keys(attrs)
+
+    case {attrs["project_id"], attrs["kind"]} do
+      {project_id, kind} when is_binary(project_id) and is_binary(kind) ->
+        CallScript
+        |> where([s], s.project_id == ^project_id and s.kind == ^kind)
+        |> select([s], max(s.position))
+        |> Repo.one()
+        |> case do
+          nil -> 1
+          highest -> highest + 1
+        end
+
+      _ ->
+        1
+    end
+  end
+
+  defp string_keys(attrs), do: Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
 
   ## Prospects
 

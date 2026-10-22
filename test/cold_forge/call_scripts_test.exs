@@ -1,247 +1,280 @@
 defmodule ColdForge.CallScriptsTest do
   @moduledoc """
-  The per-business call scripts, and the save that must not lose them.
+  Scripts and voicemails as rows: adding, ordering, throwing out, and reading
+  one with a prospect's details in it.
 
-  The round-trip tests are the point of this file. The scripts are prose
-  somebody hand-wrote and iterated on for months, they live in the same map as
-  the short one-per-line extras, and a `name: value` line cannot hold a page of
-  text — so the first thing to prove is that editing one half never drops the
-  other.
+  The wording group at the end is unusual — those assertions are about sales
+  copy rather than code. They are here because the constraints came out of the
+  pain-point research and are the kind that erode a line at a time: somebody
+  tightens a sentence, and a script that asked a question starts making a claim
+  nobody can stand behind.
   """
   use ColdForge.DataCase, async: true
 
   import ColdForge.OutreachFixtures
 
+  alias ColdForge.Calling.Scripts
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.{CallScripts, Prospect}
-
-  @opener """
-  "Is the owner in? … Hey, this is just Kris."
-     ↳ STOP. Let them answer.
-
-  Note: this line has a colon in it, which a one-per-line editor would read as
-  a field name.
-  """
+  alias ColdForge.Outreach.{CallScript, CallScripts}
 
   setup do
-    project = project_fixture()
+    project = project_fixture(phone: "(616) 555-0142")
 
     prospect =
       prospect_fixture(project,
-        custom_fields: %{
-          "opener" => @opener,
-          "voicemail" => "Hey, it's just Kris.",
-          "city" => "Grand Rapids",
-          "fit" => "High"
-        }
+        company: "Moore & Sons Roofing",
+        industry: "roofing",
+        custom_fields: %{"city" => "Grand Rapids"}
       )
 
     %{project: project, prospect: prospect}
   end
 
-  describe "splitting the map" do
-    test "scripts and extras come apart", ctx do
-      assert CallScripts.scripts(ctx.prospect.custom_fields) == %{
-               "opener" => @opener,
-               "voicemail" => "Hey, it's just Kris."
-             }
+  defp script(project, attrs) do
+    {:ok, script} =
+      attrs
+      |> Enum.into(%{project_id: project.id, kind: "script", name: "Script 1", body: "Hi."})
+      |> Outreach.create_call_script()
 
-      assert CallScripts.extras(ctx.prospect.custom_fields) == %{
-               "city" => "Grand Rapids",
-               "fit" => "High"
-             }
+    script
+  end
+
+  describe "adding one" do
+    test "lands at the end of its own list", ctx do
+      first = script(ctx.project, name: "Script 1")
+      second = script(ctx.project, name: "Script 2")
+      voicemail = script(ctx.project, kind: "voicemail", name: "First attempt")
+
+      assert first.position == 1
+      assert second.position == 2
+      # Its own list: a voicemail doesn't start at three because two scripts
+      # already exist.
+      assert voicemail.position == 1
     end
 
-    test "a nil map is not a crash", ctx do
-      assert CallScripts.scripts(nil) == %{}
-      assert CallScripts.extras(nil) == %{}
-      assert CallScripts.available(%Prospect{custom_fields: nil}, ctx.project) == []
+    test "a position can be given instead", ctx do
+      assert script(ctx.project, position: 7).position == 7
+    end
+
+    test "two can't share a number", ctx do
+      script(ctx.project, position: 1)
+
+      assert {:error, changeset} =
+               Outreach.create_call_script(%{
+                 project_id: ctx.project.id,
+                 kind: "script",
+                 name: "Clash",
+                 body: "Hi.",
+                 position: 1
+               })
+
+      assert "is already taken by another one — two can't share a number" in errors_on(changeset).position
+    end
+
+    test "name and body are required, blank is not a script", ctx do
+      assert {:error, changeset} =
+               Outreach.create_call_script(%{project_id: ctx.project.id, kind: "script"})
+
+      assert %{name: _, body: _} = errors_on(changeset)
+    end
+
+    test "only the two kinds", ctx do
+      assert {:error, changeset} =
+               Outreach.create_call_script(%{
+                 project_id: ctx.project.id,
+                 kind: "postcard",
+                 name: "No",
+                 body: "No."
+               })
+
+      assert errors_on(changeset).kind != []
     end
   end
 
-  describe "tabs" do
-    test "only the ones there is a script for", ctx do
-      assert CallScripts.available(ctx.prospect, ctx.project) == [{"original", "Script 1"}]
-      assert CallScripts.default_tab(ctx.prospect, ctx.project) == "original"
-      assert CallScripts.any?(ctx.prospect, ctx.project)
+  describe "the lists" do
+    test "come back in position order, each kind on its own", ctx do
+      script(ctx.project, name: "Second", position: 2)
+      script(ctx.project, name: "First", position: 1)
+      script(ctx.project, kind: "voicemail", name: "Breakup", position: 4)
+
+      assert Enum.map(Outreach.list_call_scripts(ctx.project.id, "script"), & &1.name) ==
+               ["First", "Second"]
+
+      assert Enum.map(Outreach.list_call_scripts(ctx.project.id, "voicemail"), & &1.name) ==
+               ["Breakup"]
     end
 
-    test "opens on whichever script there is, not on a blank tab", ctx do
-      nepq_only = prospect_fixture(ctx.project, custom_fields: %{"script_nepq" => "Five stages."})
+    test "one project's scripts are not another's", ctx do
+      script(ctx.project, name: "Mine")
+      other = project_fixture()
 
-      assert CallScripts.available(nepq_only, ctx.project) == [{"nepq", "NEPQ Awareness"}]
-      assert CallScripts.default_tab(nepq_only, ctx.project) == "nepq"
+      assert Outreach.list_call_scripts(other.id, "script") == []
     end
 
-    test "no scripts at all is not a tab", ctx do
-      bare = prospect_fixture(ctx.project)
+    test "deleting takes it out of the list", ctx do
+      one = script(ctx.project, name: "Going")
+      {:ok, _} = Outreach.delete_call_script(one)
 
-      refute CallScripts.any?(bare, ctx.project)
-      assert CallScripts.available(bare, ctx.project) == []
-    end
-
-    test "parts come back in reading order, blanks dropped", ctx do
-      assert CallScripts.parts(ctx.prospect, ctx.project, "original") == [{"Opener", @opener}]
-      assert CallScripts.parts(ctx.prospect, ctx.project, "direct") == []
-    end
-
-    test "the voicemail is shown under every tab, not just its own", ctx do
-      # Which script you opened with says nothing about whether anybody picks
-      # up, so it cannot belong to one tab.
-      assert CallScripts.always(ctx.prospect, ctx.project) ==
-               [{"Voicemail", "Hey, it's just Kris."}]
-
-      refute {"Voicemail", "Hey, it's just Kris."} in CallScripts.parts(
-               ctx.prospect,
-               ctx.project,
-               "original"
-             )
-    end
-
-    test "no voicemail written is nothing shown, not an empty heading", %{project: project} do
-      bare = prospect_fixture(project, custom_fields: %{"opener" => "Just an opener."})
-
-      assert CallScripts.always(bare, project) == []
+      assert Outreach.list_call_scripts(ctx.project.id, "script") == []
     end
   end
 
-  describe "the project's templates" do
-    setup ctx do
-      {:ok, project} =
-        Outreach.update_project(ctx.project, %{
-          "call_scripts" => %{
-            "script_direct" => "Hi — is this {{company}}? Thirty seconds.",
-            "script_nepq" => "A {{industry|exterior}} shop in {{city|West Michigan}}.",
-            "opener" => "The template opener, which {{company}} should not see."
-          }
-        })
+  describe "reading one for a prospect" do
+    test "the prospect's details are read into the template", ctx do
+      one = script(ctx.project, body: "Hi — is this {{company}}? Thirty seconds.")
 
-      Map.put(ctx, :project, project)
-    end
-
-    test "a template is read with this prospect's details in it", ctx do
-      assert CallScripts.body(ctx.prospect, ctx.project, "script_direct") ==
-               "Hi — is this Rivera Roofing? Thirty seconds."
+      assert CallScripts.render(one, ctx.prospect, ctx.project) ==
+               "Hi — is this Moore & Sons Roofing? Thirty seconds."
     end
 
     test "a tag with no value falls back rather than leaving a gap", ctx do
-      # No industry, and `city` is a custom field this prospect does have.
-      assert CallScripts.body(ctx.prospect, ctx.project, "script_nepq") ==
-               "A exterior shop in Grand Rapids."
+      thin = prospect_fixture(ctx.project, company: nil, industry: nil, phone: "(616) 555-0100")
+      one = script(ctx.project, body: "[{{industry|exterior}} · {{city|West Michigan}}]")
+
+      assert CallScripts.render(one, thin, ctx.project) == "[exterior · West Michigan]"
     end
 
-    test "the prospect's own wording wins over the template", ctx do
-      assert CallScripts.body(ctx.prospect, ctx.project, "opener") == @opener
-      assert CallScripts.overridden(ctx.prospect, ctx.project) == ["opener"]
+    test "a multi-line script with colons in it survives", ctx do
+      body = "THE GOAL\n\nYOU: Is the owner in?\n   ↳ STOP. Let them answer."
+      one = script(ctx.project, body: body)
+
+      assert CallScripts.render(one, ctx.prospect, ctx.project) == body
     end
 
-    test "a template gives every prospect the tab, with no copies stored", ctx do
-      bare = prospect_fixture(ctx.project, company: "Ace Roofing")
+    test "every prospect reads the same row, with no copy of its own", ctx do
+      script(ctx.project, body: "Hi — is this {{company}}?")
+      other = prospect_fixture(ctx.project, company: "Ace Roofing")
 
-      assert CallScripts.available(bare, ctx.project) == [
-               {"original", "Script 1"},
-               {"direct", "Script 2"},
-               {"nepq", "NEPQ Awareness"}
-             ]
+      [{_script, mine}] = CallScripts.for_prospect(ctx.prospect, ctx.project)
+      [{_script, theirs}] = CallScripts.for_prospect(other, ctx.project)
 
-      assert CallScripts.body(bare, ctx.project, "script_direct") ==
-               "Hi — is this Ace Roofing? Thirty seconds."
-
-      # Nothing of the script is on the prospect — that was the point.
-      assert CallScripts.scripts(bare.custom_fields) == %{}
+      assert mine == "Hi — is this Moore & Sons Roofing?"
+      assert theirs == "Hi — is this Ace Roofing?"
+      assert other.custom_fields == %{}
     end
 
-    test "blank and unknown keys never become a template", ctx do
-      {:ok, project} =
-        Outreach.update_project(ctx.project, %{
-          "call_scripts" => %{"opener" => "  ", "nonsense" => "x", "voicemail" => " Hi. "}
-        })
+    test "the page opens on the first", ctx do
+      first = script(ctx.project, name: "Script 1", position: 1)
+      script(ctx.project, name: "Script 2", position: 2)
 
-      assert project.call_scripts == %{"voicemail" => "Hi."}
-    end
-  end
-
-  describe "saving the form" do
-    test "editing the extras leaves the scripts alone", ctx do
-      # What the prospect form sends when somebody changes a short field: the
-      # one-per-line textarea, which never showed the scripts.
-      {:ok, updated} =
-        Outreach.update_prospect(ctx.prospect, %{
-          "custom_fields_text" => "city: Kalamazoo\nfit: High"
-        })
-
-      assert updated.custom_fields["city"] == "Kalamazoo"
-      assert updated.custom_fields["opener"] == @opener
-      assert updated.custom_fields["voicemail"] == "Hey, it's just Kris."
+      assert ctx.prospect
+             |> CallScripts.for_prospect(ctx.project)
+             |> CallScripts.default_tab() == first.id
     end
 
-    test "editing a script leaves the extras alone", ctx do
-      {:ok, updated} =
-        Outreach.update_prospect(ctx.prospect, %{
-          "custom_fields_text" => "city: Grand Rapids\nfit: High",
-          "call_scripts" => %{"opener" => "A shorter opener.", "script_direct" => "Straight in."}
-        })
-
-      assert updated.custom_fields["opener"] == "A shorter opener."
-      assert updated.custom_fields["script_direct"] == "Straight in."
-      assert updated.custom_fields["city"] == "Grand Rapids"
-      # Submitted blank, so it goes — blanking a textarea means delete.
-      refute Map.has_key?(updated.custom_fields, "voicemail")
-    end
-
-    test "a multi-line script survives a save, colons and all", ctx do
-      {:ok, once} =
-        Outreach.update_prospect(ctx.prospect, %{"call_scripts" => %{"opener" => @opener}})
-
-      # Twice, because the failure this guards against only shows on the second
-      # pass: the first save renders the map into the editor, the second reads
-      # it back.
-      {:ok, twice} =
-        Outreach.update_prospect(once, %{
-          "call_scripts" => %{"opener" => once.custom_fields["opener"]}
-        })
-
-      # Trimmed on the way in — a textarea's trailing newline is not content —
-      # and byte-identical from then on, which is the property that matters.
-      assert twice.custom_fields["opener"] == String.trim(@opener)
-      assert twice.custom_fields["opener"] == once.custom_fields["opener"]
-
-      # The colon-bearing line stayed inside the script instead of becoming a
-      # field of its own, which is what the one-per-line editor would do to it.
-      assert twice.custom_fields |> Map.keys() |> Enum.sort() == ["city", "fit", "opener"]
-    end
-
-    test "whitespace-only is not a script", ctx do
-      {:ok, updated} =
-        Outreach.update_prospect(ctx.prospect, %{"call_scripts" => %{"opener" => "   \n  "}})
-
-      refute Map.has_key?(updated.custom_fields, "opener")
-    end
-
-    test "a key that isn't a script can't be smuggled in through the script form", ctx do
-      {:ok, updated} =
-        Outreach.update_prospect(ctx.prospect, %{
-          "custom_fields_text" => "city: Grand Rapids",
-          "call_scripts" => %{"opener" => "Hi.", "secret" => "nope"}
-        })
-
-      refute Map.has_key?(updated.custom_fields, "secret")
-    end
-
-    test "attrs with atom keys pass straight through, as the importers send them", ctx do
-      {:ok, updated} =
-        Outreach.update_prospect(ctx.prospect, %{custom_fields: %{"roof_type" => "Asphalt"}})
-
-      assert updated.custom_fields == %{"roof_type" => "Asphalt"}
+    test "a project with nothing written has no tabs", ctx do
+      assert CallScripts.for_prospect(ctx.prospect, ctx.project) == []
+      assert CallScripts.default_tab([]) == nil
+      refute CallScripts.any?(ctx.project)
     end
   end
 
-  describe "merge tags" do
-    test "a script is reachable from an email, which it wasn't in ExteriorPro", ctx do
-      values = Map.new(Prospect.merge_values(ctx.prospect))
+  describe "the voicemail cadence" do
+    setup ctx do
+      for default <- Scripts.defaults() do
+        default
+        |> Map.merge(%{project_id: ctx.project.id, kind: "voicemail"})
+        |> Outreach.create_call_script()
+      end
 
-      assert values["opener"] == @opener
-      assert values["fit"] == "High"
+      ctx
+    end
+
+    test "renders the one at a position", ctx do
+      assert Scripts.render(2, ctx.prospect, ctx.project) =~
+               "what does the software you're on now"
+    end
+
+    test "a position nobody wrote is nothing", ctx do
+      assert Scripts.render(9, ctx.prospect, ctx.project) == nil
+    end
+
+    test "no callback number means no voicemail at all", ctx do
+      {:ok, numberless} = Outreach.update_project(ctx.project, %{"phone" => ""})
+
+      # A voicemail that says "ring me back on —" is a wasted call, and a
+      # placeholder would be worse than an obvious gap.
+      assert Scripts.render(1, ctx.prospect, numberless) == nil
+    end
+
+    test "the name is what the screen calls it", ctx do
+      assert Scripts.note(4, ctx.project) =~ "breakup"
+    end
+  end
+
+  describe "tags without a fallback" do
+    test "are reported, because they render as a hole mid-sentence", ctx do
+      one =
+        script(ctx.project, body: "A {{industry}} shop in {{city|West Michigan}}, {{company}}.")
+
+      assert CallScript.tags_without_fallback(one) == ["industry", "company"]
+    end
+
+    test "a script that gives every tag one has nothing to report", ctx do
+      one = script(ctx.project, body: "A {{industry|exterior}} shop in {{city|West Michigan}}.")
+
+      assert CallScript.tags_without_fallback(one) == []
+    end
+  end
+
+  describe "voicemail 2, which the pain-point research wrote" do
+    setup do
+      %{text: Enum.find(Scripts.defaults(), &(&1.position == 2)).body}
+    end
+
+    test "asks a question rather than asserting what everyone does", ctx do
+      assert ctx.text =~ "?"
+
+      # 70 pain points is a sample, not a population.
+      for claim <- ["every contractor", "most shops", "everyone i talk to", "a lot of shops"] do
+        refute String.contains?(String.downcase(ctx.text), claim)
+      end
+    end
+
+    test "claims no customer it cannot name", ctx do
+      # The wording it replaced said "I've helped a few West Michigan exterior
+      # guys", and there is no nameable reference customer yet.
+      for claim <- ["i've helped", "i have helped", "my customers", "clients of mine"] do
+        refute String.contains?(String.downcase(ctx.text), claim)
+      end
+    end
+
+    test "promises nothing about the reliability it asks about", ctx do
+      # All ten reliability points are marked unknown for ExteriorPro: there is
+      # no uptime record to point at, so it may ask and not answer.
+      for claim <- ["never crashes", "always works", "rock solid", "more reliable", "offline"] do
+        refute String.contains?(String.downcase(ctx.text), claim)
+      end
+    end
+
+    test "quotes no price, because there is no price sheet", ctx do
+      refute Regex.match?(~r/\$\d/, ctx.text)
+      refute String.contains?(String.downcase(ctx.text), "flat rate")
+    end
+  end
+
+  describe "the four built-in voicemails" do
+    test "each has a name and a body, and they are numbered 1 to 4" do
+      assert Enum.map(Scripts.defaults(), & &1.position) == [1, 2, 3, 4]
+
+      for default <- Scripts.defaults() do
+        assert default.name =~ ~r/\w/
+        assert default.body =~ ~r/\w/
+      end
+    end
+
+    test "each says the callback number twice — once to catch, once to write down" do
+      for default <- Scripts.defaults() do
+        count = default.body |> String.split("{{callback}}") |> length()
+        assert count == 3, "voicemail #{default.position} says the number #{count - 1} time(s)"
+      end
+    end
+
+    test "each is under twenty seconds read aloud" do
+      for default <- Scripts.defaults() do
+        words = default.body |> String.split(~r/\s+/, trim: true) |> length()
+        assert words <= 70, "voicemail #{default.position} runs to #{words} words"
+      end
     end
   end
 end

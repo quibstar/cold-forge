@@ -33,7 +33,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
   import ColdForgeWeb.ProjectTabs
 
   alias ColdForge.{Calling, Outreach}
-  alias ColdForge.Calling.{Call, Scripts}
+  alias ColdForge.Calling.Call
   alias ColdForge.Outreach.{CallScripts, Prospect}
 
   @impl true
@@ -50,7 +50,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
        {"Calls", ~p"/admin/p/#{project_id}/calls"}
      ])
      |> assign(:prospect, prospect)
-     |> assign(:script_tab, CallScripts.default_tab(prospect, socket.assigns.current_project))
+     |> assign(:script_tab, nil)
      |> assign(editing_id: nil, edit_form: nil)
      |> load()
      |> assign_call_form()}
@@ -58,8 +58,13 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
 
   defp load(socket) do
     prospect = socket.assigns.prospect
+    project = socket.assigns.current_project
+    scripts = CallScripts.for_prospect(prospect, project)
 
     socket
+    |> assign(:scripts, scripts)
+    |> assign(:script_tab, socket.assigns[:script_tab] || CallScripts.default_tab(scripts))
+    |> assign(:voicemails, CallScripts.voicemails_for_prospect(prospect, project))
     |> assign(:history, Calling.list_calls(prospect.id))
     |> assign(:next_script, Calling.next_script(prospect.id))
   end
@@ -171,14 +176,15 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       ragged lines, which is hard to read aloud. --%>
       <div class="flex flex-col xl:flex-row gap-6 xl:items-start">
         <aside
-          :if={CallScripts.any?(@prospect, @current_project) || @next_script}
+          :if={@scripts != [] || @next_script}
           class="xl:w-[30rem] xl:shrink-0 xl:order-last"
         >
           <.call_script
-            prospect={@prospect}
-            project={@current_project}
+            scripts={@scripts}
+            voicemails={@voicemails}
             tab={@script_tab}
             next_script={@next_script}
+            project_id={@project_id}
           />
         </aside>
 
@@ -399,10 +405,11 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
     """
   end
 
-  attr :prospect, :map, required: true
-  attr :project, :map, required: true
-  attr :tab, :string, required: true
+  attr :scripts, :list, required: true
+  attr :voicemails, :list, required: true
+  attr :tab, :any, default: nil
   attr :next_script, :integer, default: nil
+  attr :project_id, :string, required: true
 
   # What to say, in the order it gets said. Verbatim rather than paraphrased:
   # the wording is the point of a script, and somebody reading it cold needs the
@@ -414,14 +421,10 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
   # click once, find nothing in, and never trust again.
   defp call_script(assigns) do
     assigns =
-      assigns
-      |> assign(:tabs, CallScripts.available(assigns.prospect, assigns.project))
-      |> assign(:parts, CallScripts.parts(assigns.prospect, assigns.project, assigns.tab))
-      |> assign(:always, CallScripts.always(assigns.prospect, assigns.project))
-      |> assign(
-        :numbered,
-        assigns.next_script &&
-          Scripts.render(assigns.next_script, assigns.prospect, assigns.project)
+      assign(
+        assigns,
+        :showing,
+        Enum.find(assigns.scripts, fn {script, _body} -> script.id == assigns.tab end)
       )
 
     ~H"""
@@ -434,52 +437,49 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       <div class="px-5 py-3 bg-primary/5 border-b border-primary/15 flex flex-wrap items-center gap-2">
         <h2 class="font-semibold mr-1">What to say</h2>
         <button
-          :for={{key, label} <- @tabs}
+          :for={{script, _body} <- @scripts}
           type="button"
           phx-click="script_tab"
-          phx-value-tab={key}
-          class={["btn btn-xs", @tab == key && "btn-primary", @tab != key && "btn-ghost"]}
+          phx-value-tab={script.id}
+          class={["btn btn-xs", @tab == script.id && "btn-primary", @tab != script.id && "btn-ghost"]}
         >
-          {label}
+          {script.name}
         </button>
+
+        <.link
+          navigate={~p"/admin/p/#{@project_id}/scripts"}
+          class="btn btn-xs btn-ghost ml-auto"
+          title="Edit the scripts"
+        >
+          <.icon name="hero-pencil-square" class="size-3.5" />
+        </.link>
       </div>
 
       <div class="divide-y divide-base-300">
-        <div :for={{label, body} <- @parts} class="px-5 py-4 space-y-1.5">
-          <p class="text-xs font-semibold uppercase tracking-wide text-primary">{label}</p>
-          <p class="text-sm leading-relaxed whitespace-pre-line">{body}</p>
+        <div :if={@showing} class="px-5 py-4">
+          <p class="text-sm leading-relaxed whitespace-pre-line">{elem(@showing, 1)}</p>
         </div>
 
         <p
-          :if={@parts == [] && @always == [] && is_nil(@numbered)}
+          :if={is_nil(@showing) && @voicemails == []}
           class="px-5 py-4 text-sm text-base-content/50"
         >
-          Nothing written for this one yet.
+          Nothing written yet. <.link navigate={~p"/admin/p/#{@project_id}/scripts"} class="link">Write one</.link>.
         </p>
 
-        <%!-- Under every tab, not just the one it is grouped with: which
-        script you opened with says nothing about whether anybody picks up. --%>
-        <div :for={{label, body} <- @always} class="px-5 py-4 space-y-1.5">
-          <p class="text-xs font-semibold uppercase tracking-wide text-primary">{label}</p>
+        <%!-- Under every tab rather than belonging to one: which script you
+        opened with says nothing about whether anybody picks up. The one due
+        next is marked, because that is the choice being made in the second
+        after it rings out. --%>
+        <div :for={{script, body} <- @voicemails} class="px-5 py-4 space-y-1.5">
+          <p class="text-xs font-semibold uppercase tracking-wide text-primary">
+            {script.name}
+            <span :if={script.position == @next_script} class="badge badge-xs badge-primary ml-1">
+              due next
+            </span>
+          </p>
           <p class="text-sm leading-relaxed whitespace-pre-line">{body}</p>
         </div>
-
-        <%!-- The numbered voicemail, directly under the one written for this
-        shop, because the choice between them is made in the second after
-        nobody picks up. They are different things: the one above names the
-        business, this one is the next in a four-message cadence and knows
-        which have already been left. --%>
-        <div :if={@numbered} class="px-5 py-4 space-y-1.5">
-          <p class="text-xs font-semibold uppercase tracking-wide text-primary">
-            Voicemail {@next_script} — {Scripts.note(@next_script)}
-          </p>
-          <p class="text-sm leading-relaxed whitespace-pre-line">{@numbered}</p>
-        </div>
-
-        <p :if={is_nil(@numbered)} class="px-5 py-4 text-xs text-base-content/50">
-          All four voicemails have been left. There is no fifth message that helps —
-          this is a call to have or a file to close.
-        </p>
       </div>
     </section>
     """

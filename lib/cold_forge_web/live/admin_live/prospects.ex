@@ -11,7 +11,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
   alias ColdForge.MergeFields
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.{CallScripts, Prospect}
+  alias ColdForge.Outreach.Prospect
 
   @impl true
   def mount(%{"project_id" => project_id}, _session, socket) do
@@ -320,44 +320,6 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
               </p>
             </div>
 
-            <%!-- The scripts live on the project and are read with this
-            prospect's details in them. These boxes are the exception: wording
-            for one shop that the template can't carry. Folded away unless
-            there is one, because six empty boxes on the way to adding a
-            prospect is not a form anybody wants — and open when there is one,
-            because an override you can't see is one you don't know is there. --%>
-            <details class="rounded-lg border border-base-300 p-3" open={script?(@form)}>
-              <summary class="text-sm font-medium cursor-pointer">
-                Call scripts for this shop only
-                <span class="text-base-content/50 font-normal">
-                  — overrides the project's
-                </span>
-              </summary>
-
-              <div class="mt-3 space-y-3">
-                <p class="text-xs text-base-content/50">
-                  Leave these empty and the call screen reads the project's script with
-                  this prospect's details merged in, which is almost always what you want.
-                  <.link navigate={~p"/admin/projects/#{@project_id}/edit"} class="link">
-                    Edit the project's scripts
-                  </.link>
-                </p>
-                <div :for={{key, label} <- script_fields()}>
-                  <label for={"prospect-script-#{key}"} class="text-sm font-medium">{label}</label>
-                  <textarea
-                    id={"prospect-script-#{key}"}
-                    name={"prospect[call_scripts][#{key}]"}
-                    rows="4"
-                    class="textarea w-full mt-1 text-sm"
-                  >{script_value(@form, key)}</textarea>
-                </div>
-
-                <p class="text-xs text-base-content/50">
-                  Merge tags work here too — <code>{"{{company}}"}</code>, <code>{"{{city}}"}</code>, <code>{"{{industry|exterior}}"}</code>.
-                </p>
-              </div>
-            </details>
-
             <div class="flex justify-end gap-2 pt-2">
               <.link navigate={~p"/admin/p/#{@project_id}/prospects"} class="btn btn-ghost">
                 Cancel
@@ -426,18 +388,12 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
   defp custom_fields_text(form) do
     case form[:custom_fields_text].value do
       text when is_binary(text) -> text
-      _ -> form |> saved_custom_fields() |> CallScripts.extras() |> MergeFields.to_text()
+      _ -> form |> saved_custom_fields() |> MergeFields.to_text()
     end
   end
 
-  defp script_fields, do: for(key <- CallScripts.keys(), do: {key, CallScripts.label(key)})
-
   # Read off the changeset rather than the prospect, so a half-typed script
   # survives the validate round trip the same way the extras textarea does.
-  defp script_value(form, key), do: form |> saved_custom_fields() |> Map.get(key, "")
-
-  defp script?(form), do: form |> saved_custom_fields() |> CallScripts.scripts() != %{}
-
   defp saved_custom_fields(form) do
     case form[:custom_fields].value do
       fields when is_map(fields) -> fields

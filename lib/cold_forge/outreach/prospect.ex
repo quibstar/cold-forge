@@ -47,7 +47,7 @@ defmodule ColdForge.Outreach.Prospect do
   @doc false
   def changeset(prospect, attrs) do
     prospect
-    |> cast(prepare_custom_fields(prospect, attrs), [
+    |> cast(ColdForge.MergeFields.parse(attrs, "custom_fields"), [
       :project_id,
       :email,
       :first_name,
@@ -76,17 +76,6 @@ defmodule ColdForge.Outreach.Prospect do
     )
     |> check_constraint(:email, name: :email_or_phone, message: "or phone is required")
     |> foreign_key_constraint(:project_id)
-  end
-
-  # Two editors write this one map: the one-per-line textarea for short extras,
-  # and a textarea each for the per-business call scripts, which are prose and
-  # cannot survive a `name: value` line. `CallScripts` is what they agree on —
-  # without it, saving the form you were shown would silently drop the fields
-  # it didn't show you.
-  defp prepare_custom_fields(prospect, attrs) do
-    attrs
-    |> ColdForge.MergeFields.parse("custom_fields")
-    |> then(&ColdForge.Outreach.CallScripts.put_custom_fields(prospect, &1))
   end
 
   @doc """

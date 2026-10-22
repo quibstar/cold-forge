@@ -79,13 +79,15 @@ defmodule ColdForge.Outreach.ExteriorproImport do
   a phone number, which a quarter of this list hasn't got. A second run fills
   in what the Cold Forge row is *missing* and nothing else, because by then
   the Cold Forge row is the working copy: a note typed after a call, a status
-  moved on, a callback booked. The exception is the six scripts under
-  `replace_scripts?`, which are generated from a call sheet rather than typed,
-  and are meant to be replaced when the script improves — the same bargain
-  ExteriorPro's own refresh task struck.
+  moved on, a callback booked.
+
+  The six script columns that used to ride along here are a project's now,
+  written once rather than copied onto every row — see
+  `ColdForge.Outreach.CallScript`. This brings the prospects; the words are
+  edited on their own screen.
   """
 
-  alias ColdForge.Outreach.{CallScripts, Prospect}
+  alias ColdForge.Outreach.Prospect
 
   # The columns read out of ExteriorPro, which is also the select list.
   @columns ~w(id company contact_name contact_role phone email website city
@@ -154,7 +156,6 @@ defmodule ColdForge.Outreach.ExteriorproImport do
       "source_list" => presence(row["source"]),
       "exteriorpro_status" => original_status(row["status"])
     }
-    |> Map.merge(Map.new(CallScripts.keys(), &{&1, presence(row[&1])}))
     |> drop_blanks()
   end
 
@@ -167,7 +168,7 @@ defmodule ColdForge.Outreach.ExteriorproImport do
   gives, for the same reason: a list that turns out to be half-garbage should
   be found out before it is in the database, not after.
   """
-  def classify(row, project_id, existing, replace_scripts? \\ false) do
+  def classify(row, project_id, existing) do
     attrs = to_attrs(row, project_id)
 
     cond do
@@ -181,7 +182,7 @@ defmodule ColdForge.Outreach.ExteriorproImport do
         {:new, attrs}
 
       true ->
-        case changes(existing, attrs, replace_scripts?) do
+        case changes(existing, attrs) do
           changes when map_size(changes) == 0 -> :unchanged
           changes -> {:changed, changes, change_labels(changes)}
         end
@@ -193,10 +194,9 @@ defmodule ColdForge.Outreach.ExteriorproImport do
 
   Blanks only. A value already on the Cold Forge row is the working copy — a
   note somebody typed after a call, a number somebody corrected — and a
-  re-import that overwrote it would be destroying the newer of the two. The
-  six scripts are the exception under `replace_scripts?`: generated, not typed.
+  re-import that overwrote it would be destroying the newer of the two.
   """
-  def changes(%Prospect{} = existing, attrs, replace_scripts? \\ false) do
+  def changes(%Prospect{} = existing, attrs) do
     scalars =
       for {field, value} <- Map.take(attrs, scalar_fields()),
           not blank?(value),
@@ -204,7 +204,7 @@ defmodule ColdForge.Outreach.ExteriorproImport do
           into: %{},
           do: {field, value}
 
-    case custom_field_changes(existing, attrs, replace_scripts?) do
+    case custom_field_changes(existing, attrs) do
       fields when map_size(fields) == 0 -> scalars
       fields -> Map.put(scalars, :custom_fields, Map.merge(existing.custom_fields || %{}, fields))
     end
@@ -217,18 +217,14 @@ defmodule ColdForge.Outreach.ExteriorproImport do
   defp scalar_fields,
     do: [:company, :first_name, :last_name, :title, :phone, :email, :website, :industry, :notes]
 
-  defp custom_field_changes(%Prospect{} = existing, attrs, replace_scripts?) do
+  defp custom_field_changes(%Prospect{} = existing, attrs) do
     current = existing.custom_fields || %{}
 
     for {key, value} <- attrs.custom_fields,
         not blank?(value),
-        fill?(key, Map.get(current, key), value, replace_scripts?),
+        blank?(Map.get(current, key)),
         into: %{},
         do: {key, value}
-  end
-
-  defp fill?(key, current, value, replace_scripts?) do
-    blank?(current) or (replace_scripts? and CallScripts.script_key?(key) and current != value)
   end
 
   defp change_labels(changes) do
