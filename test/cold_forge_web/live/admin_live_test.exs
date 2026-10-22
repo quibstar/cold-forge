@@ -386,6 +386,48 @@ defmodule ColdForgeWeb.AdminLiveTest do
     assert html =~ "Do not contact"
   end
 
+  describe "trade filter" do
+    setup %{project: project} do
+      roofer =
+        prospect_fixture(project,
+          company: "Peak Roofers",
+          industry: "roofers",
+          phone: "6165550111"
+        )
+
+      glass =
+        prospect_fixture(project,
+          company: "Clear Glass",
+          industry: "window and glass",
+          phone: "6165550112"
+        )
+
+      %{roofer: roofer, glass: glass}
+    end
+
+    test "narrows the prospect list", %{conn: conn, project: project} do
+      {:ok, live, _} = live(conn, ~p"/admin/p/#{project.id}/prospects")
+      assert has_element?(live, "#prospect-trade")
+
+      live
+      |> form("#prospect-filters", %{search: "", status: "all", trade: "roofing"})
+      |> render_change()
+
+      assert render(live) =~ "Peak Roofers"
+      refute render(live) =~ "Clear Glass"
+    end
+
+    test "narrows the call queue", %{conn: conn, project: project} = ctx do
+      {:ok, live, _} = live(conn, ~p"/admin/p/#{project.id}/calls")
+      assert has_element?(live, "#queue-#{ctx.roofer.id}")
+
+      live |> form("#call-trade-filter", %{trade: "window and glass"}) |> render_change()
+
+      assert has_element?(live, "#queue-#{ctx.glass.id}")
+      refute has_element?(live, "#queue-#{ctx.roofer.id}")
+    end
+  end
+
   describe "prospects" do
     test "unsubscribing from the list suppresses globally", ctx do
       {:ok, view, _html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/prospects")

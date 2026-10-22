@@ -123,14 +123,15 @@ defmodule ColdForge.Outreach do
   ## Prospects
 
   @doc """
-  Prospects for a project, newest first, with optional `:search` and `:status`
-  filters from the index page.
+  Prospects for a project, newest first, with optional `:search`, `:status`
+  and `:trade` filters from the index page.
   """
   def list_prospects(project_id, opts \\ []) do
     Prospect
     |> where([p], p.project_id == ^project_id)
     |> filter_by_status(opts[:status])
     |> filter_by_search(opts[:search])
+    |> filter_by_trade(project_id, opts[:trade])
     |> order_by([p], desc: p.inserted_at)
     |> Repo.all()
   end
@@ -150,6 +151,50 @@ defmodule ColdForge.Outreach do
         ilike(p.last_name, ^like) or ilike(p.company, ^like)
     )
   end
+
+  @doc """
+  The trades a project's prospects are in, biggest first, as
+  `%{key: "roofing", label: "Roofing", count: 36}`.
+
+  A prospect's trade is its `industry`, which arrives however the list that
+  carried it spelled it — "roofers" from one import, "roofing" from sourcing.
+  Grouping by the same canonical key sourcing uses makes those one trade
+  without rewriting the column, which `{{industry}}` reads in emails.
+  """
+  def list_trades(project_id) do
+    project_id
+    |> industry_counts()
+    |> Enum.group_by(fn {industry, _} -> trade_key(industry) end, fn {_, n} -> n end)
+    |> Enum.map(fn {key, counts} ->
+      %{key: key, label: trade_label(key), count: Enum.sum(counts)}
+    end)
+    |> Enum.sort_by(&{-&1.count, &1.label})
+  end
+
+  @doc """
+  Narrows a prospect query to one trade from `list_trades/1`; `nil`, `""` or
+  `"all"` leaves it alone.
+  """
+  def filter_by_trade(query, _project_id, trade) when trade in [nil, "", "all"], do: query
+
+  def filter_by_trade(query, project_id, trade) do
+    industries =
+      for {industry, _} <- industry_counts(project_id), trade_key(industry) == trade, do: industry
+
+    where(query, [p], p.industry in ^industries)
+  end
+
+  defp industry_counts(project_id) do
+    Prospect
+    |> where([p], p.project_id == ^project_id and not is_nil(p.industry) and p.industry != "")
+    |> group_by([p], p.industry)
+    |> select([p], {p.industry, count(p.id)})
+    |> Repo.all()
+  end
+
+  defp trade_key(industry), do: ColdForge.Sourcing.Discovery.Places.canonical(industry)
+
+  defp trade_label(key), do: key |> String.replace("_", " ") |> String.capitalize()
 
   def get_prospect!(id), do: Repo.get!(Prospect, id)
 
