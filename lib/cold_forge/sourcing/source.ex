@@ -16,6 +16,14 @@ defmodule ColdForge.Sourcing.Source do
   import Ecto.Changeset
 
   alias ColdForge.Sourcing.Discovery.{Overpass, Places}
+  alias ColdForge.Sourcing.Towns
+
+  # Google's published list price for a Text Search that asks for a website or
+  # phone number (the Enterprise SKU), per 1,000 requests. Only used to put a
+  # rough figure in front of a run before it starts, so a typo or a whole
+  # state is visible as money rather than discovered on the bill. Check the
+  # Cloud console for the rate actually being charged.
+  @usd_per_1000_requests 35
 
   @providers ~w(places overpass)
 
@@ -54,12 +62,14 @@ defmodule ColdForge.Sourcing.Source do
   Separate from `locality_hint/1`: repeating the hint inside the box it is
   already printed under says the same thing twice and shows nothing.
   """
-  def locality_example("places"), do: "Grand Rapids, MI\nHolland, MI\nMuskegon, MI"
+  def locality_example("places"), do: "Michigan\nToledo, OH\nSouth Bend, IN"
   def locality_example("overpass"), do: "US-MI\nUS-OH"
   def locality_example(_provider), do: ""
 
   @doc "What a locality looks like for this provider, for the form's hint."
-  def locality_hint("places"), do: ~s(One per line, like "Grand Rapids, MI")
+  def locality_hint("places"),
+    do: ~s(One per line: a town like "Grand Rapids, MI", or a whole state like "Michigan")
+
   def locality_hint("overpass"), do: ~s(One per line, as state codes like "US-MI")
   def locality_hint(_provider), do: "One per line"
 
@@ -89,6 +99,7 @@ defmodule ColdForge.Sourcing.Source do
     # input next to it — an error on `localities` renders nowhere.
     |> validate_not_empty(:localities, :localities_text, "add at least one place to search")
     |> validate_segments_known()
+    |> validate_states_known()
     |> unique_constraint(:name, message: "there is already a source with that name")
     |> foreign_key_constraint(:project_id)
   end
@@ -115,16 +126,27 @@ defmodule ColdForge.Sourcing.Source do
   # "Roofing, Gutters, Humane Society" is what somebody types; "roofing",
   # "gutters", "humane_society" is what the providers are keyed on. Normalising
   # here lets the field be written the natural way.
+  #
+  # For Google Places anything goes: Places searches free text, so a trade it
+  # has no tuned phrases for is searched exactly as typed, and everyday wording
+  # for a built-in one ("Windows & Doors") lands on the built-in. OpenStreetMap
+  # can only search the tags it has, so it still takes its fixed list.
   defp parse_segments(changeset) do
     case get_change(changeset, :segments_text) do
       nil ->
         changeset
 
       text ->
+        normalize =
+          case get_field(changeset, :provider) do
+            "overpass" -> &normalize_segment/1
+            _places -> &Places.canonical/1
+          end
+
         segments =
           text
           |> String.split(",")
-          |> Enum.map(&normalize_segment/1)
+          |> Enum.map(normalize)
           |> Enum.reject(&(&1 == ""))
           |> Enum.uniq()
 
@@ -152,8 +174,15 @@ defmodule ColdForge.Sourcing.Source do
     end
   end
 
+  # Only OpenStreetMap has a fixed vocabulary; Places takes anything.
   defp validate_segments_known(changeset) do
-    provider = get_field(changeset, :provider)
+    case get_field(changeset, :provider) do
+      "overpass" -> validate_segments_in(changeset, "overpass")
+      _places -> changeset
+    end
+  end
+
+  defp validate_segments_in(changeset, provider) do
     known = segments_for(provider)
 
     case Enum.reject(get_field(changeset, :segments) || [], &(&1 in known)) do
@@ -170,6 +199,25 @@ defmodule ColdForge.Sourcing.Source do
     end
   end
 
+  # A two-letter code that isn't a state is almost certainly a typo for one,
+  # and searching "roofing contractor in MX" is a billed search for nothing.
+  defp validate_states_known(changeset) do
+    case get_field(changeset, :provider) do
+      "overpass" ->
+        changeset
+
+      _places ->
+        bad =
+          (get_field(changeset, :localities) || [])
+          |> Enum.filter(&(String.match?(&1, ~r/^[A-Za-z]{2}$/) and is_nil(Towns.state_code(&1))))
+
+        case bad do
+          [] -> changeset
+          _ -> add_error(changeset, :localities_text, "#{Enum.join(bad, ", ")} isn't a state")
+        end
+    end
+  end
+
   @doc "The textarea's starting value, for an existing source."
   def localities_text(%__MODULE__{localities: localities}) when is_list(localities),
     do: Enum.join(localities, "\n")
@@ -177,12 +225,75 @@ defmodule ColdForge.Sourcing.Source do
   def localities_text(_source), do: ""
 
   @doc """
-  Every search this source will run: one per segment and locality.
+  Every search this source will run, as `{segment, phrase, locality}`.
 
   Places caps a text search at 60 results, so coverage comes from many narrow
-  queries rather than one broad one — which is exactly what this product is.
+  queries rather than one broad one: one per phrase per town. A state in
+  "Where" becomes its towns here, at run time, so a search saved as "Michigan"
+  stays one readable line and still covers the state.
+
+  OpenStreetMap queries a whole region at once and has no phrases, so its
+  entries carry `nil` for the phrase and the locality as written.
   """
-  def queries(%__MODULE__{segments: segments, localities: localities}) do
-    for segment <- segments, locality <- localities, do: {segment, locality}
+  def queries(%__MODULE__{provider: "overpass", segments: segments, localities: localities}) do
+    for segment <- segments, locality <- localities, do: {segment, nil, locality}
   end
+
+  def queries(%__MODULE__{segments: segments, localities: localities}) do
+    towns = places_towns(localities)
+
+    for segment <- segments,
+        phrase <- Places.queries_for(segment),
+        town <- towns,
+        do: {segment, phrase, town}
+  end
+
+  defp places_towns(localities) do
+    localities |> Enum.flat_map(&Towns.expand/1) |> Enum.uniq()
+  end
+
+  @doc """
+  What running this source will do, before it does it: the phrases per trade,
+  how many towns a state became, and the request count and rough cost.
+
+  Each search is at least one request and at most three — Places pages 20 at a
+  time up to 60 — so both ends are given. Small towns mostly stop at one page.
+  """
+  def plan(%__MODULE__{provider: "overpass"} = source) do
+    searches = length(queries(source))
+
+    %{
+      trades: Enum.map(source.segments, &{&1, []}),
+      states: [],
+      towns: length(source.localities),
+      searches: searches,
+      min_requests: searches,
+      max_requests: searches,
+      min_cost: 0,
+      max_cost: 0
+    }
+  end
+
+  def plan(%__MODULE__{} = source) do
+    searches = length(queries(source))
+
+    states =
+      for locality <- source.localities,
+          code = Towns.state_code(locality),
+          code != nil,
+          do: {Towns.state_name(code), length(Towns.towns(code))}
+
+    %{
+      trades: Enum.map(source.segments, &{&1, Places.queries_for(&1)}),
+      states: states,
+      towns: length(places_towns(source.localities)),
+      searches: searches,
+      min_requests: searches,
+      max_requests: searches * 3,
+      min_cost: cost(searches),
+      max_cost: cost(searches * 3)
+    }
+  end
+
+  defp cost(requests), do: Float.round(requests * @usd_per_1000_requests / 1000, 2)
 end

@@ -1,6 +1,7 @@
 defmodule ColdForge.Workers.RunSource do
   @moduledoc """
-  Starts a saved search: one job per segment and locality.
+  Starts a saved search: one job per phrase and town (a state having already
+  become its towns in `Source.queries/1`).
 
   Fans out rather than looping, because a source covering four trades across
   twelve towns is forty-eight provider calls. As one job that is a long,
@@ -22,8 +23,13 @@ defmodule ColdForge.Workers.RunSource do
 
     queued =
       queries
-      |> Enum.map(fn {segment, locality} ->
-        RunSourceQuery.new(%{source_id: source.id, segment: segment, locality: locality})
+      |> Enum.map(fn {segment, phrase, locality} ->
+        RunSourceQuery.new(%{
+          source_id: source.id,
+          segment: segment,
+          query: phrase,
+          locality: locality
+        })
       end)
       |> Enum.count(&match?({:ok, _}, Oban.insert(&1)))
 
