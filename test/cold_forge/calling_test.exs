@@ -123,24 +123,6 @@ defmodule ColdForge.CallingTest do
     end
   end
 
-  describe "voicemail scripts" do
-    test "advance one at a time and stop after the breakup", ctx do
-      prospect = callable(ctx.project)
-      assert Calling.next_script(prospect.id) == 1
-
-      for expected <- 1..4 do
-        assert Calling.next_script(prospect.id) == expected
-        prospect = Repo.reload(prospect)
-
-        {:ok, _} =
-          Calling.log_call(prospect, %{"outcome" => "voicemail", "voicemail_script" => expected})
-      end
-
-      # There is no fifth message that helps.
-      assert Calling.next_script(prospect.id) == nil
-    end
-  end
-
   describe "what an outcome does beyond the phone" do
     setup ctx do
       campaign = campaign_fixture(ctx.project)

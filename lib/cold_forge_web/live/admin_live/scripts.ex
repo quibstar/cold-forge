@@ -1,15 +1,7 @@
 defmodule ColdForgeWeb.AdminLive.Scripts do
   @moduledoc """
-  The project's scripts and voicemails: add, edit, reorder, throw out.
-
-  Two lists on one screen because they are the same thing twice — a template
-  with merge tags, read with one prospect's details in it. A script is a tab on
-  the call page; a voicemail is one step of the cadence, and its number is what
-  a call records when it is left.
-
-  They were fixed keys in two maps for a while: three scripts, four voicemails,
-  no way to add a fifth. That was never a decision about how many anybody
-  should have, just the shape the data arrived in from ExteriorPro.
+  The project's scripts: add, edit, reorder, throw out. Each is a tab on the
+  call page, in this order — voicemails included, as a script of their own.
 
   The placeholder list is on this screen rather than in a help page because the
   question is never "does `{{city}}` exist" — it is "what does it say when I
@@ -42,7 +34,6 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
 
     socket
     |> assign(:scripts, Outreach.list_call_scripts(project.id, "script"))
-    |> assign(:voicemails, Outreach.list_call_scripts(project.id, "voicemail"))
     |> assign(:sample, sample)
     |> assign(:blanks, blanks(sample, project))
   end
@@ -55,8 +46,8 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
   end
 
   @impl true
-  def handle_event("new", %{"kind" => kind}, socket) do
-    script = %CallScript{kind: kind, project_id: socket.assigns.project_id}
+  def handle_event("new", _params, socket) do
+    script = %CallScript{project_id: socket.assigns.project_id}
 
     {:noreply,
      socket
@@ -118,12 +109,11 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
      |> load()}
   end
 
-  # Swapping the two positions rather than renumbering the list: for a
-  # voicemail the position is its number in the cadence, and every call row
-  # that recorded one refers to it.
+  # Swapping the two positions rather than renumbering the list, so a move
+  # touches the two rows it's about and nothing else.
   def handle_event("move", %{"id" => id, "by" => by}, socket) do
     script = Outreach.get_call_script!(id)
-    list = Outreach.list_call_scripts(script.project_id, script.kind)
+    list = Outreach.list_call_scripts(script.project_id)
     index = Enum.find_index(list, &(&1.id == script.id))
 
     case Enum.at(list, index + String.to_integer(by)) do
@@ -136,22 +126,18 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
     end
   end
 
-  def handle_event("seed_voicemails", _params, socket) do
-    project_id = socket.assigns.project_id
-
-    for attrs <- Scripts.defaults() do
-      attrs
-      |> Map.merge(%{project_id: project_id, kind: "voicemail"})
+  def handle_event("add_voicemails", _params, socket) do
+    {:ok, _} =
+      Scripts.voicemails()
+      |> Map.put(:project_id, socket.assigns.project_id)
       |> Outreach.create_call_script()
-    end
 
-    {:noreply, socket |> put_flash(:info, "Four voicemails added.") |> load()}
+    {:noreply, socket |> put_flash(:info, "Voicemails added.") |> load()}
   end
 
   # Two at once would collide on the unique index, so the first parks in a free
   # slot above everything before the second takes its number. Parking above
-  # rather than below zero because a position has to stay positive — it is the
-  # number a voicemail is known by, and `calls.voicemail_script` records it.
+  # rather than below zero because a position has to stay positive.
   defp swap(a, b, list) do
     parking = (list |> Enum.map(& &1.position) |> Enum.max()) + 1
 
@@ -177,23 +163,14 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
           editing={@editing}
           form={@form}
           blanks={@blanks}
-        />
-
-        <.script_list
-          kind="voicemail"
-          title="Voicemails"
-          blurb="The cadence, in order. Each one differs — reading the same message four times is how a callback rate goes to zero."
-          scripts={@voicemails}
-          editing={@editing}
-          form={@form}
-          blanks={@blanks}
         >
           <button
-            :if={@voicemails == []}
-            phx-click="seed_voicemails"
-            class="btn btn-sm btn-ghost"
+            :if={not Enum.any?(@scripts, &(&1.name == Scripts.voicemails_name()))}
+            id="add-voicemails"
+            phx-click="add_voicemails"
+            class="btn btn-sm btn-ghost self-start"
           >
-            Start from the four built-in ones
+            <.icon name="hero-plus" class="size-4" /> Add the four starter voicemails
           </button>
         </.script_list>
       </div>
@@ -249,14 +226,14 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
             </h2>
             <p class="text-xs text-base-content/50">{@blurb}</p>
           </div>
-          <button phx-click="new" phx-value-kind={@kind} class="btn btn-sm btn-primary shrink-0">
+          <button phx-click="new" class="btn btn-sm btn-primary shrink-0">
             Add
           </button>
         </div>
 
         {render_slot(@inner_block)}
 
-        <p :if={@scripts == [] && @inner_block == []} class="text-sm text-base-content/50">
+        <p :if={@scripts == []} class="text-sm text-base-content/50">
           Nothing written yet.
         </p>
 
@@ -329,7 +306,7 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
           </li>
         </ul>
 
-        <.script_form :if={@editing == :new && adding?(@form, @kind)} form={@form} kind={@kind} />
+        <.script_form :if={@editing == :new} form={@form} kind={@kind} />
       </div>
     </div>
     """
@@ -371,10 +348,6 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
   defp risky_tags(script, blanks) do
     script |> CallScript.tags_without_fallback() |> Enum.filter(&(&1 in blanks))
   end
-
-  # One form is open at a time and both lists render it, so each asks whether
-  # the one being added is theirs.
-  defp adding?(form, kind), do: form && Phoenix.HTML.Form.input_value(form, :kind) == kind
 
   # A prospect's own tags plus the four the project supplies. Without a
   # prospect to read against, the names are still worth showing.
