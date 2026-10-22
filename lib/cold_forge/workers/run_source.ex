@@ -1,0 +1,39 @@
+defmodule ColdForge.Workers.RunSource do
+  @moduledoc """
+  Starts a saved search: one job per segment and locality.
+
+  Fans out rather than looping, because a source covering four trades across
+  twelve towns is forty-eight provider calls. As one job that is a long,
+  all-or-nothing thing that retries from the beginning; as forty-eight it
+  retries only the query that failed, and the page can show progress while it
+  runs.
+  """
+
+  use Oban.Worker, queue: :crawl, max_attempts: 3
+
+  alias ColdForge.Sourcing
+  alias ColdForge.Sourcing.Source
+  alias ColdForge.Workers.RunSourceQuery
+
+  @impl Oban.Worker
+  def perform(%Oban.Job{args: %{"source_id" => source_id}}) do
+    source = Sourcing.get_source!(source_id)
+    queries = Source.queries(source)
+
+    queued =
+      queries
+      |> Enum.map(fn {segment, locality} ->
+        RunSourceQuery.new(%{source_id: source.id, segment: segment, locality: locality})
+      end)
+      |> Enum.count(&match?({:ok, _}, Oban.insert(&1)))
+
+    {:ok, _source} =
+      Sourcing.touch_run(source, %{
+        "queries" => length(queries),
+        "queued" => queued,
+        "started_at" => DateTime.utc_now() |> DateTime.to_iso8601()
+      })
+
+    :ok
+  end
+end

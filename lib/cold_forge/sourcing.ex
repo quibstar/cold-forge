@@ -13,8 +13,63 @@ defmodule ColdForge.Sourcing do
 
   alias ColdForge.Outreach
   alias ColdForge.Repo
-  alias ColdForge.Sourcing.Org
-  alias ColdForge.Workers.CrawlOrg
+  alias ColdForge.Sourcing.{Org, Source}
+  alias ColdForge.Workers.{CrawlOrg, RunSource}
+
+  ## Sources — saved searches
+
+  @doc "Every saved search, with its project."
+  def list_sources do
+    Source
+    |> order_by([s], asc: s.name)
+    |> preload(:project)
+    |> Repo.all()
+  end
+
+  def get_source!(id), do: Source |> Repo.get!(id) |> Repo.preload(:project)
+
+  def change_source(%Source{} = source, attrs \\ %{}), do: Source.changeset(source, attrs)
+
+  def create_source(attrs) do
+    %Source{} |> Source.changeset(attrs) |> Repo.insert()
+  end
+
+  def update_source(%Source{} = source, attrs) do
+    source |> Source.changeset(attrs) |> Repo.update()
+  end
+
+  def delete_source(%Source{} = source), do: Repo.delete(source)
+
+  @doc """
+  Starts a source's search. The work happens in Oban, so the page doesn't wait
+  on a provider that may be paginating through several towns.
+  """
+  def run_source(%Source{} = source) do
+    case %{source_id: source.id} |> RunSource.new() |> Oban.insert() do
+      {:ok, _job} -> {:ok, source}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc "Marks a run as started, so the page can say when it last went looking."
+  def touch_run(%Source{} = source, summary) do
+    source
+    |> Ecto.Changeset.change(%{
+      last_run_at: DateTime.utc_now() |> DateTime.truncate(:second),
+      last_run_summary: summary
+    })
+    |> Repo.update()
+  end
+
+  @doc "How a source's organisations are getting on, by status."
+  def counts_for_source(%Source{} = source) do
+    Org
+    |> where([o], o.source_id == ^source.id)
+    |> group_by([o], o.status)
+    |> select([o], {o.status, count(o.id)})
+    |> Repo.all()
+    |> Map.new()
+  end
 
   @doc "Stores rows from a discovery source, skipping ones already seen."
   @spec record_discovered([map()]) ::
@@ -42,6 +97,7 @@ defmodule ColdForge.Sourcing do
     Org
     |> maybe_status(Keyword.get(opts, :status))
     |> maybe_segment(Keyword.get(opts, :segment))
+    |> maybe_source(Keyword.get(opts, :source_id))
     |> order_by([o], desc: o.updated_at)
     |> limit(^Keyword.get(opts, :limit, 200))
     |> Repo.all()
@@ -65,6 +121,9 @@ defmodule ColdForge.Sourcing do
     |> Enum.sort()
   end
 
+  defp maybe_source(query, nil), do: query
+  defp maybe_source(query, source_id), do: where(query, [o], o.source_id == ^source_id)
+
   defp maybe_status(query, nil), do: query
   defp maybe_status(query, "all"), do: query
   defp maybe_status(query, status), do: where(query, [o], o.status == ^status)
@@ -76,6 +135,7 @@ defmodule ColdForge.Sourcing do
     Org
     |> where([o], o.status == "discovered" and not is_nil(o.website))
     |> maybe_segment(Keyword.get(opts, :segment))
+    |> maybe_source(Keyword.get(opts, :source_id))
     |> order_by([o], asc: o.inserted_at)
     |> limit(^limit)
     |> Repo.all()
@@ -165,7 +225,7 @@ defmodule ColdForge.Sourcing do
 
   defp promote_notes(%Org{} = org) do
     [
-      "Discovered via #{org.source}",
+      "Discovered via #{org.provider}",
       org.email_presentation && "address published as #{org.email_presentation}",
       org.has_contact_form && "site also has a contact form"
     ]

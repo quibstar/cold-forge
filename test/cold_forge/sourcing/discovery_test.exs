@@ -51,7 +51,7 @@ defmodule ColdForge.Sourcing.DiscoveryTest do
       {:ok, rows} = Overpass.parse(json, "shelter")
 
       for row <- rows do
-        assert row.source == "overpass"
+        assert row.provider == "overpass"
         assert row.source_ref =~ ~r"^(node|way|relation)/\d+$"
         assert row.source_url =~ "openstreetmap.org/"
       end
@@ -110,7 +110,7 @@ defmodule ColdForge.Sourcing.DiscoveryTest do
       assert {:ok, [row]} = IrsBmf.parse(csv)
       assert row.name == "Humane Society of West Michigan"
       assert row.segment == "humane_society"
-      assert row.source == "irs_bmf"
+      assert row.provider == "irs_bmf"
       assert row.source_ref == "381234567"
     end
 

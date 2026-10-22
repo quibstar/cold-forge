@@ -11,7 +11,7 @@ defmodule ColdForge.Workers.CrawlOrgTest do
     base = %{
       name: "Summit Roofing LLC",
       segment: "roofing",
-      source: "places",
+      provider: "places",
       source_ref: "place-#{System.unique_integer([:positive])}",
       website: "https://summitroofing.test"
     }
@@ -67,7 +67,7 @@ defmodule ColdForge.Workers.CrawlOrgTest do
 
     test "the same row from the same source twice is stored once" do
       ref = "place-dup-#{System.unique_integer([:positive])}"
-      attrs = %{name: "A Co", segment: "roofing", source: "places", source_ref: ref}
+      attrs = %{name: "A Co", segment: "roofing", provider: "places", source_ref: ref}
 
       assert {:ok, %{inserted: 1, skipped: 1}} =
                Sourcing.record_discovered([attrs, attrs])

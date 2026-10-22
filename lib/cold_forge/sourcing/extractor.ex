@@ -85,11 +85,27 @@ defmodule ColdForge.Sourcing.Extractor do
   @spec extract(String.t(), String.t()) :: result()
   def extract(html, source_url) when is_binary(html) and is_binary(source_url) do
     doc = Floki.parse_document!(html)
-    text = doc |> Floki.text(sep: " ") |> collapse()
+
+    # Strip the parts of a page that are not prose before reading text out of
+    # it. `Floki.text/2` happily returns the contents of <style> and <script>,
+    # and an embedded font licence is full of addresses: a real crawl of a
+    # Grand Rapids roofer produced the typeface designer's gmail, because the
+    # Google Fonts licence sits in their stylesheet. Scripts carry the same
+    # hazard with analytics and error-reporting addresses.
+    text =
+      doc
+      |> Floki.filter_out("style")
+      |> Floki.filter_out("script")
+      |> Floki.filter_out("noscript")
+      |> Floki.filter_out(:comment)
+      |> Floki.text(sep: " ")
+      |> collapse()
+
+    prose = doc |> Floki.filter_out("style") |> Floki.filter_out("script")
 
     candidates =
-      (mailto_candidates(doc, source_url) ++
-         cloudflare_candidates(doc, source_url) ++
+      (mailto_candidates(prose, source_url) ++
+         cloudflare_candidates(prose, source_url) ++
          plain_text_candidates(text, source_url) ++
          obfuscated_candidates(text, source_url))
       |> Enum.filter(&mailable_address?/1)

@@ -92,7 +92,7 @@ defmodule ColdForge.Sourcing.Discovery.PlacesTest do
       assert row.segment == "roofing"
       assert row.website == "https://summitroofing.test/"
       assert row.phone == "(616) 555-0101"
-      assert row.source == "places"
+      assert row.provider == "places"
       assert row.source_url =~ "place_id:ChIJrooferGR"
     end
 

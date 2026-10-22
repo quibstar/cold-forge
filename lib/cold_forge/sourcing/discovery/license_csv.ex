@@ -129,7 +129,7 @@ defmodule ColdForge.Sourcing.Discovery.LicenseCsv do
         region: get.(:region) || Map.get(mapping, :region),
         postal_code: get.(:postal_code),
         country: "US",
-        source: "license_csv",
+        provider: "license_csv",
         source_ref: source_ref(mapping, get),
         source_url: Map.get(mapping, :source_url),
         raw: %{"registry" => mapping.source_name, "license" => get.(:license)}

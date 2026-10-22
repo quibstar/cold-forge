@@ -204,7 +204,7 @@ defmodule ColdForge.Sourcing.Discovery.Places do
           region: nil,
           postal_code: nil,
           country: "US",
-          source: "places",
+          provider: "places",
           source_ref: id,
           # Google's own page for the place, so a reviewer can see what we saw.
           source_url: "https://www.google.com/maps/place/?q=place_id:#{id}",

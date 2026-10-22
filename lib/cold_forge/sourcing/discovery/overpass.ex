@@ -96,7 +96,7 @@ defmodule ColdForge.Sourcing.Discovery.Overpass do
           region: presence(tags["addr:state"]),
           postal_code: presence(tags["addr:postcode"]),
           country: "US",
-          source: "overpass",
+          provider: "overpass",
           source_ref: "#{type}/#{id}",
           source_url: "https://www.openstreetmap.org/#{type}/#{id}",
           raw: tags

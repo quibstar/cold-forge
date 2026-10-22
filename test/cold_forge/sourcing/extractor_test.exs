@@ -98,6 +98,38 @@ defmodule ColdForge.Sourcing.ExtractorTest do
       end
     end
 
+    # A real crawl of a Grand Rapids roofer produced the typeface designer's
+    # gmail address, because the Google Fonts licence sits in their stylesheet.
+    # Nothing inside <style> or <script> is the company's contact details.
+    test "an address inside a font licence in a <style> block is not theirs" do
+      html =
+        page("""
+        <style>
+        /* Lato (c) Lukasz Dziedzic, Impallari Type. Contact impallari@gmail.com */
+        body { font-family: Lato; }
+        </style>
+        <p>Call us on (616) 555-0101.</p>
+        """)
+
+      assert %{candidates: []} = Extractor.extract(html, "https://avalon.test")
+    end
+
+    test "an address in a script tag is not theirs either" do
+      html = page(~s|<script>var sentry="errors@sentry.test";</script><p>Hello</p>|)
+      assert %{candidates: []} = Extractor.extract(html, "https://avalon.test")
+    end
+
+    test "a real address still wins when a stylesheet also carries one" do
+      html =
+        page("""
+        <style>/* licence: impallari@gmail.com */</style>
+        <a href="mailto:office@avalon.test">Email us</a>
+        """)
+
+      assert %{candidates: [c]} = Extractor.extract(html, "https://avalon.test")
+      assert c.email == "office@avalon.test"
+    end
+
     test "platform and placeholder domains are dropped" do
       for addr <- ~w(a@example.com b@sentry.wixpress.com c@yourdomain.com) do
         html = page(~s|<a href="mailto:#{addr}">x</a>|)

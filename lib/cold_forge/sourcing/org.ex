@@ -12,7 +12,7 @@ defmodule ColdForge.Sourcing.Org do
 
   @segments ~w(roofing siding windows gutters shelter rescue humane_society breeder)
   @statuses ~w(discovered needs_website fetched promoted rejected)
-  @sources ~w(overpass irs_bmf license_csv places manual)
+  @providers ~w(overpass irs_bmf license_csv places manual)
 
   @reject_reasons ~w(
     no_website unreachable no_address_published no_solicitation
@@ -31,7 +31,9 @@ defmodule ColdForge.Sourcing.Org do
     field :postal_code, :string
     field :country, :string, default: "US"
 
-    field :source, :string
+    # Which discovery module found it. The named search it came from is
+    # `source` — a record, not this string.
+    field :provider, :string
     field :source_ref, :string
     field :source_url, :string
     field :raw, :map, default: %{}
@@ -47,6 +49,7 @@ defmodule ColdForge.Sourcing.Org do
     field :has_contact_form, :boolean, default: false
     field :fetched_at, :utc_datetime
 
+    belongs_to :source, ColdForge.Sourcing.Source
     belongs_to :prospect, ColdForge.Outreach.Prospect
 
     timestamps(type: :utc_datetime)
@@ -54,7 +57,7 @@ defmodule ColdForge.Sourcing.Org do
 
   def segments, do: @segments
   def statuses, do: @statuses
-  def sources, do: @sources
+  def providers, do: @providers
   def reject_reasons, do: @reject_reasons
 
   @doc """
@@ -72,17 +75,18 @@ defmodule ColdForge.Sourcing.Org do
       :region,
       :postal_code,
       :country,
-      :source,
+      :provider,
       :source_ref,
       :source_url,
+      :source_id,
       :raw
     ])
-    |> validate_required([:name, :segment, :source, :source_ref])
+    |> validate_required([:name, :segment, :provider, :source_ref])
     |> validate_inclusion(:segment, @segments)
-    |> validate_inclusion(:source, @sources)
+    |> validate_inclusion(:provider, @providers)
     |> update_change(:website, &normalize_website/1)
     |> put_initial_status()
-    |> unique_constraint([:source, :source_ref],
+    |> unique_constraint([:provider, :source_ref],
       name: :sourcing_orgs_source_source_ref_index,
       message: "already discovered from this source"
     )
