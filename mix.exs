@@ -65,6 +65,8 @@ defmodule ColdForge.MixProject do
       {:tz, "~> 0.28"},
       {:nimble_csv, "~> 1.2"},
       {:req, "~> 0.5"},
+      # Parses the HTML we fetch when looking for a published address.
+      {:floki, "~> 0.37"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
