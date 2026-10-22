@@ -434,12 +434,13 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       |> assign(:parts, CallScripts.parts(assigns.prospect, assigns.project, assigns.tab))
 
     ~H"""
-    <%!-- No card, no inner scroll: the script runs down the page like a page of
-    script. A box with its own scrollbar inside a page that also scrolls means
-    two things to move while you are talking, and the one under the cursor is
-    never the one you meant. --%>
-    <section>
-      <div class="flex flex-wrap items-center gap-2 pb-3 border-b border-base-300">
+    <%!-- The card keeps its look, but not its scrollbar: no max-height, no
+    `overflow-y-auto`, and not pinned. A box that scrolls inside a page that
+    also scrolls means two things to move while you are talking, and the one
+    under the cursor is never the one you meant. It is as tall as the script
+    and the page carries it. --%>
+    <section class="rounded-2xl border border-primary/25 bg-base-100 overflow-hidden">
+      <div class="px-5 py-3 bg-primary/5 border-b border-primary/15 flex flex-wrap items-center gap-2">
         <h2 class="font-semibold mr-1">What to say</h2>
         <button
           :for={{key, label} <- @tabs}
@@ -453,12 +454,12 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       </div>
 
       <div class="divide-y divide-base-300">
-        <div :for={{label, body} <- @parts} class="py-4 space-y-1.5">
+        <div :for={{label, body} <- @parts} class="px-5 py-4 space-y-1.5">
           <p class="text-xs font-semibold uppercase tracking-wide text-primary">{label}</p>
           <p class="text-sm leading-relaxed whitespace-pre-line">{body}</p>
         </div>
 
-        <p :if={@parts == []} class="py-4 text-sm text-base-content/50">
+        <p :if={@parts == []} class="px-5 py-4 text-sm text-base-content/50">
           Nothing written for this one yet.
         </p>
       </div>
