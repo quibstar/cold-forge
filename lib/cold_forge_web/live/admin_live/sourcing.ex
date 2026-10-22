@@ -22,11 +22,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   alias ColdForge.Sourcing
   alias ColdForge.Sourcing.{Source, Towns}
 
-  @statuses ~w(fetched discovered needs_website rejected promoted)
-
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :statuses, @statuses)}
+    {:ok, assign(socket, :views, Sourcing.views())}
   end
 
   @impl true
@@ -82,7 +80,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/p/#{source.project_id}/sourcing"}])
     |> assign(:source, source)
     |> assign(:plan, Source.plan(source))
-    |> assign(:status, "fetched")
+    |> assign(:status, "email")
     |> load_results()
   end
 
@@ -90,8 +88,8 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     source = socket.assigns.source
 
     socket
-    |> assign(:orgs, Sourcing.list_orgs(source_id: source.id, status: socket.assigns.status))
-    |> assign(:counts, Sourcing.counts_for_source(source))
+    |> assign(:orgs, Sourcing.list_orgs(source_id: source.id, view: socket.assigns.status))
+    |> assign(:counts, Sourcing.counts_by_view(source))
     |> assign(:addable, Sourcing.addable_counts(source))
   end
 
@@ -507,7 +505,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
     <div role="tablist" class="tabs tabs-box mb-4">
       <button
-        :for={status <- @statuses}
+        :for={status <- @views}
         type="button"
         role="tab"
         class={["tab", @status == status && "tab-active"]}
@@ -522,7 +520,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     <%!-- Each tab's own bulk add: the places with an address go to the drip,
           the ones with no website (but a phone) go to the call list. --%>
     <div
-      :if={@status == "fetched" and @addable.email > 0}
+      :if={@status == "email" and @addable.email > 0}
       class="flex flex-wrap items-center gap-3 mb-3"
     >
       <button
@@ -539,7 +537,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     </div>
 
     <div
-      :if={@status == "needs_website" and @addable.calls > 0}
+      :if={@status == "phone" and @addable.calls > 0}
       class="flex flex-wrap items-center gap-3 mb-3"
     >
       <button
@@ -553,7 +551,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
         <.icon name="hero-phone" class="size-4" /> Add all {@addable.calls} for calling
       </button>
       <span class="text-xs opacity-60">
-        Phone only — they go on the call list and are never emailed.
+        No email anywhere — they go on the call list and are never emailed.
       </span>
     </div>
 
@@ -607,7 +605,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                   contact form only
                 </div>
                 <div :if={!org.email && !org.has_contact_form} class="text-xs text-base-content/50">
-                  {if org.reject_reason, do: humanize(org.reject_reason), else: "—"}
+                  {no_address_note(org)}
                 </div>
                 <%!-- The sentence the notice was found in, on hover: a table
                       has no room for it, but it is what lets a reviewer judge
@@ -655,7 +653,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                   Look again
                 </button>
                 <button
-                  :if={org.status not in ["promoted", "rejected"]}
+                  :if={Sourcing.view_of(org) not in ["added", "left_off"]}
                   type="button"
                   class="btn btn-xs btn-ghost"
                   phx-click="reject"
@@ -675,11 +673,16 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   ## Wording
 
-  defp label_for("fetched"), do: "Found an address"
-  defp label_for("discovered"), do: "Waiting to crawl"
-  defp label_for("needs_website"), do: "No website yet"
-  defp label_for("rejected"), do: "Left off"
-  defp label_for("promoted"), do: "Prospects"
+  defp no_address_note(%{status: "needs_website"}), do: "no website"
+  defp no_address_note(%{reject_reason: "no_address_published"}), do: "no email on their website"
+  defp no_address_note(%{reject_reason: nil}), do: "—"
+  defp no_address_note(%{reject_reason: reason}), do: humanize(reason)
+
+  defp label_for("email"), do: "Email"
+  defp label_for("phone"), do: "Phone only"
+  defp label_for("checking"), do: "Checking website"
+  defp label_for("left_off"), do: "Left off"
+  defp label_for("added"), do: "Added"
   defp label_for(other), do: humanize(other)
 
   # How the address was published, said rather than named. A reviewer glancing

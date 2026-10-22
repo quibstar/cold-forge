@@ -317,9 +317,31 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
 
-      rejected = live |> element(~s(button[phx-value-status="rejected"])) |> render_click()
-      assert rejected =~ "Phone Only"
-      assert rejected =~ "Call list"
+      phone = live |> element(~s(button[phx-value-status="phone"])) |> render_click()
+      assert phone =~ "Phone Only"
+      assert phone =~ "Call list"
+    end
+
+    test "a website with no email is Phone only, not Left off", %{conn: conn, project: project} do
+      source = source_fixture(project)
+      org = org_fixture(source, %{name: "Quiet Website Roofing", phone: "616-555-0110"})
+      {:ok, _} = Sourcing.reject(org, :no_address_published)
+
+      decided = org_fixture(source, %{name: "Not A Roofer", source_ref: "p9"})
+      {:ok, _} = Sourcing.reject(decided, :out_of_segment)
+
+      {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      assert html =~ "Phone only"
+
+      phone = live |> element(~s(button[phx-value-status="phone"])) |> render_click()
+      assert phone =~ "Quiet Website Roofing"
+      assert phone =~ "no email on their website"
+      assert phone =~ "Add all 1 for calling"
+      refute phone =~ "Not A Roofer"
+
+      left_off = live |> element(~s(button[phx-value-status="left_off"])) |> render_click()
+      assert left_off =~ "Not A Roofer"
+      refute left_off =~ "Quiet Website Roofing"
     end
 
     test "adds every place with an email for the drip, skipping the ones that aren't ready",
@@ -403,7 +425,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       assert has_element?(live, "#add-all-email")
       refute has_element?(live, "#add-all-calls")
 
-      html = live |> element(~s(button[phx-value-status="needs_website"])) |> render_click()
+      html = live |> element(~s(button[phx-value-status="phone"])) |> render_click()
       assert html =~ "Add all 2 for calling"
       refute has_element?(live, "#add-all-email")
 
@@ -434,7 +456,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org = org_fixture(source, %{name: "No Site Roofing", website: nil, phone: "(616) 555-0101"})
 
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
-      live |> element(~s(button[phx-value-status="needs_website"])) |> render_click()
+      live |> element(~s(button[phx-value-status="phone"])) |> render_click()
       html = live |> element("#add-all-calls") |> render_click()
 
       assert Repo.aggregate(ColdForge.Outreach.Prospect, :count) == 1

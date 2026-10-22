@@ -50,7 +50,7 @@ defmodule ColdForge.Workers.CrawlOrg do
   # for most owner-operated contractors and small rescues, and it is what puts
   # them on the call list instead.
   defp crawl(org, []) do
-    {:ok, _} = Sourcing.reject(org, :no_address_published)
+    {:ok, _} = Sourcing.record_nothing_found(org)
     :ok
   end
 

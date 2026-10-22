@@ -44,6 +44,33 @@ defmodule ColdForge.Workers.CrawlOrgTest do
     end
   end
 
+  describe "a look that finds no address" do
+    test "files the place as phone-only" do
+      org = org_fixture()
+
+      {:ok, org} = Sourcing.record_nothing_found(org)
+
+      assert org.status == "rejected"
+      assert org.reject_reason == "no_address_published"
+      assert Sourcing.view_of(org) == "phone"
+    end
+
+    test "keeps an address an earlier look already found" do
+      org = org_fixture()
+
+      {:ok, org} =
+        org
+        |> Org.crawl_changeset(%{email: "office@summitroofing.test", status: "fetched"})
+        |> Repo.update()
+
+      {:ok, org} = Sourcing.record_nothing_found(org)
+
+      assert org.status == "fetched"
+      assert org.email == "office@summitroofing.test"
+      assert Sourcing.view_of(org) == "email"
+    end
+  end
+
   describe "the discovery changeset decides what gets crawled" do
     test "a row with a website is crawlable" do
       org = org_fixture()
