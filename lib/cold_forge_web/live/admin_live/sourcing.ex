@@ -490,31 +490,6 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
           <%!-- Reviewing thirty rows one button at a time is how a review
                 stops happening at all. The per-row buttons stay for the
                 judgement calls; this is for the rest. --%>
-          <%!-- One button per channel. Phone-only places — including every one
-                with no website, which a trades search turns up by the hundred —
-                go to the call list; places with an address go to the drip. --%>
-          <button
-            :if={@addable.email > 0}
-            type="button"
-            id="add-all-email"
-            class="btn btn-sm"
-            phx-click="add_all"
-            phx-value-kind="email"
-            data-confirm={"Add #{@addable.email} with an email address to #{@source.project.name}, ready for a campaign?"}
-          >
-            <.icon name="hero-envelope" class="size-4" /> Add {@addable.email} for email drip
-          </button>
-          <button
-            :if={@addable.calls > 0}
-            type="button"
-            id="add-all-calls"
-            class="btn btn-sm"
-            phx-click="add_all"
-            phx-value-kind="calls"
-            data-confirm={"Add #{@addable.calls} phone-only places to #{@source.project.name}'s call list?"}
-          >
-            <.icon name="hero-phone" class="size-4" /> Add {@addable.calls} for calling
-          </button>
           <button
             type="button"
             class="btn btn-sm btn-primary"
@@ -542,6 +517,44 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
         {label_for(status)}
         <span class="badge badge-sm ml-1">{Map.get(@counts, status, 0)}</span>
       </button>
+    </div>
+
+    <%!-- Each tab's own bulk add: the places with an address go to the drip,
+          the ones with no website (but a phone) go to the call list. --%>
+    <div
+      :if={@status == "fetched" and @addable.email > 0}
+      class="flex flex-wrap items-center gap-3 mb-3"
+    >
+      <button
+        type="button"
+        id="add-all-email"
+        class="btn btn-sm btn-primary"
+        phx-click="add_all"
+        phx-value-kind="email"
+        data-confirm={"Add #{@addable.email} with an email address to #{@source.project.name}, ready for a campaign?"}
+      >
+        <.icon name="hero-envelope" class="size-4" /> Add all {@addable.email} for email drip
+      </button>
+      <span class="text-xs opacity-60">They become prospects you can add to a campaign.</span>
+    </div>
+
+    <div
+      :if={@status == "needs_website" and @addable.calls > 0}
+      class="flex flex-wrap items-center gap-3 mb-3"
+    >
+      <button
+        type="button"
+        id="add-all-calls"
+        class="btn btn-sm btn-primary"
+        phx-click="add_all"
+        phx-value-kind="calls"
+        data-confirm={"Add #{@addable.calls} phone-only places to #{@source.project.name}'s call list?"}
+      >
+        <.icon name="hero-phone" class="size-4" /> Add all {@addable.calls} for calling
+      </button>
+      <span class="text-xs opacity-60">
+        Phone only — they go on the call list and are never emailed.
+      </span>
     </div>
 
     <div class="card bg-base-100 shadow-sm">

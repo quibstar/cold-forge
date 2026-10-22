@@ -337,7 +337,8 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org_fixture(source, %{name: "Not Crawled Yet", source_ref: "p4"})
 
       {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
-      assert html =~ "Add 2 for email drip"
+      # Found an address is the tab the page opens on, and the button is in it.
+      assert html =~ "Add all 2 for email drip"
       # Its website hasn't been checked yet, so it may still turn up an address.
       assert html =~ "1 websites still being checked"
 
@@ -377,31 +378,42 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       assert html =~ "1 already there"
     end
 
-    test "adds every phone-only place for calling, including ones with no website",
+    test "the No website yet tab adds every place in it that has a phone, for calling",
          %{conn: conn, project: project} do
       source = source_fixture(project)
 
       # What a trades search turns up by the hundred: a listing, a phone, no site.
       org_fixture(source, %{name: "No Site Roofing", website: nil, phone: "(616) 555-0101"})
-      org_fixture(source, %{name: "No Site, No Phone", website: nil, source_ref: "p2"})
 
-      org_fixture(source, %{name: "Site But No Address", phone: "616-555-0102", source_ref: "p3"})
-      |> with_address(%{email: nil, email_source_url: nil, email_presentation: nil})
+      org_fixture(source, %{
+        name: "No Site Gutters",
+        website: nil,
+        phone: "616-555-0104",
+        source_ref: "p5"
+      })
+
+      org_fixture(source, %{name: "No Site, No Phone", website: nil, source_ref: "p2"})
 
       org_fixture(source, %{name: "Has An Address", phone: "616-555-0103", source_ref: "p4"})
       |> with_address()
 
-      {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
-      assert html =~ "Add 2 for calling"
-      assert html =~ "Add 1 for email drip"
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      # Each button lives in its own tab.
+      assert has_element?(live, "#add-all-email")
+      refute has_element?(live, "#add-all-calls")
+
+      html = live |> element(~s(button[phx-value-status="needs_website"])) |> render_click()
+      assert html =~ "Add all 2 for calling"
+      refute has_element?(live, "#add-all-email")
 
       live |> element("#add-all-calls") |> render_click()
 
       added = Repo.all(ColdForge.Outreach.Prospect)
 
       assert Enum.map(added, & &1.company) |> Enum.sort() == [
-               "No Site Roofing",
-               "Site But No Address"
+               "No Site Gutters",
+               "No Site Roofing"
              ]
 
       assert Enum.all?(added, &is_nil(&1.email))
@@ -422,22 +434,12 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       org = org_fixture(source, %{name: "No Site Roofing", website: nil, phone: "(616) 555-0101"})
 
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      live |> element(~s(button[phx-value-status="needs_website"])) |> render_click()
       html = live |> element("#add-all-calls") |> render_click()
 
       assert Repo.aggregate(ColdForge.Outreach.Prospect, :count) == 1
       assert html =~ "1 already there"
       assert Repo.reload(org).status == "promoted"
-    end
-
-    test "a page asking not to be solicited keeps a place off the call list too",
-         %{conn: conn, project: project} do
-      source = source_fixture(project)
-
-      org_fixture(source, %{name: "Asked Us Not To", phone: "616-555-0109"})
-      |> with_address(%{email: nil, no_solicitation: true, notice_text: "No solicitors."})
-
-      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
-      refute has_element?(live, "#add-all-calls")
     end
 
     test "running a search queues the work and says so", %{conn: conn, project: project} do

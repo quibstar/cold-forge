@@ -248,9 +248,9 @@ defmodule ColdForge.Sourcing do
   its project.
 
     * `:email` — a published address, website checked, for the drip.
-    * `:calls` — a phone and no address, for the call list. This includes the
-      places with no website at all, which a search for owner-operated trades
-      turns up by the hundred and which used to be left behind entirely.
+    * `:calls` — no website but a phone, for the call list. A search for
+      owner-operated trades turns these up by the hundred, and they used to be
+      left behind entirely.
 
   Either way, a page asking not to be solicited keeps a place out. Somebody
   already a prospect — matched by email or by phone digits, since Places lists
@@ -291,10 +291,11 @@ defmodule ColdForge.Sourcing do
     |> where([o], not o.no_solicitation and not is_nil(o.email) and o.email != "")
   end
 
+  # Exactly the "No website yet" tab, so the button's count matches the tab's.
   defp addable(%Source{id: source_id}, :calls) do
     Org
-    |> where([o], o.source_id == ^source_id and o.status in ["fetched", "needs_website"])
-    |> where([o], not o.no_solicitation and (is_nil(o.email) or o.email == ""))
+    |> where([o], o.source_id == ^source_id and o.status == "needs_website")
+    |> where([o], not o.no_solicitation)
     |> where([o], not is_nil(o.phone) and o.phone != "")
   end
 
