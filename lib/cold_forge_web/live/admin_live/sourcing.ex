@@ -92,7 +92,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     socket
     |> assign(:orgs, Sourcing.list_orgs(source_id: source.id, status: socket.assigns.status))
     |> assign(:counts, Sourcing.counts_for_source(source))
-    |> assign(:ready_count, Sourcing.ready_count(source))
+    |> assign(:addable, Sourcing.addable_counts(source))
   end
 
   # The plan is worked out from whatever has been typed, valid or not, so the
@@ -275,19 +275,12 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     end
   end
 
-  def handle_event("promote_ready", _params, socket) do
+  def handle_event("add_all", %{"kind" => kind}, socket) when kind in ["email", "calls"] do
     source = socket.assigns.source
-    {:ok, %{promoted: promoted, failed: failed}} = Sourcing.promote_ready(source)
+    {:ok, totals} = Sourcing.promote_all(source, String.to_existing_atom(kind))
 
-    message =
-      case {promoted, failed} do
-        {0, 0} -> "Nothing ready to add."
-        {n, 0} -> "Added #{n} to #{source.project.name}."
-        # No apostrophe: it renders as an entity and reads badly in a flash.
-        {n, f} -> "Added #{n} to #{source.project.name}. #{f} skipped, already there."
-      end
-
-    {:noreply, socket |> put_flash(:info, message) |> load_results()}
+    {:noreply,
+     socket |> put_flash(:info, add_all_message(kind, totals, source)) |> load_results()}
   end
 
   def handle_event("reject", %{"id" => id}, socket) do
@@ -483,6 +476,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                 do: "Last run #{Calendar.strftime(@source.last_run_at, "%b %-d at %-I:%M %p")}",
                 else: "Never run"}
             </p>
+            <p :if={@addable.checking > 0} class="text-xs opacity-60">
+              {@addable.checking} websites still being checked for an email address.
+            </p>
           </div>
 
           <.link
@@ -494,14 +490,30 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
           <%!-- Reviewing thirty rows one button at a time is how a review
                 stops happening at all. The per-row buttons stay for the
                 judgement calls; this is for the rest. --%>
+          <%!-- One button per channel. Phone-only places — including every one
+                with no website, which a trades search turns up by the hundred —
+                go to the call list; places with an address go to the drip. --%>
           <button
-            :if={@ready_count > 0}
+            :if={@addable.email > 0}
             type="button"
+            id="add-all-email"
             class="btn btn-sm"
-            phx-click="promote_ready"
-            data-confirm={"Add all #{@ready_count} to #{@source.project.name}?"}
+            phx-click="add_all"
+            phx-value-kind="email"
+            data-confirm={"Add #{@addable.email} with an email address to #{@source.project.name}, ready for a campaign?"}
           >
-            Add all {@ready_count}
+            <.icon name="hero-envelope" class="size-4" /> Add {@addable.email} for email drip
+          </button>
+          <button
+            :if={@addable.calls > 0}
+            type="button"
+            id="add-all-calls"
+            class="btn btn-sm"
+            phx-click="add_all"
+            phx-value-kind="calls"
+            data-confirm={"Add #{@addable.calls} phone-only places to #{@source.project.name}'s call list?"}
+          >
+            <.icon name="hero-phone" class="size-4" /> Add {@addable.calls} for calling
           </button>
           <button
             type="button"
@@ -861,6 +873,22 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   defp money(amount) when amount < 1, do: "$" <> :erlang.float_to_binary(amount / 1, decimals: 2)
   defp money(amount), do: "$" <> Integer.to_string(round(amount))
+
+  # No apostrophes: they render as entities and read badly in a flash.
+  defp add_all_message(kind, %{added: added, existing: existing, failed: failed}, source) do
+    where_to =
+      if kind == "email",
+        do: "#{source.project.name} — add them to a campaign from its page",
+        else: "the #{source.project.name} call list"
+
+    [
+      if(added > 0, do: "Added #{added} to #{where_to}.", else: "Nothing new to add."),
+      existing > 0 && "#{existing} already there, so linked rather than added twice.",
+      failed > 0 && "#{failed} could not be added."
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(" ")
+  end
 
   defp humanize(nil), do: ""
 
