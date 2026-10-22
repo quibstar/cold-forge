@@ -134,6 +134,7 @@ defmodule ColdForgeWeb.Router do
            :edit_question
 
       live "/p/:project_id/calls", AdminLive.Calls, :index
+      live "/p/:project_id/calls/:id", AdminLive.CallProspect, :show
 
       live "/p/:project_id/replies", AdminLive.Replies, :index
 
