@@ -103,6 +103,7 @@ defmodule ColdForge.Flyers do
     Org
     |> join(:inner, [o], s in Source, on: s.id == o.source_id)
     |> where([_o, s], s.project_id == ^project_id and s.id == ^source_id)
+    |> where([_o, s], s.purpose == "flyers")
     |> where([o], o.id not in subquery(placed))
     |> where([o], o.status != "rejected")
     |> order_by([o], asc: o.city, asc: o.name)
@@ -120,6 +121,7 @@ defmodule ColdForge.Flyers do
     Org
     |> join(:inner, [o], s in Source, on: s.id == o.source_id)
     |> where([o, s], s.project_id == ^project.id and o.id in ^org_ids)
+    |> where([_o, s], s.purpose == "flyers")
     |> where([o], o.id not in subquery(placed))
     |> Repo.all()
     |> Enum.reduce(0, fn org, added ->

@@ -36,10 +36,12 @@ defmodule ColdForge.Workers.RunSourceQuery do
       # Only what this search just found. Re-queuing "the oldest 200 not yet
       # checked" after every search queued the same places hundreds of times
       # and never reached the newer ones at all.
+      # A flyers search wants the place, not an email address from its website.
       queued =
-        counts.orgs
-        |> Enum.filter(&(&1.status == "discovered"))
-        |> Sourcing.enqueue_crawls()
+        if ColdForge.Sourcing.Source.flyers?(source),
+          do: 0,
+          else:
+            counts.orgs |> Enum.filter(&(&1.status == "discovered")) |> Sourcing.enqueue_crawls()
 
       Logger.info(
         "sourcing: #{source.name} / #{phrase || segment} / #{locality} — " <>

@@ -480,6 +480,71 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       assert has_element?(live, "#run-progress", "Done")
     end
 
+    test "a search for flyer locations offers no way to add them as prospects",
+         %{conn: conn, project: project} do
+      source = source_fixture(project, %{purpose: "flyers", name: "Supply houses"})
+
+      org_fixture(source, %{name: "ABC Supply", phone: "616-555-0120"})
+      |> with_address()
+
+      org_fixture(source, %{
+        name: "Lumber Yard",
+        website: nil,
+        phone: "616-555-0121",
+        source_ref: "p8"
+      })
+
+      {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      assert has_element?(live, "#flyers-note a[href$='/flyers']")
+      # One list of places, not the channel tabs, and nothing that adds prospects.
+      assert html =~ "ABC Supply"
+      assert html =~ "Lumber Yard"
+      refute has_element?(live, "button[phx-click='status']")
+      refute has_element?(live, "#add-all-email")
+      refute has_element?(live, "#add-all-calls")
+      refute has_element?(live, "button[phx-click='promote']")
+    end
+
+    test "the guard holds below the page too", %{project: project} do
+      source = source_fixture(project, %{purpose: "flyers"})
+      org = org_fixture(source, %{name: "ABC Supply"}) |> with_address()
+
+      assert {:error, :flyer_source} = Sourcing.promote(org, project.id)
+      assert {:error, :flyer_source} = Sourcing.promote_all(source, :email)
+      assert Repo.aggregate(ColdForge.Outreach.Prospect, :count) == 0
+    end
+
+    test "a flyers search is done once it has searched — no website checks",
+         %{project: project} do
+      source = source_fixture(project, %{purpose: "flyers"})
+      {:ok, source} = Sourcing.touch_run(source, %{"queries" => 1})
+      org_fixture(source, %{name: "ABC Supply"})
+
+      progress = Sourcing.progress(source)
+      assert progress.checking == 0
+      assert progress.done
+      assert Sourcing.queue_missing_crawls(source) == 0
+    end
+
+    test "the form sets what a search is for", %{conn: conn, project: project} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
+
+      live
+      |> form("#source-form",
+        source: %{
+          name: "Supply houses — Michigan",
+          provider: "places",
+          purpose: "flyers",
+          segments_text: "roofing supply",
+          localities_text: "Grand Rapids, MI"
+        }
+      )
+      |> render_submit()
+
+      assert Repo.get_by!(Source, name: "Supply houses — Michigan").purpose == "flyers"
+    end
+
     test "running a search queues the work and says so", %{conn: conn, project: project} do
       source = source_fixture(project, %{localities: ["Grand Rapids, MI", "Holland, MI"]})
 
