@@ -16,6 +16,48 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
+# Outside production, read `secrets/.env` into the environment so a key kept in
+# that file is picked up by a plain `mix` or `iex -S mix` without remembering to
+# source it. Production gets its variables from the host, so this is skipped
+# there — and it never overwrites a variable that is already set, so an
+# explicit export still wins.
+if config_env() != :prod do
+  env_file = Path.expand("../secrets/.env", __DIR__)
+
+  if File.exists?(env_file) do
+    env_file
+    |> File.read!()
+    |> String.split(["\n", "\r\n"], trim: true)
+    |> Enum.reject(&(String.starts_with?(String.trim(&1), "#") or String.trim(&1) == ""))
+    |> Enum.each(fn line ->
+      case String.split(line, "=", parts: 2) do
+        [name, value] ->
+          name = name |> String.trim() |> String.replace_prefix("export ", "") |> String.trim()
+
+          value =
+            value
+            |> String.trim()
+            |> String.trim(~s("))
+            |> String.trim("'")
+
+          if name != "" and System.get_env(name) in [nil, ""] do
+            System.put_env(name, value)
+          end
+
+        _ ->
+          :ok
+      end
+    end)
+  end
+end
+
+# Google Places, for discovering organisations to prospect. Same shape as
+# exterior_ops_hq: absent key, absent config, and `Sourcing` reports that
+# rather than calling with an empty key.
+if google_places_key = System.get_env("GOOGLE_PLACES_API_KEY") do
+  config :cold_forge, google_places_api_key: google_places_key
+end
+
 if System.get_env("PHX_SERVER") do
   config :cold_forge, ColdForgeWeb.Endpoint, server: true
 end
