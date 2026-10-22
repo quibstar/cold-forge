@@ -68,6 +68,10 @@ defmodule ColdForge.MixProject do
       # QR codes for printed flyers, rendered as SVG so they print crisp at any
       # size — no image pipeline, no external CLI.
       {:eqrcode, "~> 0.2"},
+      # Oban's own dashboard, behind login at /admin/oban: every queue and job,
+      # with cancel, retry and delete — so a stuck or doubled run can be seen
+      # and cleared without a shell on the server.
+      {:oban_web, "~> 2.13"},
       # Parses the HTML we fetch when looking for a published address.
       {:floki, "~> 0.37"},
       {:telemetry_metrics, "~> 1.0"},

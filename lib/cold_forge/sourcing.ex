@@ -134,6 +134,14 @@ defmodule ColdForge.Sourcing do
 
     searches_total = get_in(source.last_run_summary || %{}, ["queries"]) || 0
 
+    # A run that has been asked for but hasn't started yet — so the page can
+    # say "waiting to start" rather than look as if nothing happened.
+    waiting_to_start =
+      Oban.Job
+      |> where([j], j.worker == "ColdForge.Workers.RunSource" and j.state in @incomplete)
+      |> where([j], fragment("?->>'source_id'", j.args) == ^source.id)
+      |> Repo.exists?()
+
     # A flyers search never checks websites, so it's done once it has searched.
     {checking, stalled} = if Source.flyers?(source), do: {0, 0}, else: {checking, stalled}
 
@@ -143,7 +151,10 @@ defmodule ColdForge.Sourcing do
       searches_left: searches_left,
       checking: checking,
       stalled: stalled,
-      done: source.last_run_at != nil and searches_left == 0 and checking == 0
+      waiting_to_start: waiting_to_start,
+      done:
+        not waiting_to_start and source.last_run_at != nil and searches_left == 0 and
+          checking == 0
     }
   end
 

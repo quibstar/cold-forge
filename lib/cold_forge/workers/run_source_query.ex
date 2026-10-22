@@ -11,7 +11,15 @@ defmodule ColdForge.Workers.RunSourceQuery do
   and the project they belong to is already decided.
   """
 
-  use Oban.Worker, queue: :crawl, max_attempts: 3
+  # One copy of each search at a time, whatever queued it.
+  use Oban.Worker,
+    queue: :search,
+    max_attempts: 3,
+    unique: [
+      keys: [:source_id, :segment, :query, :locality],
+      states: :incomplete,
+      period: :infinity
+    ]
 
   require Logger
 

@@ -108,7 +108,11 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   @refresh_ms 5_000
 
   defp schedule_refresh(socket) do
-    running? = not socket.assigns.progress.done and socket.assigns.source.last_run_at != nil
+    progress = socket.assigns.progress
+
+    running? =
+      progress.waiting_to_start or
+        (not progress.done and socket.assigns.source.last_run_at != nil)
 
     if connected?(socket) and running? and not Map.get(socket.assigns, :refresh_scheduled, false) do
       Process.send_after(self(), :refresh, @refresh_ms)
@@ -583,8 +587,11 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             phx-click="run"
             phx-value-id={@source.id}
             data-confirm={run_confirmation(@plan)}
+            disabled={@progress.waiting_to_start or @progress.searches_left > 0}
           >
-            Run search
+            {if @progress.waiting_to_start or @progress.searches_left > 0,
+              do: "Searching…",
+              else: "Run search"}
           </button>
         </div>
 
@@ -930,6 +937,15 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   # Where a run has got to: the Google searches, then the website checks, then
   # done. Re-rendered every few seconds while it's going.
+  defp run_progress(%{progress: %{waiting_to_start: true}} = assigns) do
+    ~H"""
+    <div id="run-progress" class="rounded-box bg-base-200/60 p-3 text-sm flex items-center gap-2">
+      <span class="loading loading-spinner loading-xs"></span>
+      Waiting to start — it'll begin in a moment. This updates by itself.
+    </div>
+    """
+  end
+
   defp run_progress(%{source: %{last_run_at: nil}} = assigns), do: ~H""
 
   defp run_progress(assigns) do
