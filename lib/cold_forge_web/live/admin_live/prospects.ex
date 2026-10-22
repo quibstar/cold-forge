@@ -320,20 +320,28 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
               </p>
             </div>
 
-            <%!-- What to say to this one shop, which is what the call screen
-            reads from. Folded away unless there is already a script, because
-            six empty boxes on the way to adding one prospect is not a form
-            anybody wants — and open when there is one, because a script you
-            can't see is a script you don't know you are about to overwrite. --%>
+            <%!-- The scripts live on the project and are read with this
+            prospect's details in them. These boxes are the exception: wording
+            for one shop that the template can't carry. Folded away unless
+            there is one, because six empty boxes on the way to adding a
+            prospect is not a form anybody wants — and open when there is one,
+            because an override you can't see is one you don't know is there. --%>
             <details class="rounded-lg border border-base-300 p-3" open={script?(@form)}>
               <summary class="text-sm font-medium cursor-pointer">
-                Call scripts
+                Call scripts for this shop only
                 <span class="text-base-content/50 font-normal">
-                  — read beside the phone, on the calls screen
+                  — overrides the project's
                 </span>
               </summary>
 
               <div class="mt-3 space-y-3">
+                <p class="text-xs text-base-content/50">
+                  Leave these empty and the call screen reads the project's script with
+                  this prospect's details merged in, which is almost always what you want.
+                  <.link navigate={~p"/admin/projects/#{@project_id}/edit"} class="link">
+                    Edit the project's scripts
+                  </.link>
+                </p>
                 <div :for={{key, label} <- script_fields()}>
                   <label for={"prospect-script-#{key}"} class="text-sm font-medium">{label}</label>
                   <textarea
@@ -345,7 +353,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
                 </div>
 
                 <p class="text-xs text-base-content/50">
-                  Each is a merge tag too — <code>opener</code> is <code>{"{{opener}}"}</code>.
+                  Merge tags work here too — <code>{"{{company}}"}</code>, <code>{"{{city}}"}</code>, <code>{"{{industry|exterior}}"}</code>.
                 </p>
               </div>
             </details>

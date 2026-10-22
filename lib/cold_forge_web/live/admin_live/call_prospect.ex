@@ -50,7 +50,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
        {"Calls", ~p"/admin/p/#{project_id}/calls"}
      ])
      |> assign(:prospect, prospect)
-     |> assign(:script_tab, CallScripts.default_tab(prospect))
+     |> assign(:script_tab, CallScripts.default_tab(prospect, socket.assigns.current_project))
      |> assign(editing_id: nil, edit_form: nil)
      |> load()
      |> assign_call_form()}
@@ -170,8 +170,11 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       than 24 — these are spoken scripts, and at 24 a sentence broke into three
       ragged lines, which is hard to read aloud. --%>
       <div class="flex flex-col xl:flex-row gap-6 xl:items-start">
-        <aside :if={CallScripts.any?(@prospect)} class="xl:w-[30rem] xl:shrink-0 xl:order-last">
-          <.call_script prospect={@prospect} tab={@script_tab} />
+        <aside
+          :if={CallScripts.any?(@prospect, @current_project)}
+          class="xl:w-[30rem] xl:shrink-0 xl:order-last"
+        >
+          <.call_script prospect={@prospect} project={@current_project} tab={@script_tab} />
         </aside>
 
         <div class="flex-1 min-w-0 max-w-4xl space-y-6">
@@ -413,6 +416,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
   end
 
   attr :prospect, :map, required: true
+  attr :project, :map, required: true
   attr :tab, :string, required: true
 
   # What to say, in the order it gets said. Verbatim rather than paraphrased:
@@ -426,8 +430,8 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
   defp call_script(assigns) do
     assigns =
       assigns
-      |> assign(:tabs, CallScripts.available(assigns.prospect))
-      |> assign(:parts, CallScripts.parts(assigns.prospect, assigns.tab))
+      |> assign(:tabs, CallScripts.available(assigns.prospect, assigns.project))
+      |> assign(:parts, CallScripts.parts(assigns.prospect, assigns.project, assigns.tab))
 
     ~H"""
     <section class="rounded-2xl border border-primary/25 bg-base-100 overflow-hidden xl:sticky xl:top-20">

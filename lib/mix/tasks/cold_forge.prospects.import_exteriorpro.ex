@@ -324,7 +324,8 @@ defmodule Mix.Tasks.ColdForge.Prospects.ImportExteriorpro do
   defp bucket({:invalid, _reason}), do: :invalid
   defp bucket(:unchanged), do: :unchanged
 
-  defp scripts?(attrs), do: ColdForge.Outreach.CallScripts.any?(attrs)
+  defp scripts?(attrs),
+    do: attrs.custom_fields |> ColdForge.Outreach.CallScripts.scripts() != %{}
 
   defp sample([]), do: ""
 

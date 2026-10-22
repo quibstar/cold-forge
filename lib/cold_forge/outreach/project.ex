@@ -21,6 +21,9 @@ defmodule ColdForge.Outreach.Project do
     field :merge_defaults, :map, default: %{}
     # Form-only: the one-per-line text behind `merge_defaults`.
     field :merge_defaults_text, :string, virtual: true
+    # The call scripts, written once here rather than copied onto every
+    # prospect — see `ColdForge.Outreach.CallScripts`.
+    field :call_scripts, :map, default: %{}
     field :signature, :string
     field :logo_url, :string
     field :logo_path, :string
@@ -48,6 +51,7 @@ defmodule ColdForge.Outreach.Project do
       :postal_address,
       :merge_defaults,
       :merge_defaults_text,
+      :call_scripts,
       :signature,
       :logo_url,
       :logo_path,
@@ -69,6 +73,33 @@ defmodule ColdForge.Outreach.Project do
       message: "must be a hex colour like #0f766e"
     )
     |> unique_constraint(:slug)
+    |> clean_call_scripts()
+  end
+
+  # A blank textarea means "no script", not "a script that is empty" — and the
+  # difference is visible: `CallScripts.available/2` draws a tab for anything
+  # present, and a tab you click into and find empty is one you never trust
+  # again. Unknown keys go too, so the form is the only thing that can write
+  # one.
+  defp clean_call_scripts(changeset) do
+    case get_change(changeset, :call_scripts) do
+      nil ->
+        changeset
+
+      scripts when is_map(scripts) ->
+        kept =
+          for {key, value} <- scripts,
+              to_string(key) in ColdForge.Outreach.CallScripts.keys(),
+              is_binary(value),
+              String.trim(value) != "",
+              into: %{},
+              do: {to_string(key), String.trim(value)}
+
+        put_change(changeset, :call_scripts, kept)
+
+      _ ->
+        changeset
+    end
   end
 
   defp maybe_generate_slug(changeset) do

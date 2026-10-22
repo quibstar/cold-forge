@@ -1,28 +1,30 @@
 defmodule ColdForge.Outreach.CallScripts do
   @moduledoc """
-  The scripts written for one particular business, read from a prospect's
-  `custom_fields`.
+  The call scripts: written once per project, read with one prospect's details
+  in them.
 
-  Not to be confused with `ColdForge.Calling.Scripts`, which is the opposite
-  thing: four generic voicemails, numbered, the same for everybody, rendered
-  with merge values. These are hand-written per company — the opener names the
-  shop, the voicemail names the shop — and they came across from ExteriorPro's
-  own call list, where they were six columns on the prospect.
+  Not to be confused with `ColdForge.Calling.Scripts`, which is the numbered
+  voicemail cadence — four messages that know which have already been left.
+  These are the scripts for a live call, and there are three of them because
+  there are three ways to open the same conversation.
 
-  ## Why `custom_fields` and not six columns
+  ## Templates, not copies
 
-  They are prose a person wrote for one company, which is exactly what that map
-  is for, and living there makes them reachable as merge tags (`{{opener}}`)
-  without the renderer learning anything new. Six more text columns would buy
-  nothing but a migration.
+  They arrived from ExteriorPro as six text fields on every prospect, which is
+  how they had been generated: a sheet per script, a row per company, the
+  company and the town pasted in. That meant 112 copies of four paragraphs —
+  and `objections` had four distinct values across the whole list while
+  `problem_question` had nine. Changing a line meant changing it 112 times, or
+  regenerating the sheet and re-importing.
 
-  The one thing that had to change is the editor. `custom_fields` is edited as
-  one `name: value` per line, which cannot represent a 2,000-character script:
-  rendering one into that textarea and saving it back would drop every line
-  after the first and turn any line with a colon in it into a field of its own.
-  So the script keys are split out of that textarea and get their own, and this
-  module is what both halves agree on. `put_custom_fields/2` is the part that
-  keeps a save from losing the half it wasn't shown.
+  So a script lives on the project, written with the same merge tags the emails
+  use — `{{company}}`, `{{city}}`, `{{industry|exterior}}` — and
+  `ColdForge.Sending.Renderer` reads the prospect's details into it at the
+  moment somebody opens the call page. One edit, 112 prospects.
+
+  A prospect's own `custom_fields` still wins where it has one, because a shop
+  occasionally earns its own wording. Nothing fills those by default, and the
+  prospect form is where one gets written.
   """
 
   # Three ways to open the same call, in the order the tabs show them, each with
@@ -62,46 +64,96 @@ defmodule ColdForge.Outreach.CallScripts do
   end
 
   @doc """
-  The tabs this prospect actually has something on, as `{key, label}`.
+  What this prospect would read under one key, template rendered, or `nil`.
 
-  A tab whose script they haven't got is not drawn at all: an empty tab is a
-  thing you click once, find nothing in, and never trust again.
+  The prospect's own wording first, then the project's template with their
+  details read into it. A blank is a blank either way: a tab with nothing
+  behind it is one you click once, find empty, and never trust again.
   """
-  def available(prospect) do
-    fields = fields_of(prospect)
+  def body(prospect, project, key) do
+    case Map.get(fields_of(prospect), to_string(key)) do
+      own when is_binary(own) ->
+        if filled?(own), do: own, else: template_body(prospect, project, key)
 
+      _ ->
+        template_body(prospect, project, key)
+    end
+  end
+
+  defp template_body(prospect, project, key) do
+    case Map.get(templates_of(project), to_string(key)) do
+      template when is_binary(template) ->
+        if filled?(template), do: render(template, prospect, project), else: nil
+
+      _ ->
+        nil
+    end
+  end
+
+  # The same renderer and the same tag syntax the emails use, so `{{company}}`
+  # means one thing across the app and a fallback (`{{industry|exterior}}`)
+  # degrades a thin row into a sentence somebody can still read aloud.
+  defp render(template, prospect, project) do
+    ColdForge.Sending.Renderer.preview(template, prospect, project)
+  end
+
+  @doc """
+  The tabs that have something to read, as `{key, label}`.
+
+  A tab whose script neither the prospect nor the project has is not drawn at
+  all.
+  """
+  def available(prospect, project) do
     for {key, label, parts} <- @tabs,
-        Enum.any?(parts, fn {part, _} -> filled?(Map.get(fields, part)) end),
+        Enum.any?(parts, fn {part, _} -> body(prospect, project, part) end),
         do: {key, label}
   end
 
   @doc "Whether there is any script at all to read from."
-  def any?(prospect), do: available(prospect) != []
+  def any?(prospect, project), do: available(prospect, project) != []
 
   @doc """
-  Which tab to open on — whichever this prospect actually has.
+  Which tab to open on — whichever there is a script for.
 
-  A list imported with only one of the three shouldn't land you on a blank tab.
+  A project with only one of the three written shouldn't land you on a blank
+  tab.
   """
-  def default_tab(prospect) do
-    case available(prospect) do
+  def default_tab(prospect, project) do
+    case available(prospect, project) do
       [{key, _label} | _] -> key
       [] -> "original"
     end
   end
 
   @doc "The filled parts of one tab, as `{label, body}`, in reading order."
-  def parts(prospect, tab_key) do
-    fields = fields_of(prospect)
-
+  def parts(prospect, project, tab_key) do
     case Enum.find(@tabs, fn {key, _label, _parts} -> key == tab_key end) do
       nil ->
         []
 
       {_key, _label, parts} ->
-        for {part, label} <- parts, filled?(Map.get(fields, part)), do: {label, fields[part]}
+        for {part, label} <- parts,
+            rendered = body(prospect, project, part),
+            do: {label, rendered}
     end
   end
+
+  @doc """
+  Whether this prospect overrides a script the project already has.
+
+  Worth saying on the form: an override is invisible from the project's side,
+  and somebody editing the template there would otherwise wonder why one shop
+  never changes.
+  """
+  def overridden(prospect, project) do
+    own = scripts(fields_of(prospect))
+    templates = templates_of(project)
+
+    for {key, value} <- own, filled?(value), filled?(Map.get(templates, key)), do: key
+  end
+
+  defp templates_of(%{call_scripts: scripts}), do: stringify(scripts)
+  defp templates_of(_), do: %{}
 
   @doc "Just the scripts out of a `custom_fields` map."
   def scripts(fields) when is_map(fields), do: Map.take(fields, @keys)

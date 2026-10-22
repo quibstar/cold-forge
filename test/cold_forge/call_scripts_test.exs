@@ -52,41 +52,97 @@ defmodule ColdForge.CallScriptsTest do
              }
     end
 
-    test "a nil map is not a crash" do
+    test "a nil map is not a crash", ctx do
       assert CallScripts.scripts(nil) == %{}
       assert CallScripts.extras(nil) == %{}
-      assert CallScripts.available(%Prospect{custom_fields: nil}) == []
+      assert CallScripts.available(%Prospect{custom_fields: nil}, ctx.project) == []
     end
   end
 
   describe "tabs" do
-    test "only the ones this prospect has something on", ctx do
-      assert CallScripts.available(ctx.prospect) == [{"original", "Script 1"}]
-      assert CallScripts.default_tab(ctx.prospect) == "original"
-      assert CallScripts.any?(ctx.prospect)
+    test "only the ones there is a script for", ctx do
+      assert CallScripts.available(ctx.prospect, ctx.project) == [{"original", "Script 1"}]
+      assert CallScripts.default_tab(ctx.prospect, ctx.project) == "original"
+      assert CallScripts.any?(ctx.prospect, ctx.project)
     end
 
-    test "opens on whichever script there is, not on a blank tab", %{project: project} do
-      nepq_only = prospect_fixture(project, custom_fields: %{"script_nepq" => "Five stages."})
+    test "opens on whichever script there is, not on a blank tab", ctx do
+      nepq_only = prospect_fixture(ctx.project, custom_fields: %{"script_nepq" => "Five stages."})
 
-      assert CallScripts.available(nepq_only) == [{"nepq", "NEPQ Awareness"}]
-      assert CallScripts.default_tab(nepq_only) == "nepq"
+      assert CallScripts.available(nepq_only, ctx.project) == [{"nepq", "NEPQ Awareness"}]
+      assert CallScripts.default_tab(nepq_only, ctx.project) == "nepq"
     end
 
-    test "no scripts at all is not a tab", %{project: project} do
-      bare = prospect_fixture(project)
+    test "no scripts at all is not a tab", ctx do
+      bare = prospect_fixture(ctx.project)
 
-      refute CallScripts.any?(bare)
-      assert CallScripts.available(bare) == []
+      refute CallScripts.any?(bare, ctx.project)
+      assert CallScripts.available(bare, ctx.project) == []
     end
 
     test "parts come back in reading order, blanks dropped", ctx do
-      assert CallScripts.parts(ctx.prospect, "original") == [
+      assert CallScripts.parts(ctx.prospect, ctx.project, "original") == [
                {"Opener", @opener},
                {"Voicemail", "Hey, it's just Kris."}
              ]
 
-      assert CallScripts.parts(ctx.prospect, "direct") == []
+      assert CallScripts.parts(ctx.prospect, ctx.project, "direct") == []
+    end
+  end
+
+  describe "the project's templates" do
+    setup ctx do
+      {:ok, project} =
+        Outreach.update_project(ctx.project, %{
+          "call_scripts" => %{
+            "script_direct" => "Hi — is this {{company}}? Thirty seconds.",
+            "script_nepq" => "A {{industry|exterior}} shop in {{city|West Michigan}}.",
+            "opener" => "The template opener, which {{company}} should not see."
+          }
+        })
+
+      Map.put(ctx, :project, project)
+    end
+
+    test "a template is read with this prospect's details in it", ctx do
+      assert CallScripts.body(ctx.prospect, ctx.project, "script_direct") ==
+               "Hi — is this Rivera Roofing? Thirty seconds."
+    end
+
+    test "a tag with no value falls back rather than leaving a gap", ctx do
+      # No industry, and `city` is a custom field this prospect does have.
+      assert CallScripts.body(ctx.prospect, ctx.project, "script_nepq") ==
+               "A exterior shop in Grand Rapids."
+    end
+
+    test "the prospect's own wording wins over the template", ctx do
+      assert CallScripts.body(ctx.prospect, ctx.project, "opener") == @opener
+      assert CallScripts.overridden(ctx.prospect, ctx.project) == ["opener"]
+    end
+
+    test "a template gives every prospect the tab, with no copies stored", ctx do
+      bare = prospect_fixture(ctx.project, company: "Ace Roofing")
+
+      assert CallScripts.available(bare, ctx.project) == [
+               {"original", "Script 1"},
+               {"direct", "Script 2"},
+               {"nepq", "NEPQ Awareness"}
+             ]
+
+      assert CallScripts.body(bare, ctx.project, "script_direct") ==
+               "Hi — is this Ace Roofing? Thirty seconds."
+
+      # Nothing of the script is on the prospect — that was the point.
+      assert CallScripts.scripts(bare.custom_fields) == %{}
+    end
+
+    test "blank and unknown keys never become a template", ctx do
+      {:ok, project} =
+        Outreach.update_project(ctx.project, %{
+          "call_scripts" => %{"opener" => "  ", "nonsense" => "x", "voicemail" => " Hi. "}
+        })
+
+      assert project.call_scripts == %{"voicemail" => "Hi."}
     end
   end
 

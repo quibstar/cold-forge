@@ -7,7 +7,7 @@ defmodule ColdForgeWeb.AdminLive.Projects do
   use ColdForgeWeb, :live_view
 
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.Project
+  alias ColdForge.Outreach.{CallScripts, Project}
 
   # 2 MB is generous for a logo and well under what a mail client will happily
   # inline. PNG and JPG only — Gmail and Outlook don't render SVG.
@@ -119,6 +119,17 @@ defmodule ColdForgeWeb.AdminLive.Projects do
   # would fix it straight back into the broken one. A function call it leaves
   # alone.
   defp signature_hint, do: "Kris Utter\nExteriorPro\n(555) 123-4567"
+
+  defp script_fields, do: for(key <- CallScripts.keys(), do: {key, CallScripts.label(key)})
+
+  # Off the changeset rather than the project, so a half-typed script survives
+  # the validate round trip instead of snapping back to what was saved.
+  defp script_value(form, key) do
+    case form[:call_scripts].value do
+      scripts when is_map(scripts) -> Map.get(scripts, key, "")
+      _ -> ""
+    end
+  end
 
   defp merge_defaults_hint, do: "industry: contractors\nproduct: ExteriorPro"
 
@@ -286,6 +297,29 @@ defmodule ColdForgeWeb.AdminLive.Projects do
               for this idea. A campaign can override it, and a prospect's own value
               overrides both.
             </p>
+          </div>
+
+          <div class="divider text-xs text-base-content/40">Call scripts</div>
+
+          <%!-- Written once here, read with one prospect's details in them.
+          They used to be copied onto every prospect — 112 copies of four
+          paragraphs, which meant changing a line meant changing it 112 times.
+          See `ColdForge.Outreach.CallScripts`. --%>
+          <p class="text-xs text-base-content/50 -mt-2">
+            What gets read on the calls screen. Same merge tags as an email — <code>{"{{company}}"}</code>, <code>{"{{city}}"}</code>,
+            <code>{"{{industry|exterior}}"}</code>
+            for a fallback, <code>{"{{callback}}"}</code>
+            for the number above. A prospect with its own wording overrides what's here.
+          </p>
+
+          <div :for={{key, label} <- script_fields()}>
+            <label for={"project-script-#{key}"} class="text-sm font-medium">{label}</label>
+            <textarea
+              id={"project-script-#{key}"}
+              name={"project[call_scripts][#{key}]"}
+              rows="6"
+              class="textarea w-full mt-1 text-sm"
+            >{script_value(@form, key)}</textarea>
           </div>
 
           <div class="divider text-xs text-base-content/40">Branding</div>
