@@ -33,6 +33,42 @@ defmodule ColdForge.Sourcing do
 
   def get_org!(id), do: Repo.get!(Org, id)
 
+  @doc """
+  Organisations for the review queue, newest first.
+
+  Options: `:status`, `:segment`, `:limit`.
+  """
+  def list_orgs(opts \\ []) do
+    Org
+    |> maybe_status(Keyword.get(opts, :status))
+    |> maybe_segment(Keyword.get(opts, :segment))
+    |> order_by([o], desc: o.updated_at)
+    |> limit(^Keyword.get(opts, :limit, 200))
+    |> Repo.all()
+  end
+
+  @doc "How many organisations sit at each status, for the queue's tabs."
+  def counts_by_status do
+    Org
+    |> group_by([o], o.status)
+    |> select([o], {o.status, count(o.id)})
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @doc "The segments actually present, so the filter offers only real options."
+  def segments_present do
+    Org
+    |> distinct(true)
+    |> select([o], o.segment)
+    |> Repo.all()
+    |> Enum.sort()
+  end
+
+  defp maybe_status(query, nil), do: query
+  defp maybe_status(query, "all"), do: query
+  defp maybe_status(query, status), do: where(query, [o], o.status == ^status)
+
   @doc "Organisations with a website we haven't crawled yet."
   def crawlable(opts \\ []) do
     limit = Keyword.get(opts, :limit, 100)
@@ -46,6 +82,7 @@ defmodule ColdForge.Sourcing do
   end
 
   defp maybe_segment(query, nil), do: query
+  defp maybe_segment(query, "all"), do: query
   defp maybe_segment(query, segment), do: where(query, [o], o.segment == ^segment)
 
   @doc "Queues a crawl for each organisation. Returns how many were queued."

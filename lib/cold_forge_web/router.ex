@@ -106,6 +106,7 @@ defmodule ColdForgeWeb.Router do
       live "/projects/new", AdminLive.Projects, :new
       live "/projects/:id/edit", AdminLive.Projects, :edit
 
+      live "/sourcing", AdminLive.Sourcing, :index
       live "/suppressions", AdminLive.Suppressions, :index
       live "/guide", AdminLive.Guide, :index
 
