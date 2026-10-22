@@ -79,6 +79,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     )
     |> assign(:breadcrumbs, [{"Sourcing", ~p"/admin/p/#{source.project_id}/sourcing"}])
     |> assign(:source, source)
+    |> assign(:plan, Source.plan(source))
     |> assign(:status, "fetched")
     |> load_results()
   end
@@ -92,8 +93,13 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> assign(:ready_count, Sourcing.ready_count(source))
   end
 
-  defp assign_form(socket, %Ecto.Changeset{} = changeset),
-    do: assign(socket, :form, to_form(changeset))
+  # The plan is worked out from whatever has been typed, valid or not, so the
+  # cost of a typo or of a whole state is on screen before Save.
+  defp assign_form(socket, %Ecto.Changeset{} = changeset) do
+    socket
+    |> assign(:form, to_form(changeset))
+    |> assign(:plan, Source.plan(Ecto.Changeset.apply_changes(changeset)))
+  end
 
   ## Events
 
@@ -283,11 +289,19 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
           <.input
             field={@form[:segments_text]}
             label="Looking for"
-            placeholder="Roofing, siding, gutters, windows"
+            placeholder="Roofing, siding, windows & doors, deck builder"
           />
-          <p class="text-xs opacity-60 -mt-3">
-            Separate them with commas. This provider knows: {Enum.map_join(
-              Source.segments_for(@form[:provider].value || "places"),
+          <p :if={(@form[:provider].value || "places") == "places"} class="text-xs opacity-60 -mt-3">
+            Separate trades with commas. Anything works — it's searched as you write it.
+            These have tuned searches built in: {Enum.map_join(
+              Source.segments_for("places"),
+              ", ",
+              &humanize/1
+            )}. Add other wordings of one trade with <code>|</code>, like <code>deck builder | deck contractor</code>.
+          </p>
+          <p :if={@form[:provider].value == "overpass"} class="text-xs opacity-60 -mt-3">
+            Separate them with commas. OpenStreetMap only knows: {Enum.map_join(
+              Source.segments_for("overpass"),
               ", ",
               &humanize/1
             )}.
@@ -302,8 +316,10 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
           />
           <p class="text-xs opacity-60 -mt-3">
             {Source.locality_hint(@form[:provider].value || "places")}. Places caps a search at
-            60 results, so several towns beats one big area.
+            60 results, so a state is searched town by town — every town of 5,000+.
           </p>
+
+          <.plan_summary plan={@plan} id="source-plan" />
 
           <.input field={@form[:notes]} type="textarea" label="Notes" rows="2" />
           <.input field={@form[:active]} type="checkbox" label="Active" />
@@ -361,10 +377,13 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             class="btn btn-sm btn-primary"
             phx-click="run"
             phx-value-id={@source.id}
+            data-confirm={run_confirmation(@plan)}
           >
             Run search
           </button>
         </div>
+
+        <.plan_summary plan={@plan} id="run-plan" />
       </div>
     </div>
 
@@ -516,6 +535,77 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   defp presentation_phrase("obfuscated"), do: "written out to dodge scrapers"
   defp presentation_phrase("plain_text"), do: "in the page text"
   defp presentation_phrase(other), do: humanize(other)
+
+  attr :plan, :map, required: true
+  attr :id, :string, required: true
+
+  # What a run will do, in the order it matters: how much searching, what it
+  # costs, and the exact phrases — so "rofing" or a stray state is caught here
+  # rather than on the bill.
+  defp plan_summary(%{plan: %{searches: 0}} = assigns) do
+    ~H"""
+    <div id={@id} class="text-xs opacity-60">
+      Add something to look for and somewhere to look, and the searches it will run show up here.
+    </div>
+    """
+  end
+
+  defp plan_summary(assigns) do
+    ~H"""
+    <div id={@id} class="rounded-box bg-base-200/60 p-3 text-sm space-y-2">
+      <p class="font-medium">
+        {count(@plan.searches, "search", "searches")} across {count(@plan.towns, "town", "towns")}
+        <span :if={@plan.max_cost > 0} class="font-normal opacity-70">
+          · {count(@plan.min_requests, "request", "requests")}{if @plan.max_requests >
+                                                                    @plan.min_requests,
+                                                                  do:
+                                                                    " to #{format_number(@plan.max_requests)}"} · about {money(
+            @plan.min_cost
+          )}{if @plan.max_cost > @plan.min_cost,
+            do: "–#{money(@plan.max_cost)}"}
+        </span>
+      </p>
+      <p :for={{state, towns} <- @plan.states} class="text-xs opacity-70">
+        {state} becomes its {towns} towns of 5,000 or more.
+      </p>
+      <ul class="text-xs opacity-70 space-y-0.5">
+        <li :for={{segment, phrases} <- @plan.trades}>
+          <span class="font-medium">{humanize(segment)}</span>
+          <span :if={phrases != []}>
+            — searches {Enum.map_join(phrases, ", ", &~s("#{&1}"))}
+          </span>
+        </li>
+      </ul>
+      <p :if={@plan.max_cost > 0} class="text-xs opacity-50">
+        Each search is 1 to 3 requests — Google returns 20 at a time, up to 60. The cost is at
+        Google's list price; your billing console has the real rate.
+      </p>
+    </div>
+    """
+  end
+
+  defp run_confirmation(%{max_cost: max_cost} = plan) when max_cost > 0,
+    do:
+      "Run #{format_number(plan.searches)} searches across #{format_number(plan.towns)} towns? " <>
+        "About #{money(plan.min_cost)}–#{money(plan.max_cost)} at Google's list price."
+
+  defp run_confirmation(plan), do: "Run #{format_number(plan.searches)} searches?"
+
+  defp count(1, singular, _plural), do: "1 #{singular}"
+  defp count(n, _singular, plural), do: "#{format_number(n)} #{plural}"
+
+  defp format_number(n) when n >= 1000,
+    do:
+      n
+      |> Integer.to_string()
+      |> String.reverse()
+      |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+      |> String.reverse()
+
+  defp format_number(n), do: Integer.to_string(n)
+
+  defp money(amount) when amount < 1, do: "$" <> :erlang.float_to_binary(amount / 1, decimals: 2)
+  defp money(amount), do: "$" <> Integer.to_string(round(amount))
 
   defp humanize(nil), do: ""
 

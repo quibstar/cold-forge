@@ -64,10 +64,103 @@ defmodule ColdForge.Sourcing.Discovery.Places do
     "breeder" => ["dog breeder", "cat breeder"]
   }
 
+  # Everyday wording for the built-in segments. Matched after `normalize/1`,
+  # so "Windows & Doors", "windows and doors" and "window" all land on the same
+  # tuned searches instead of becoming a second, worse search for the same trade.
+  @aliases %{
+    "roof" => "roofing",
+    "roofs" => "roofing",
+    "roofer" => "roofing",
+    "roofers" => "roofing",
+    "roofing contractor" => "roofing",
+    "roofing contractors" => "roofing",
+    "siding contractor" => "siding",
+    "siding contractors" => "siding",
+    "window" => "windows",
+    "window and door" => "windows",
+    "window and doors" => "windows",
+    "windows and door" => "windows",
+    "windows and doors" => "windows",
+    "window installation" => "windows",
+    "gutter" => "gutters",
+    "seamless gutters" => "gutters",
+    "gutter installation" => "gutters",
+    "animal shelter" => "shelter",
+    "animal shelters" => "shelter",
+    "animal rescue" => "rescue",
+    "humane society" => "humane_society",
+    "breeders" => "breeder"
+  }
+
   def endpoint, do: @endpoint
+
+  @doc """
+  The built-in segments. Suggestions, not a limit: anything else is searched as
+  typed.
+  """
   def segments, do: Map.keys(@queries)
+
   def field_mask, do: Enum.join(@fields, ",")
-  def queries_for(segment), do: Map.get(@queries, segment, [])
+
+  @doc """
+  Every phrase searched for a segment.
+
+  A built-in segment uses its tuned phrases. Anything else is the operator's
+  own wording, where `|` separates alternative phrasings to search separately:
+  `"deck builder | deck contractor"`.
+  """
+  def queries_for(segment) do
+    case Map.fetch(@queries, segment) do
+      {:ok, queries} ->
+        queries
+
+      :error ->
+        segment
+        |> to_string()
+        |> String.split("|")
+        |> Enum.map(&String.trim/1)
+        |> Enum.reject(&(&1 == ""))
+    end
+  end
+
+  @doc """
+  What somebody typed, turned into the segment it is stored as.
+
+  A built-in segment or an alias of one becomes that segment's key; anything
+  else is kept as written, tidied, with its `|` alternatives intact.
+  """
+  def canonical(term) do
+    case term
+         |> to_string()
+         |> String.split("|")
+         |> Enum.map(&normalize/1)
+         |> Enum.reject(&(&1 == "")) do
+      [] ->
+        ""
+
+      [one] ->
+        key = String.replace(one, " ", "_")
+
+        cond do
+          Map.has_key?(@queries, key) -> key
+          Map.has_key?(@aliases, one) -> Map.fetch!(@aliases, one)
+          true -> one
+        end
+
+      phrases ->
+        Enum.join(phrases, " | ")
+    end
+  end
+
+  # Lowercase, quotes gone, "&" spelled out, whitespace collapsed.
+  defp normalize(text) do
+    text
+    |> String.downcase()
+    |> String.replace(~r/["“”']/u, "")
+    |> String.replace("&", " and ")
+    |> String.replace(~r/[\s_]+/u, " ")
+    |> String.trim()
+  end
 
   @doc """
   The request body for one segment in one place, e.g. `"Grand Rapids, MI"`.
@@ -75,14 +168,20 @@ defmodule ColdForge.Sourcing.Discovery.Places do
   `:page_token` continues a previous response. Text Search returns 20 per page
   and at most 60 for a query, so wide coverage comes from many narrow queries —
   per city, per trade — rather than one broad one.
+
+  `:query` picks which of the segment's phrases to search. Without it, the
+  first — which is all this used to search, so a segment's other phrasings
+  were listed but never ran.
   """
   @spec search_body(String.t(), String.t(), keyword()) :: {:ok, map()} | {:error, term()}
   def search_body(segment, locality, opts \\ []) do
-    case queries_for(segment) do
-      [] ->
+    phrases = queries_for(segment)
+
+    case Keyword.get(opts, :query) || List.first(phrases) do
+      nil ->
         {:error, {:unknown_segment, segment}}
 
-      [query | _] ->
+      query ->
         body = %{
           "textQuery" => "#{query} in #{locality}",
           "maxResultCount" => Keyword.get(opts, :page_size, 20),

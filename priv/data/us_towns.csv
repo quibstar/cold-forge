@@ -1,0 +1,4865 @@
+state,town,population
+AK,Anchorage,289600
+AK,Fairbanks,31732
+AK,Juneau,31572
+AK,Wasilla,10318
+AK,Sitka,8355
+AK,Ketchikan,8033
+AK,Kenai,7770
+AK,Palmer,6626
+AK,Bethel,6335
+AK,Homer,6136
+AK,Kodiak,5399
+AL,Huntsville,230402
+AL,Mobile,201367
+AL,Birmingham,196357
+AL,Montgomery,195818
+AL,Tuscaloosa,114288
+AL,Hoover,93013
+AL,Auburn,83757
+AL,Dothan,71650
+AL,Madison,64029
+AL,Decatur,57974
+AL,Florence,42716
+AL,Prattville,40139
+AL,Phenix City,38509
+AL,Vestavia Hills,38151
+AL,Opelika,35005
+AL,Alabaster,34460
+AL,Gadsden,33086
+AL,Athens,32587
+AL,Northport,31492
+AL,Daphne,30751
+AL,Enterprise,30731
+AL,Foley,28043
+AL,Homewood,27919
+AL,Trussville,27079
+AL,Fairhope,26044
+AL,Pelham,25396
+AL,Bessemer,25079
+AL,Albertville,23392
+AL,Helena,22200
+AL,Oxford,22088
+AL,Mountain Brook,21701
+AL,Anniston,21127
+AL,Cullman,20239
+AL,Prichard,18778
+AL,Calera,18530
+AL,Troy,17734
+AL,Gulf Shores,17431
+AL,Muscle Shoals,17409
+AL,Millbrook,17392
+AL,Chelsea,17293
+AL,Saraland,16458
+AL,Gardendale,16444
+AL,Selma,16312
+AL,Hartselle,16201
+AL,Hueytown,16185
+AL,Scottsboro,15957
+AL,Center Point,15603
+AL,Fort Payne,15017
+AL,Talladega,14693
+AL,Jacksonville,14651
+AL,Jasper,14561
+AL,Alexander City,14439
+AL,Ozark,14368
+AL,Pell City,14094
+AL,Moody,13596
+AL,Irondale,13545
+AL,Leeds,12573
+AL,Eufaula,12363
+AL,Sylacauga,12123
+AL,Pike Road,11500
+AL,Spanish Fort,11118
+AL,Russellville,10736
+AL,Boaz,10473
+AL,Rainbow City,10349
+AL,Clay,10241
+AL,Valley,10144
+AL,Southside,9633
+AL,Fairfield,9524
+AL,Pleasant Grove,9375
+AL,Sheffield,9335
+AL,Fultondale,9325
+AL,Guntersville,9242
+AL,Clanton,9228
+AL,Tuscumbia,9222
+AL,Arab,8918
+AL,Andalusia,8728
+AL,Tuskegee,8653
+AL,Orange Beach,8599
+AL,Bay Minette,8505
+AL,Atmore,8310
+AL,Lincoln,7790
+AL,Pinson,7781
+AL,Montevallo,7761
+AL,Wetumpka,7667
+AL,Robertsdale,7613
+AL,Oneonta,7039
+AL,Greenville,6983
+AL,Hamilton,6944
+AL,Satsuma,6874
+AL,Demopolis,6724
+AL,Opp,6706
+AL,Lanett,6704
+AL,Margaret,6654
+AL,Chickasaw,6241
+AL,Semmes,6193
+AL,Rainsville,5931
+AL,Tarrant,5806
+AL,Attalla,5746
+AL,Monroeville,5720
+AL,Odenville,5711
+AL,Smiths Station,5583
+AL,Headland,5429
+AL,Roanoke,5424
+AL,Glencoe,5396
+AL,Springville,5392
+AL,Loxley,5176
+AL,Brewton,5129
+AR,Little Rock,204774
+AR,Fayetteville,103134
+AR,Fort Smith,90507
+AR,Springdale,89368
+AR,Jonesboro,82384
+AR,Rogers,75639
+AR,Conway,70711
+AR,North Little Rock,64498
+AR,Bentonville,61791
+AR,Pine Bluff,38785
+AR,Benton,38088
+AR,Hot Springs,37971
+AR,Sherwood,33281
+AR,Bella Vista,33274
+AR,Paragould,30680
+AR,Russellville,29442
+AR,Jacksonville,29129
+AR,Texarkana,28897
+AR,Cabot,27575
+AR,Centerton,25745
+AR,Van Buren,24396
+AR,Searcy,23997
+AR,West Memphis,23538
+AR,Bryant,22271
+AR,Siloam Springs,20075
+AR,Maumelle,19541
+AR,El Dorado,16657
+AR,Harrison,13723
+AR,Marion,13524
+AR,Mountain Home,13348
+AR,Blytheville,12359
+AR,Forrest City,12340
+AR,Lowell,11568
+AR,Batesville,11539
+AR,Malvern,11082
+AR,Magnolia,10759
+AR,Farmington,10473
+AR,Pea Ridge,10190
+AR,Camden,10116
+AR,Arkadelphia,9894
+AR,Greenwood,9730
+AR,Clarksville,9606
+AR,Beebe,9092
+AR,Prairie Grove,8589
+AR,Hope,8465
+AR,Helena-West Helena,8462
+AR,Monticello,8185
+AR,Newport,8049
+AR,Tontitown,7941
+AR,Wynne,7905
+AR,Pocahontas,7703
+AR,Stuttgart,7638
+AR,Trumann,7425
+AR,Heber Springs,7313
+AR,Morrilton,7185
+AR,Ward,7022
+AR,Osceola,6496
+AR,Greenbrier,6330
+AR,Cave Springs,6304
+AR,De Queen,6069
+AR,Alma,6017
+AR,Berryville,5763
+AR,Mena,5594
+AR,Walnut Ridge,5508
+AR,White Hall,5499
+AR,Sheridan,5315
+AR,Barling,5284
+AR,Warren,5196
+AZ,Phoenix,1673164
+AZ,Tucson,554013
+AZ,Mesa,517151
+AZ,Gilbert,288790
+AZ,Chandler,281231
+AZ,Glendale,258143
+AZ,Scottsdale,246170
+AZ,Peoria,199924
+AZ,Tempe,190114
+AZ,Surprise,167564
+AZ,Goodyear,118186
+AZ,Buckeye,114334
+AZ,Yuma,103559
+AZ,Avondale,96609
+AZ,Queen Creek,83781
+AZ,Flagstaff,77539
+AZ,Maricopa,76654
+AZ,Casa Grande,68927
+AZ,Marana,62380
+AZ,Lake Havasu City,59037
+AZ,Prescott Valley,51440
+AZ,Oro Valley,48855
+AZ,Prescott,48224
+AZ,Sierra Vista,44710
+AZ,Apache Junction,44309
+AZ,Bullhead City,43266
+AZ,San Luis,40064
+AZ,Sahuarita,37448
+AZ,El Mirage,36468
+AZ,Kingman,35383
+AZ,Florence,24891
+AZ,Fountain Hills,23696
+AZ,Nogales,19965
+AZ,Coolidge,19674
+AZ,Eloy,19199
+AZ,Payson,16762
+AZ,Douglas,15819
+AZ,Somerton,14902
+AZ,Chino Valley,13911
+AZ,Cottonwood,12939
+AZ,Camp Verde,12608
+AZ,Paradise Valley,12523
+AZ,Show Low,12366
+AZ,Safford,10257
+AZ,Sedona,9778
+AZ,Tolleson,9353
+AZ,Winslow,8577
+AZ,Wickenburg,8301
+AZ,Page,7230
+AZ,Globe,7176
+AZ,Youngtown,7062
+AZ,Litchfield Park,6863
+AZ,Snowflake,6736
+AZ,Thatcher,5627
+AZ,Benson,5499
+AZ,Guadalupe,5197
+AZ,Cave Creek,5177
+CA,Los Angeles,3878704
+CA,San Diego,1404452
+CA,San Jose,997368
+CA,San Francisco,827526
+CA,Fresno,550105
+CA,Sacramento,535798
+CA,Long Beach,450901
+CA,Oakland,443554
+CA,Bakersfield,417468
+CA,Anaheim,344561
+CA,Stockton,324975
+CA,Riverside,323757
+CA,Irvine,318683
+CA,Santa Ana,316184
+CA,Chula Vista,278546
+CA,Santa Clarita,229159
+CA,Fremont,228192
+CA,San Bernardino,224775
+CA,Modesto,220592
+CA,Fontana,218455
+CA,Moreno Valley,213919
+CA,Oxnard,200616
+CA,Huntington Beach,193151
+CA,Glendale,187823
+CA,Ontario,185285
+CA,Elk Grove,182797
+CA,Santa Rosa,177524
+CA,Rancho Cucamonga,176675
+CA,Garden Grove,172361
+CA,Oceanside,170941
+CA,Lancaster,167426
+CA,Roseville,163304
+CA,Palmdale,162536
+CA,Corona,161540
+CA,Salinas,160783
+CA,Hayward,158440
+CA,Sunnyvale,156792
+CA,Escondido,148847
+CA,Pomona,147966
+CA,Visalia,146271
+CA,Victorville,140721
+CA,Fullerton,140054
+CA,Torrance,139576
+CA,Orange,137941
+CA,Pasadena,137195
+CA,Santa Clara,133132
+CA,Clovis,127993
+CA,Simi Valley,125778
+CA,Thousand Oaks,124229
+CA,Concord,124016
+CA,Vallejo,123475
+CA,Fairfield,122646
+CA,Berkeley,121749
+CA,Antioch,118453
+CA,Menifee,117041
+CA,Richmond,115353
+CA,Carlsbad,113575
+CA,Murrieta,112539
+CA,Temecula,112431
+CA,Santa Maria,111346
+CA,San Buenaventura (Ventura),109831
+CA,Downey,109368
+CA,Costa Mesa,109131
+CA,Jurupa Valley,108154
+CA,West Covina,106920
+CA,Rialto,104918
+CA,El Monte,104639
+CA,Vacaville,103994
+CA,Burbank,103533
+CA,El Cajon,103291
+CA,San Mateo,103006
+CA,Chico,102911
+CA,Inglewood,102774
+CA,Hesperia,101836
+CA,Daly City,101418
+CA,Tracy,100136
+CA,Vista,99322
+CA,Norwalk,98230
+CA,San Marcos,96620
+CA,Merced,96073
+CA,Manteca,94292
+CA,Indio,94275
+CA,Chino,94010
+CA,Redding,93502
+CA,Hemet,92912
+CA,Mission Viejo,91601
+CA,Carson,91358
+CA,Compton,91129
+CA,South Gate,90805
+CA,Santa Monica,90729
+CA,Westminster,89537
+CA,Folsom,88091
+CA,Mountain View,87316
+CA,Santa Barbara,87291
+CA,Lake Forest,87159
+CA,Citrus Heights,86909
+CA,San Leandro,86571
+CA,San Ramon,85924
+CA,Whittier,85589
+CA,Livermore,84867
+CA,Rancho Cordova,84113
+CA,Hawthorne,83633
+CA,Perris,83032
+CA,Redwood City,82982
+CA,Newport Beach,82970
+CA,Buena Park,82611
+CA,Alhambra,80279
+CA,Milpitas,79746
+CA,Upland,79684
+CA,Tustin,78863
+CA,Alameda,78795
+CA,Lakewood,78494
+CA,Chino Hills,77418
+CA,Pittsburg,77131
+CA,Napa,76921
+CA,Bellflower,75716
+CA,Pleasanton,75664
+CA,Rocklin,75129
+CA,Apple Valley,75029
+CA,Redlands,74279
+CA,Lake Elsinore,73595
+CA,Turlock,72888
+CA,Tulare,72601
+CA,Walnut Creek,70817
+CA,Eastvale,70751
+CA,Dublin,70544
+CA,Camarillo,69881
+CA,Baldwin Park,69247
+CA,Yuba City,69148
+CA,Madera,69094
+CA,Lodi,68642
+CA,Redondo Beach,68075
+CA,Palo Alto,67658
+CA,Davis,67125
+CA,Yorba Linda,66489
+CA,Brentwood,66286
+CA,Union City,66196
+CA,South San Francisco,64660
+CA,Laguna Niguel,64185
+CA,Lynwood,63596
+CA,Porterville,63517
+CA,Woodland,62983
+CA,San Clemente,62627
+CA,Santa Cruz,62581
+CA,La Habra,61391
+CA,Encinitas,61137
+CA,La Mesa,60767
+CA,Montebello,60617
+CA,Hanford,60594
+CA,Gilroy,60390
+CA,San Rafael,59961
+CA,Beaumont,59502
+CA,Petaluma,59393
+CA,Pico Rivera,59363
+CA,Santee,59104
+CA,Gardena,58921
+CA,Cupertino,58710
+CA,National City,58460
+CA,Monterey Park,57996
+CA,Highland,56499
+CA,Lincoln,56268
+CA,Fountain Valley,56036
+CA,West Sacramento,55991
+CA,San Jacinto,55515
+CA,Arcadia,54472
+CA,Yucaipa,54465
+CA,Colton,53528
+CA,Placentia,53395
+CA,Delano,53198
+CA,Palm Desert,53147
+CA,Cathedral City,52517
+CA,Novato,52311
+CA,Diamond Bar,52292
+CA,Huntington Park,52166
+CA,Watsonville,51320
+CA,Paramount,51169
+CA,Aliso Viejo,50457
+CA,Glendora,50101
+CA,San Luis Obispo,49729
+CA,Rosemead,49582
+CA,Poway,49435
+CA,Cypress,49286
+CA,Ceres,49253
+CA,Covina,49245
+CA,Los Banos,48684
+CA,Azusa,48383
+CA,Brea,47844
+CA,Oakley,47158
+CA,Cerritos,46851
+CA,La Mirada,46367
+CA,Rancho Santa Margarita,46353
+CA,Newark,46254
+CA,Morgan Hill,45952
+CA,Palm Springs,45453
+CA,Coachella,45165
+CA,Hollister,45033
+CA,Rohnert Park,44894
+CA,El Centro,44230
+CA,Lompoc,43594
+CA,Danville,43410
+CA,Campbell,42895
+CA,San Bruno,42035
+CA,Stanton,41188
+CA,Lathrop,40860
+CA,Rancho Palos Verdes,40064
+CA,La Quinta,39907
+CA,Culver City,39883
+CA,Calexico,38744
+CA,Adelanto,37941
+CA,San Gabriel,37926
+CA,Monrovia,37787
+CA,Wildomar,37736
+CA,Montclair,37650
+CA,Bell Gardens,37565
+CA,Pacifica,37056
+CA,Martinez,37006
+CA,La Puente,36670
+CA,Claremont,36139
+CA,Moorpark,35621
+CA,San Juan Capistrano,35469
+CA,Temple City,34989
+CA,West Hollywood,34371
+CA,Pleasant Hill,34169
+CA,Desert Hot Springs,33917
+CA,Manhattan Beach,33453
+CA,San Dimas,33226
+CA,Menlo Park,33040
+CA,Los Gatos,32952
+CA,Foster City,32657
+CA,Goleta,32611
+CA,Dana Point,32585
+CA,Atwater,32248
+CA,Bell,31930
+CA,Banning,31929
+CA,Santa Paula,31786
+CA,El Paso de Robles (Paso Robles),31568
+CA,San Pablo,31562
+CA,Seaside,31524
+CA,Beverly Hills,31027
+CA,Burlingame,30885
+CA,Los Altos,30864
+CA,Saratoga,30486
+CA,Laguna Hills,30378
+CA,La Verne,30192
+CA,Lawndale,30160
+CA,Atascadero,29743
+CA,Suisun City,29614
+CA,San Carlos,29403
+CA,East Palo Alto,29296
+CA,Monterey,29015
+CA,Ridgecrest,28373
+CA,Brawley,28188
+CA,Lemon Grove,27867
+CA,Wasco,27409
+CA,Walnut,27250
+CA,Belmont,27132
+CA,Lemoore,27057
+CA,Sanger,26649
+CA,Galt,26589
+CA,Twentynine Palms,26563
+CA,Hercules,26499
+CA,Benicia,26477
+CA,El Cerrito,26409
+CA,Soledad,26345
+CA,Reedley,26138
+CA,Windsor,25846
+CA,Dinuba,25833
+CA,South Pasadena,25656
+CA,Riverbank,25625
+CA,Imperial Beach,25568
+CA,Patterson,25495
+CA,Eureka,25412
+CA,Norco,25400
+CA,Lafayette,25371
+CA,Loma Linda,25197
+CA,Barstow,24897
+CA,Selma,24505
+CA,Seal Beach,24421
+CA,Maywood,23838
+CA,Duarte,23493
+CA,San Fernando,23488
+CA,Millbrae,23321
+CA,Oakdale,23209
+CA,Marina,23047
+CA,Shafter,22754
+CA,Corcoran,22627
+CA,Laguna Beach,22564
+CA,Calabasas,22256
+CA,Imperial,22102
+CA,Yucca Valley,21858
+CA,American Canyon,21742
+CA,Cudahy,21694
+CA,Port Hueneme,21325
+CA,South Lake Tahoe,21225
+CA,Greenfield,21042
+CA,Dixon,20296
+CA,Lomita,19841
+CA,Oroville,19712
+CA,Arvin,19661
+CA,La Cañada Flintridge,19621
+CA,Orinda,19573
+CA,Albany,19439
+CA,Agoura Hills,19429
+CA,Chowchilla,19191
+CA,South El Monte,19121
+CA,Arcata,18748
+CA,Hermosa Beach,18687
+CA,Santa Fe Springs,18683
+CA,Pinole,18663
+CA,Arroyo Grande,18249
+CA,Coronado,18031
+CA,Rancho Mirage,18001
+CA,Kerman,17497
+CA,Blythe,17320
+CA,Truckee,17240
+CA,Fillmore,17216
+CA,Laguna Woods,17058
+CA,Coalinga,16722
+CA,Moraga,16698
+CA,Clearlake,16636
+CA,El Segundo,16544
+CA,Ripon,16252
+CA,Ukiah,16067
+CA,Artesia,15662
+CA,La Palma,15092
+CA,Pacific Grove,14851
+CA,Livingston,14767
+CA,Parlier,14429
+CA,McFarland,14365
+CA,Red Bluff,14286
+CA,Avenal,14108
+CA,Grass Valley,14085
+CA,King City,13920
+CA,Emeryville,13912
+CA,Mill Valley,13904
+CA,Auburn,13780
+CA,Hawaiian Gardens,13457
+CA,California City,13174
+CA,Kingsburg,13128
+CA,Grand Terrace,12979
+CA,Carpinteria,12876
+CA,Solana Beach,12868
+CA,Larkspur,12807
+CA,Marysville,12714
+CA,Lindsay,12706
+CA,Palos Verdes Estates,12668
+CA,San Anselmo,12645
+CA,Mendota,12623
+CA,Grover Beach,12534
+CA,Susanville,12359
+CA,Newman,12292
+CA,Fortuna,12114
+CA,San Marino,12105
+CA,Commerce,11882
+CA,Los Alamitos,11846
+CA,Scotts Valley,11828
+CA,Half Moon Bay,11324
+CA,Signal Hill,11279
+CA,Healdsburg,11231
+CA,Anderson,11171
+CA,Hillsborough,11171
+CA,Canyon Lake,11161
+CA,Calimesa,11150
+CA,Tehachapi,11114
+CA,Clayton,10933
+CA,Piedmont,10816
+CA,Sierra Madre,10775
+CA,Placerville,10695
+CA,Sonoma,10606
+CA,Morro Bay,10591
+CA,Farmersville,10501
+CA,Malibu,10298
+CA,Rio Vista,10248
+CA,Shasta Lake,10244
+CA,Exeter,10186
+CA,Corte Madera,10006
+CA,Orange Cove,9708
+CA,Capitola,9503
+CA,Live Oak,9503
+CA,Ione,9411
+CA,Waterford,9271
+CA,Paradise,9114
+CA,Tiburon,8933
+CA,Cloverdale,8784
+CA,Guadalupe,8735
+CA,Orland,8605
+CA,Los Altos Hills,8435
+CA,Gonzales,8431
+CA,Firebaugh,8424
+CA,Corning,8131
+CA,Rolling Hills Estates,8007
+CA,Pismo Beach,7984
+CA,Hughson,7903
+CA,Winters,7825
+CA,Woodlake,7774
+CA,Yreka,7686
+CA,Westlake Village,7593
+CA,Ojai,7563
+CA,Fairfax,7476
+CA,Fowler,7470
+CA,Escalon,7453
+CA,Cotati,7403
+CA,Sebastopol,7388
+CA,Gridley,7355
+CA,Mammoth Lakes,7124
+CA,Fort Bragg,7117
+CA,Sausalito,7075
+CA,Atherton,7022
+CA,Taft,6988
+CA,Loomis,6939
+CA,Huron,6737
+CA,Colusa,6589
+CA,Calipatria,6522
+CA,Crescent City,6209
+CA,Gustine,6138
+CA,Willows,6079
+CA,Solvang,5988
+CA,Dos Palos,5759
+CA,Villa Park,5698
+CA,Holtville,5612
+CA,Williams,5598
+CA,La Habra Heights,5382
+CA,St. Helena,5257
+CA,Woodside,5123
+CA,Lakeport,5104
+CA,Jackson,5079
+CA,Big Bear Lake,5044
+CA,Buellton,5023
+CA,Calistoga,5022
+CO,Denver,729019
+CO,Colorado Springs,493554
+CO,Aurora,403130
+CO,Fort Collins,170924
+CO,Lakewood,156868
+CO,Thornton,146689
+CO,Arvada,121873
+CO,Westminster,115302
+CO,Greeley,114363
+CO,Pueblo,111166
+CO,Centennial,108853
+CO,Boulder,106803
+CO,Longmont,99818
+CO,Castle Rock,83213
+CO,Loveland,81102
+CO,Broomfield,78323
+CO,Grand Junction,70554
+CO,Commerce City,70245
+CO,Parker,65473
+CO,Littleton,44879
+CO,Brighton,43473
+CO,Windsor,41734
+CO,Erie,38594
+CO,Northglenn,38287
+CO,Englewood,35238
+CO,Wheat Ridge,31999
+CO,Lafayette,30587
+CO,Fountain,29457
+CO,Evans,22394
+CO,Montrose,21646
+CO,Louisville,20811
+CO,Johnstown,20639
+CO,Golden,20151
+CO,Durango,19811
+CO,Firestone,19396
+CO,Frederick,17937
+CO,Cañon City,17193
+CO,Greenwood Village,15288
+CO,Castle Pines,15162
+CO,Lone Tree,14061
+CO,Federal Heights,13971
+CO,Fruita,13912
+CO,Superior,13654
+CO,Berthoud,13648
+CO,Steamboat Springs,13620
+CO,Monument,13408
+CO,Sterling,13114
+CO,Wellington,12100
+CO,Fort Morgan,11835
+CO,Severance,11554
+CO,Timnath,10848
+CO,Rifle,10663
+CO,Glenwood Springs,10311
+CO,Fort Lupton,9948
+CO,Alamosa,9906
+CO,Delta,9688
+CO,Gypsum,9218
+CO,Cortez,9151
+CO,Milliken,9102
+CO,Craig,8903
+CO,Lochbuie,8599
+CO,Trinidad,8183
+CO,Woodland Park,8043
+CO,Lamar,7641
+CO,Eagle,7349
+CO,La Junta,6986
+CO,Gunnison,6821
+CO,Carbondale,6758
+CO,Dacono,6748
+CO,Mead,6735
+CO,Aspen,6556
+CO,Cherry Hills Village,6349
+CO,Salida,6007
+CO,Sheridan,5932
+CO,Avon,5898
+CO,Eaton,5839
+CO,Estes Park,5795
+CO,Brush,5370
+CO,Silverthorne,5220
+CT,Bridgeport,151599
+CT,Stamford,139134
+CT,New Haven,137562
+CT,Hartford,122129
+CT,Waterbury,115908
+CT,Norwalk,93661
+CT,Danbury,88692
+CT,New Britain,75871
+CT,Bristol,62195
+CT,Meriden,60849
+CT,West Haven,55379
+CT,Middletown,48616
+CT,Shelton,42805
+CT,Norwich,39993
+CT,Torrington,35673
+CT,Naugatuck,32116
+CT,New London,28081
+CT,Ansonia,19195
+CT,Derby,12915
+CT,Groton,10160
+DE,Wilmington,73176
+DE,Dover,40191
+DE,Newark,30506
+DE,Middletown,25686
+DE,Milford,14079
+DE,Smyrna,13326
+DE,Seaford,8952
+DE,Georgetown,8098
+DE,Millsboro,7864
+DE,Elsmere,6234
+DE,New Castle,5715
+FL,Jacksonville,1009833
+FL,Miami,487014
+FL,Tampa,414547
+FL,Orlando,334854
+FL,St. Petersburg,267102
+FL,Port St. Lucie,258575
+FL,Hialeah,235388
+FL,Cape Coral,233025
+FL,Tallahassee,205089
+FL,Fort Lauderdale,190641
+FL,Pembroke Pines,179326
+FL,Hollywood,159073
+FL,Gainesville,148720
+FL,Miramar,143242
+FL,Palm Bay,142023
+FL,Coral Springs,140808
+FL,West Palm Beach,127744
+FL,Lakeland,124990
+FL,Pompano Beach,118104
+FL,Clearwater,116811
+FL,Miami Gardens,116173
+FL,Davie,112052
+FL,Palm Coast,106729
+FL,Boca Raton,102238
+FL,Plantation,100694
+FL,Deltona,100513
+FL,Sunrise,100128
+FL,Fort Myers,99918
+FL,North Port,92875
+FL,Deerfield Beach,90507
+FL,Melbourne,87561
+FL,Daytona Beach,86015
+FL,Homestead,85796
+FL,Kissimmee,84756
+FL,Doral,83625
+FL,Miami Beach,83251
+FL,Boynton Beach,83095
+FL,Largo,82337
+FL,Lauderhill,76627
+FL,Tamarac,75147
+FL,St. Cloud,71036
+FL,Weston,70674
+FL,Ocala,70251
+FL,Delray Beach,70140
+FL,Sanford,66919
+FL,Port Orange,66556
+FL,Palm Beach Gardens,63284
+FL,Wellington,63258
+FL,Jupiter,62987
+FL,Apopka,62777
+FL,North Miami,62202
+FL,Margate,60650
+FL,Winter Haven,59975
+FL,Coconut Creek,59721
+FL,Bradenton,58184
+FL,Sarasota,57764
+FL,Bonita Springs,57112
+FL,Pensacola,53898
+FL,Pinellas Park,53503
+FL,Ocoee,51269
+FL,Clermont,50851
+FL,Fort Pierce,50805
+FL,Coral Gables,50379
+FL,Titusville,49883
+FL,Winter Garden,48771
+FL,Altamonte Springs,47261
+FL,North Lauderdale,46335
+FL,Cutler Bay,45833
+FL,Oakland Park,45771
+FL,North Miami Beach,45655
+FL,DeLand,45587
+FL,Greenacres,45197
+FL,Ormond Beach,44596
+FL,Lake Worth Beach,44417
+FL,Plant City,43046
+FL,Hallandale Beach,43043
+FL,Haines City,42073
+FL,Royal Palm Beach,41948
+FL,Oviedo,41901
+FL,Aventura,40531
+FL,Winter Springs,39822
+FL,Parkland,39700
+FL,Riviera Beach,39620
+FL,Estero,38443
+FL,Leesburg,37815
+FL,Lauderdale Lakes,37333
+FL,Panama City,37024
+FL,Dunedin,35932
+FL,Cooper City,35541
+FL,Miami Lakes,33247
+FL,New Smyrna Beach,33144
+FL,Dania Beach,33076
+FL,Casselberry,31650
+FL,Rockledge,31429
+FL,West Melbourne,31378
+FL,Winter Park,30835
+FL,Crestview,30727
+FL,Venice,29902
+FL,Palm Springs,28548
+FL,Temple Terrace,27588
+FL,Sebastian,27087
+FL,Tarpon Springs,26168
+FL,Palmetto Bay,25402
+FL,Key West,25240
+FL,Eustis,25067
+FL,Groveland,24602
+FL,Edgewater,24334
+FL,Jacksonville Beach,23630
+FL,DeBary,23468
+FL,Hialeah Gardens,23328
+FL,Sunny Isles Beach,22903
+FL,Zephyrhills,22304
+FL,Bartow,22084
+FL,Tavares,22007
+FL,Lynn Haven,21954
+FL,Sweetwater,21321
+FL,Fort Walton Beach,21188
+FL,Auburndale,20659
+FL,Punta Gorda,20416
+FL,Naples,20168
+FL,Panama City Beach,19955
+FL,Cocoa,19909
+FL,Maitland,19776
+FL,Minneola,19675
+FL,Stuart,19566
+FL,Seminole,19395
+FL,Wildwood,19031
+FL,Pinecrest,18981
+FL,Mount Dora,18261
+FL,New Port Richey,18130
+FL,Niceville,17919
+FL,Lake Wales,17798
+FL,Vero Beach,17556
+FL,Belle Glade,17363
+FL,Lady Lake,17288
+FL,Longwood,17089
+FL,Lake Mary,16989
+FL,Safety Harbor,16972
+FL,Davenport,16764
+FL,Marco Island,16554
+FL,Opa-locka,16507
+FL,St. Augustine,16033
+FL,West Park,15641
+FL,Orange City,15257
+FL,Key Biscayne,15111
+FL,Oldsmar,14831
+FL,Callaway,14138
+FL,Destin,13991
+FL,South Daytona,13906
+FL,Miami Springs,13901
+FL,Palmetto,13682
+FL,Fernandina Beach,13672
+FL,North Palm Beach,13423
+FL,Atlantic Beach,13279
+FL,South Miami,13207
+FL,Holly Hill,13183
+FL,Florida City,13157
+FL,Lake City,12783
+FL,Lantana,12545
+FL,Miami Shores,11917
+FL,Sebring,11795
+FL,Wilton Manors,11788
+FL,Gulfport,11645
+FL,Cocoa Beach,11386
+FL,Satellite Beach,11367
+FL,Milton,11182
+FL,Lighthouse Point,10878
+FL,Palatka,10867
+FL,Alachua,10856
+FL,Avon Park,10415
+FL,Green Cove Springs,10087
+FL,Marathon,10039
+FL,Cape Canaveral,10014
+FL,Brooksville,9985
+FL,Dade City,9662
+FL,Palm Beach,9493
+FL,Lake Park,9188
+FL,Mascotte,9150
+FL,Indian Harbour Beach,9006
+FL,Orange Park,8993
+FL,Fruitland Park,8962
+FL,St. Pete Beach,8730
+FL,Lake Alfred,8632
+FL,Springfield,8495
+FL,Newberry,8326
+FL,North Bay Village,8286
+FL,Macclenny,8178
+FL,Quincy,8119
+FL,Marianna,7975
+FL,Arcadia,7974
+FL,Inverness,7887
+FL,Southwest Ranches,7827
+FL,Belle Isle,7741
+FL,Westlake,7664
+FL,Clewiston,7496
+FL,Longboat Key,7463
+FL,Perry,7306
+FL,West Miami,7247
+FL,Freeport,7234
+FL,Live Oak,7200
+FL,DeFuniak Springs,7048
+FL,Neptune Beach,7032
+FL,"Islamorada, Village of Islands",7013
+FL,Gulf Breeze,6955
+FL,Indiantown,6810
+FL,St. Augustine Beach,6808
+FL,High Springs,6806
+FL,Pembroke Park,6544
+FL,Treasure Island,6524
+FL,Lauderdale-by-the-Sea,6365
+FL,Sanibel,6358
+FL,Tequesta,6285
+FL,Dundee,6275
+FL,Belleview,6156
+FL,Starke,5966
+FL,Bay Harbor Islands,5937
+FL,Pahokee,5829
+FL,Okeechobee,5731
+FL,Grant-Valkaria,5730
+FL,Surfside,5719
+FL,Eagle Lake,5576
+FL,Flagler Beach,5568
+FL,LaBelle,5472
+FL,Fort Meade,5341
+FL,Fort Myers Beach,5308
+FL,South Pasadena,5280
+FL,Daytona Beach Shores,5223
+FL,South Bay,5160
+FL,Fellsmere,5028
+GA,Atlanta,520070
+GA,Columbus,201830
+GA,Macon-Bibb County,157056
+GA,Savannah,148808
+GA,South Fulton,112003
+GA,Sandy Springs,105505
+GA,Roswell,92227
+GA,Warner Robins,86199
+GA,Johns Creek,81167
+GA,Mableton,78314
+GA,Alpharetta,67275
+GA,Albany,66705
+GA,Marietta,63122
+GA,Stonecrest,61015
+GA,Brookhaven,59370
+GA,Smyrna,57177
+GA,Valdosta,55667
+GA,Dunwoody,51795
+GA,Gainesville,47712
+GA,Newnan,45548
+GA,Peachtree Corners,42638
+GA,Milton,41490
+GA,Peachtree City,40758
+GA,Douglasville,40540
+GA,Woodstock,39381
+GA,Rome,38747
+GA,East Point,38270
+GA,Canton,38049
+GA,Kennesaw,37740
+GA,Tucker,37224
+GA,Hinesville,36583
+GA,Stockbridge,35893
+GA,Statesboro,35226
+GA,Dalton,34970
+GA,LaGrange,33564
+GA,Duluth,33157
+GA,McDonough,32803
+GA,Chamblee,32321
+GA,Lawrenceville,31877
+GA,Pooler,31171
+GA,Sugar Hill,28598
+GA,Carrollton,28306
+GA,Union City,28195
+GA,Cartersville,25082
+GA,Perry,24792
+GA,Decatur,24482
+GA,Griffin,23994
+GA,Suwanee,23062
+GA,Acworth,22624
+GA,Snellville,22336
+GA,Kingsland,20789
+GA,Winder,20628
+GA,Fayetteville,20419
+GA,Holly Springs,20133
+GA,St. Marys,20119
+GA,Conyers,20111
+GA,Villa Rica,20095
+GA,Richmond Hill,19839
+GA,Powder Springs,19632
+GA,Calhoun,19592
+GA,Forest Park,19301
+GA,Norcross,18902
+GA,Buford,18642
+GA,Thomasville,18604
+GA,Grovetown,17843
+GA,Braselton,17390
+GA,Tifton,17385
+GA,Fairburn,17267
+GA,Loganville,16862
+GA,Milledgeville,16664
+GA,Jefferson,16459
+GA,Monroe,16270
+GA,Dublin,16233
+GA,Lilburn,16210
+GA,Americus,15742
+GA,Brunswick,15520
+GA,Covington,15302
+GA,Dallas,15062
+GA,Port Wentworth,14865
+GA,Moultrie,14756
+GA,Bainbridge,14586
+GA,Riverdale,14586
+GA,Clarkston,14416
+GA,College Park,13953
+GA,Waycross,13671
+GA,Lovejoy,12612
+GA,Doraville,12436
+GA,Flowery Branch,12292
+GA,Douglas,11828
+GA,Locust Grove,11749
+GA,Rincon,11701
+GA,Vidalia,10853
+GA,Fort Oglethorpe,10614
+GA,Garden City,10536
+GA,Cedartown,10313
+GA,Jesup,10235
+GA,Cumming,10175
+GA,Auburn,10094
+GA,Cairo,10057
+GA,Thomaston,9850
+GA,Cordele,9767
+GA,Toccoa,9389
+GA,Hampton,9201
+GA,Fort Valley,9023
+GA,Centerville,9021
+GA,Fitzgerald,8813
+GA,Commerce,8803
+GA,Cusseta-Chattahoochee County,8548
+GA,Austell,8244
+GA,Tyrone,8038
+GA,Dacula,8018
+GA,Dahlonega,7830
+GA,Bremen,7647
+GA,Swainsboro,7556
+GA,LaFayette,7028
+GA,Thomson,6792
+GA,Oakwood,6759
+GA,Hoschton,6723
+GA,Hapeville,6712
+GA,Eatonton,6641
+GA,Stone Mountain,6552
+GA,Temple,6406
+GA,Barnesville,6343
+GA,Byron,6305
+GA,Morrow,6262
+GA,Senoia,6101
+GA,Jonesboro,6084
+GA,Jackson,5867
+GA,Adel,5752
+GA,Waynesboro,5555
+GA,Hiram,5520
+GA,Eastman,5513
+GA,Sandersville,5500
+GA,Social Circle,5415
+GA,Sylvester,5413
+GA,Cornelia,5371
+GA,Jasper,5289
+GA,Rockmart,5284
+GA,Grayson,5252
+GA,Palmetto,5213
+GA,McRae-Helena,5186
+GA,Blakely,5142
+GA,Madison,5131
+GA,Glennville,5104
+GA,Adairsville,5029
+GA,Camilla,5029
+IA,Des Moines,213096
+IA,Cedar Rapids,137904
+IA,Davenport,100938
+IA,Sioux City,86875
+IA,Ankeny,76727
+IA,Iowa City,76710
+IA,West Des Moines,73664
+IA,Ames,69026
+IA,Waterloo,67477
+IA,Council Bluffs,62665
+IA,Dubuque,58987
+IA,Urbandale,47759
+IA,Marion,42542
+IA,Cedar Falls,41417
+IA,Bettendorf,40281
+IA,Waukee,34420
+IA,Marshalltown,27886
+IA,Mason City,26948
+IA,Ottumwa,25648
+IA,Johnston,25022
+IA,Fort Dodge,24886
+IA,Clinton,24118
+IA,Coralville,23959
+IA,Burlington,23637
+IA,Muscatine,23298
+IA,Altoona,22598
+IA,North Liberty,21904
+IA,Clive,19508
+IA,Grimes,17266
+IA,Indianola,16297
+IA,Newton,15709
+IA,Norwalk,15396
+IA,Boone,12461
+IA,Pleasant Hill,11942
+IA,Storm Lake,11627
+IA,Oskaloosa,11575
+IA,Spencer,11418
+IA,Pella,10965
+IA,Le Mars,10674
+IA,Waverly,10576
+IA,Carroll,10125
+IA,Fort Madison,9983
+IA,Bondurant,9511
+IA,Fairfield,9511
+IA,Grinnell,9495
+IA,Keokuk,9462
+IA,Sioux Center,8675
+IA,Mount Pleasant,8509
+IA,Denison,8302
+IA,Perry,8046
+IA,Webster City,7763
+IA,Clear Lake,7602
+IA,Decorah,7454
+IA,Knoxville,7440
+IA,Creston,7421
+IA,Hiawatha,7347
+IA,Washington,7281
+IA,Nevada,7082
+IA,Charles City,7081
+IA,Eldridge,6967
+IA,Adel,6763
+IA,Atlantic,6717
+IA,Tiffin,6695
+IA,Orange City,6547
+IA,Polk City,6430
+IA,Independence,6266
+IA,Maquoketa,6064
+IA,Asbury,6051
+IA,Anamosa,5845
+IA,Estherville,5796
+IA,Oelwein,5788
+IA,DeWitt,5620
+IA,Osceola,5585
+IA,Sheldon,5584
+IA,Spirit Lake,5548
+IA,Winterset,5421
+IA,Red Oak,5420
+IA,Centerville,5345
+IA,Algona,5341
+IA,Sergeant Bluff,5335
+IA,Clarinda,5334
+IA,Manchester,5283
+IA,Glenwood,5250
+IA,Cherokee,5186
+IA,Windsor Heights,5106
+ID,Boise City,237963
+ID,Meridian,139740
+ID,Nampa,117350
+ID,Caldwell,73088
+ID,Idaho Falls,69523
+ID,Pocatello,58231
+ID,Coeur d'Alene,57355
+ID,Twin Falls,55589
+ID,Post Falls,45800
+ID,Rexburg,40695
+ID,Lewiston,34693
+ID,Eagle,33451
+ID,Kuna,29127
+ID,Moscow,26894
+ID,Ammon,20095
+ID,Star,18208
+ID,Hayden,16924
+ID,Mountain Home,16912
+ID,Chubbuck,16577
+ID,Jerome,13481
+ID,Blackfoot,13224
+ID,Garden City,12936
+ID,Rathdrum,12626
+ID,Burley,12211
+ID,Middleton,11730
+ID,Sandpoint,10444
+ID,Hailey,9976
+ID,Emmett,8803
+ID,Payette,8754
+ID,Fruitland,7078
+ID,Rupert,6343
+ID,Preston,6160
+ID,Weiser,6112
+ID,Rigby,5683
+ID,Kimberly,5592
+ID,Shelley,5262
+IL,Chicago,2721308
+IL,Aurora,180710
+IL,Naperville,153124
+IL,Joliet,151837
+IL,Rockford,147486
+IL,Elgin,114701
+IL,Springfield,112949
+IL,Peoria,111696
+IL,Champaign,91961
+IL,Waukegan,88570
+IL,Cicero,82090
+IL,Bloomington,79232
+IL,Schaumburg,77099
+IL,Evanston,76006
+IL,Arlington Heights,75596
+IL,Bolingbrook,74756
+IL,Decatur,68763
+IL,Palatine,65951
+IL,Skokie,65850
+IL,Des Plaines,58832
+IL,Orland Park,58020
+IL,Oak Lawn,56531
+IL,Mount Prospect,55460
+IL,Berwyn,55152
+IL,Tinley Park,54856
+IL,Wheaton,53741
+IL,Normal,53304
+IL,Oak Park,52947
+IL,Hoffman Estates,50920
+IL,Downers Grove,50552
+IL,Plainfield,48881
+IL,Glenview,47634
+IL,Elmhurst,46108
+IL,Lombard,44490
+IL,Buffalo Grove,43072
+IL,Moline,42442
+IL,Crystal Lake,41513
+IL,Romeoville,41177
+IL,Bartlett,40718
+IL,Belleville,40560
+IL,DeKalb,40491
+IL,Urbana,39831
+IL,Carol Stream,39556
+IL,Quincy,38786
+IL,Oswego,38778
+IL,Park Ridge,38445
+IL,Streamwood,38360
+IL,Wheeling,38329
+IL,Carpentersville,37144
+IL,Hanover Park,36685
+IL,Rock Island,36434
+IL,Addison,35728
+IL,Calumet City,34855
+IL,Northbrook,34546
+IL,Woodridge,34103
+IL,St. Charles,33482
+IL,Glendale Heights,32866
+IL,Mundelein,32641
+IL,O'Fallon,32169
+IL,Elk Grove Village,31802
+IL,Pekin,31266
+IL,Highland Park,30794
+IL,North Chicago,30639
+IL,Gurnee,30546
+IL,Algonquin,30539
+IL,Niles,29918
+IL,Galesburg,29289
+IL,Glen Ellyn,28872
+IL,McHenry,28825
+IL,Lake in the Hills,28706
+IL,Burbank,28606
+IL,Huntley,28495
+IL,New Lenox,28480
+IL,Lansing,28107
+IL,Danville,27981
+IL,Wilmette,27443
+IL,Round Lake Beach,27091
+IL,Vernon Hills,27002
+IL,Lockport,26915
+IL,Granite City,26854
+IL,Oak Forest,26813
+IL,Edwardsville,26715
+IL,Batavia,26555
+IL,Chicago Heights,26533
+IL,Yorkville,25986
+IL,Woodstock,25892
+IL,West Chicago,25469
+IL,Belvidere,25325
+IL,Alton,24967
+IL,South Elgin,24921
+IL,Homer Glen,24852
+IL,Zion,24583
+IL,Morton Grove,24467
+IL,Westmont,24308
+IL,Melrose Park,23999
+IL,Collinsville,23766
+IL,Rolling Meadows,23732
+IL,Elmwood Park,23698
+IL,Loves Park,23636
+IL,Lisle,23548
+IL,Kankakee,23535
+IL,Maywood,23364
+IL,Freeport,23140
+IL,Roselle,22871
+IL,Machesney Park,22839
+IL,Bloomingdale,22622
+IL,Carbondale,22223
+IL,East Peoria,22024
+IL,Villa Park,22020
+IL,Darien,22015
+IL,Montgomery,21957
+IL,Blue Island,21805
+IL,Grayslake,21262
+IL,Geneva,21168
+IL,Frankfort,21160
+IL,Park Forest,21016
+IL,East Moline,20995
+IL,South Holland,20775
+IL,Dolton,20697
+IL,Libertyville,20643
+IL,Crest Hill,20223
+IL,Lake Zurich,19960
+IL,Mokena,19915
+IL,Harvey,19781
+IL,Lake Forest,19642
+IL,North Aurora,19329
+IL,Evergreen Park,19301
+IL,Deerfield,19138
+IL,Sycamore,18968
+IL,Brookfield,18885
+IL,Homewood,18789
+IL,Ottawa,18775
+IL,Round Lake,18654
+IL,Bensenville,18629
+IL,Matteson,18566
+IL,Shorewood,18522
+IL,Alsip,18486
+IL,Lemont,18203
+IL,Bellwood,18132
+IL,Franklin Park,18110
+IL,Bourbonnais,18083
+IL,Cary,18031
+IL,Palos Hills,18026
+IL,East St. Louis,17808
+IL,Jacksonville,17801
+IL,Godfrey,17610
+IL,Hinsdale,17598
+IL,Morton,17557
+IL,Charleston,17361
+IL,Cahokia Heights,17052
+IL,Marion,17021
+IL,Mattoon,16602
+IL,Bridgeview,16559
+IL,Westchester,16313
+IL,Country Club Hills,16238
+IL,Fairview Heights,16115
+IL,La Grange,15943
+IL,Washington,15857
+IL,Prospect Heights,15566
+IL,Bradley,15298
+IL,Warrenville,15247
+IL,Dixon,15156
+IL,Antioch,15108
+IL,Norridge,14817
+IL,Macomb,14765
+IL,Shiloh,14754
+IL,Chatham,14639
+IL,Morris,14587
+IL,Lindenhurst,14564
+IL,Sterling,14535
+IL,Swansea,14445
+IL,Channahon,14392
+IL,Beach Park,14212
+IL,Mount Vernon,14162
+IL,Hickory Hills,14118
+IL,Wauconda,14055
+IL,Chicago Ridge,14036
+IL,Wood Dale,13983
+IL,Glen Carbon,13883
+IL,Midlothian,13870
+IL,Forest Park,13846
+IL,Western Springs,13529
+IL,La Grange Park,13459
+IL,Lincolnwood,13055
+IL,Lincoln,13047
+IL,Hazel Crest,13036
+IL,Minooka,12907
+IL,Canton,12896
+IL,Plano,12677
+IL,Richton Park,12504
+IL,Winnetka,12494
+IL,Effingham,12434
+IL,Northlake,12433
+IL,Streator,12295
+IL,Rantoul,12268
+IL,Justice,12267
+IL,Herrin,12253
+IL,Kewanee,12146
+IL,Palos Heights,12088
+IL,River Forest,11909
+IL,Troy,11810
+IL,Centralia,11787
+IL,Pingree Grove,11512
+IL,Schiller Park,11325
+IL,Markham,11290
+IL,Burr Ridge,11202
+IL,Waterloo,11165
+IL,Pontiac,11054
+IL,Roscoe,10981
+IL,Fox Lake,10925
+IL,Columbia,10919
+IL,Campton Hills,10894
+IL,Manhattan,10772
+IL,Summit,10761
+IL,Worth,10660
+IL,Mahomet,10619
+IL,Barrington,10615
+IL,Crestwood,10533
+IL,Lyons,10440
+IL,River Grove,10424
+IL,Riverdale,10299
+IL,Taylorville,10263
+IL,Wood River,10251
+IL,Winfield,10199
+IL,Highland,10028
+IL,Peru,9793
+IL,Sauk Village,9627
+IL,Hawthorn Woods,9584
+IL,Rochelle,9510
+IL,Itasca,9506
+IL,LaSalle,9424
+IL,Harvard,9408
+IL,Steger,9376
+IL,Flossmoor,9371
+IL,Sugar Grove,9339
+IL,Savoy,9260
+IL,Manteno,9241
+IL,Lynwood,9239
+IL,Bethalto,9183
+IL,Willowbrook,9179
+IL,Mascoutah,9118
+IL,Gilberts,9075
+IL,Riverside,8964
+IL,Hampshire,8864
+IL,Harwood Heights,8755
+IL,Lake Villa,8737
+IL,Glencoe,8720
+IL,Clarendon Hills,8703
+IL,Monmouth,8639
+IL,Rock Falls,8614
+IL,Olney,8431
+IL,Glenwood,8413
+IL,Long Grove,8393
+IL,Crete,8371
+IL,Maryville,8352
+IL,Jerseyville,8350
+IL,Oak Brook,8188
+IL,Paris,8078
+IL,Island Lake,8066
+IL,Hillside,8031
+IL,Lincolnshire,8008
+IL,Silvis,8003
+IL,South Beloit,7983
+IL,Park City,7940
+IL,Harrisburg,7937
+IL,West Dundee,7906
+IL,Broadview,7867
+IL,Rockton,7861
+IL,Round Lake Park,7836
+IL,Marengo,7699
+IL,Princeton,7667
+IL,Inverness,7428
+IL,Volo,7361
+IL,Vandalia,7358
+IL,Sandwich,7299
+IL,North Riverside,7161
+IL,West Frankfort,7131
+IL,Greenville,7126
+IL,Robinson,7053
+IL,Murphysboro,7044
+IL,University Park,7043
+IL,Salem,7016
+IL,Mendota,6922
+IL,Stickney,6902
+IL,Clinton,6881
+IL,Elburn,6826
+IL,Calumet Park,6777
+IL,Mount Carmel,6771
+IL,Chester,6759
+IL,Orland Hills,6676
+IL,Litchfield,6587
+IL,Benton,6578
+IL,Winthrop Harbor,6565
+IL,Geneseo,6503
+IL,Lakemoor,6451
+IL,Johnsburg,6428
+IL,Countryside,6246
+IL,Braidwood,6245
+IL,Chillicothe,6052
+IL,Monticello,6010
+IL,Mount Zion,5897
+IL,Pontoon Beach,5845
+IL,Bartonville,5836
+IL,Carterville,5821
+IL,Coal City,5810
+IL,Beardstown,5803
+IL,Peoria Heights,5802
+IL,Willow Springs,5793
+IL,Metropolis,5776
+IL,Hillsboro,5761
+IL,Wilmington,5629
+IL,Northfield,5625
+IL,East Alton,5621
+IL,Du Quoin,5611
+IL,Lake Bluff,5600
+IL,Carlinville,5582
+IL,Spring Grove,5554
+IL,Genoa,5514
+IL,Posen,5413
+IL,Spring Valley,5404
+IL,Highwood,5358
+IL,Wonder Lake,5296
+IL,Eureka,5189
+IL,Poplar Grove,5165
+IL,Lake Barrington,5160
+IL,Berkeley,5155
+IL,Monee,5139
+IL,South Barrington,5061
+IL,Pana,5034
+IL,Milan,5033
+IN,Fort Wayne,273203
+IN,Evansville,115395
+IN,Fishers,103986
+IN,South Bend,103713
+IN,Carmel,103606
+IN,Bloomington,79986
+IN,Hammond,76030
+IN,Noblesville,75239
+IN,Lafayette,71757
+IN,Greenwood,68175
+IN,Gary,67555
+IN,Muncie,65320
+IN,Westfield,62994
+IN,Kokomo,60093
+IN,Terre Haute,58531
+IN,Anderson,55851
+IN,Elkhart,53690
+IN,Jeffersonville,52912
+IN,Columbus,51970
+IN,Mishawaka,51020
+IN,Lawrence,49817
+IN,West Lafayette,46338
+IN,Portage,38576
+IN,Plainfield,37796
+IN,New Albany,37652
+IN,Merrillville,36989
+IN,Richmond,35561
+IN,Crown Point,35097
+IN,Valparaiso,35065
+IN,Goshen,34458
+IN,Brownsburg,33430
+IN,Zionsville,33161
+IN,Michigan City,31466
+IN,Schererville,29780
+IN,Hobart,29418
+IN,Marion,28216
+IN,Greenfield,26268
+IN,Franklin,26158
+IN,East Chicago,25768
+IN,Avon,24735
+IN,St. John,24250
+IN,Munster,23634
+IN,Highland,23497
+IN,Seymour,22524
+IN,La Porte,22444
+IN,Clarksville,22041
+IN,Shelbyville,20845
+IN,Logansport,18168
+IN,Lebanon,17608
+IN,New Castle,17382
+IN,Huntington,17033
+IN,Jasper,16967
+IN,Crawfordsville,16594
+IN,Vincennes,16506
+IN,Frankfort,16459
+IN,Cedar Lake,16404
+IN,Dyer,16341
+IN,New Haven,16200
+IN,Griffith,16192
+IN,Warsaw,16111
+IN,Chesterton,14655
+IN,Beech Grove,14566
+IN,Whitestown,14564
+IN,Speedway,14268
+IN,Auburn,13989
+IN,Bedford,13853
+IN,Connersville,13282
+IN,Lake Station,13033
+IN,Washington,12881
+IN,Danville,12532
+IN,Greensburg,12317
+IN,Madison,12108
+IN,Martinsville,11952
+IN,Yorktown,11900
+IN,McCordsville,11744
+IN,Huntertown,11481
+IN,Lowell,11449
+IN,Bargersville,11283
+IN,Plymouth,11042
+IN,Peru,11003
+IN,Bluffton,10556
+IN,Kendallville,10326
+IN,Wabash,10275
+IN,Columbia City,10185
+IN,Decatur,10072
+IN,Sellersburg,10057
+IN,Mooresville,10027
+IN,Greencastle,9907
+IN,Angola,9432
+IN,Charlestown,8559
+IN,Winfield,8557
+IN,Elwood,8495
+IN,Princeton,8481
+IN,Brazil,8239
+IN,Tell City,7515
+IN,Scottsburg,7413
+IN,Batesville,7353
+IN,Cumberland,7211
+IN,Nappanee,6902
+IN,Ellettsville,6829
+IN,Boonville,6687
+IN,Garrett,6663
+IN,North Vernon,6565
+IN,Huntingburg,6512
+IN,Salem,6463
+IN,Mount Vernon,6341
+IN,Portland,6233
+IN,Rushville,6208
+IN,Rochester,6110
+IN,Gas City,6091
+IN,Hartford City,5927
+IN,New Whiteland,5842
+IN,Pendleton,5758
+IN,Rensselaer,5632
+IN,Cicero,5607
+IN,Monticello,5519
+IN,Whiteland,5511
+IN,Tipton,5285
+IN,Linton,5281
+IN,Westville,5260
+IN,North Manchester,5237
+IN,Lawrenceburg,5216
+IN,Alexandria,5211
+IN,Porter,5190
+IN,Winona Lake,5107
+KS,Wichita,400991
+KS,Overland Park,202893
+KS,Kansas City,156752
+KS,Olathe,149035
+KS,Topeka,125467
+KS,Lawrence,97271
+KS,Shawnee,69724
+KS,Lenexa,59427
+KS,Manhattan,54700
+KS,Salina,46109
+KS,Hutchinson,39561
+KS,Leavenworth,37370
+KS,Leawood,34013
+KS,Garden City,27996
+KS,Dodge City,27663
+KS,Derby,26604
+KS,Gardner,25836
+KS,Emporia,24354
+KS,Prairie Village,22919
+KS,Junction City,22053
+KS,Hays,21213
+KS,Pittsburg,20547
+KS,Liberal,19184
+KS,Newton,18320
+KS,Andover,17000
+KS,Great Bend,14306
+KS,McPherson,14068
+KS,Ottawa,12733
+KS,El Dorado,12694
+KS,Arkansas City,11761
+KS,Winfield,11678
+KS,Merriam,11560
+KS,Haysville,11406
+KS,Lansing,11316
+KS,Atchison,10813
+KS,Spring Hill,10070
+KS,Bel Aire,10066
+KS,Mission,10013
+KS,Parsons,9328
+KS,Park City,9110
+KS,Augusta,9103
+KS,Coffeyville,8545
+KS,Chanute,8536
+KS,Independence,8287
+KS,Basehor,7996
+KS,Bonner Springs,7832
+KS,Fort Scott,7563
+KS,Wellington,7561
+KS,Valley Center,7416
+KS,Maize,7059
+KS,Mulvane,7016
+KS,Roeland Park,6689
+KS,Pratt,6587
+KS,De Soto,6579
+KS,Eudora,6564
+KS,Abilene,6501
+KS,Tonganoxie,6195
+KS,Goddard,6009
+KS,Paola,5835
+KS,Ulysses,5582
+KS,Colby,5539
+KS,Iola,5309
+KS,Louisburg,5266
+KY,Lexington-Fayette,329437
+KY,Bowling Green,79076
+KY,Owensboro,60675
+KY,Covington,41611
+KY,Georgetown,40518
+KY,Richmond,39581
+KY,Elizabethtown,34565
+KY,Florence,33763
+KY,Nicholasville,33458
+KY,Hopkinsville,30800
+KY,Independence,30196
+KY,Jeffersontown,29388
+KY,Frankfort,28610
+KY,Henderson,27750
+KY,Paducah,26712
+KY,Radcliff,22706
+KY,Ashland,21066
+KY,Erlanger,20172
+KY,Madisonville,19502
+KY,Winchester,19413
+KY,Mount Washington,18863
+KY,Murray,18567
+KY,Shelbyville,18048
+KY,St. Matthews,17806
+KY,Danville,17562
+KY,Fort Thomas,16914
+KY,Berea,16436
+KY,Shively,15850
+KY,Glasgow,15388
+KY,Shepherdsville,14837
+KY,Bardstown,14104
+KY,Newport,13792
+KY,Somerset,12389
+KY,Lawrenceburg,12189
+KY,Campbellsville,11820
+KY,Lyndon,11221
+KY,Alexandria,10819
+KY,Versailles,10656
+KY,La Grange,10541
+KY,Franklin,10524
+KY,Paris,10185
+KY,Middletown,9908
+KY,Mayfield,9805
+KY,Harrodsburg,9491
+KY,Elsmere,9337
+KY,Hillview,8962
+KY,Middlesborough,8899
+KY,Fort Mitchell,8766
+KY,Maysville,8711
+KY,Edgewood,8526
+KY,Oak Grove,7973
+KY,Corbin,7891
+KY,Union,7874
+KY,Villa Hills,7763
+KY,Mount Sterling,7588
+KY,London,7573
+KY,Russellville,7431
+KY,Pikeville,7366
+KY,Flatwoods,7250
+KY,Taylor Mill,7116
+KY,Vine Grove,6933
+KY,Leitchfield,6895
+KY,Morehead,6789
+KY,Lebanon,6558
+KY,Cynthiana,6557
+KY,Cold Spring,6499
+KY,Crestwood,6493
+KY,Highland Heights,6292
+KY,Wilmore,6268
+KY,Princeton,6223
+KY,Fort Wright,6096
+KY,Dayton,5854
+KY,Walton,5803
+KY,Central City,5744
+KY,Bellevue,5738
+KY,Monticello,5726
+KY,Douglass Hills,5558
+KY,Williamsburg,5332
+LA,New Orleans,362701
+LA,Baton Rouge,220907
+LA,Shreveport,176578
+LA,Lafayette,122280
+LA,Lake Charles,81157
+LA,Kenner,64650
+LA,Bossier City,63218
+LA,Monroe,46622
+LA,Alexandria,43133
+LA,Central,30161
+LA,Slidell,28440
+LA,New Iberia,26849
+LA,Hammond,23426
+LA,Ruston,22330
+LA,Sulphur,20572
+LA,Zachary,20370
+LA,Youngsville,19038
+LA,Gretna,17185
+LA,Natchitoches,17165
+LA,Thibodaux,15569
+LA,Broussard,15312
+LA,Opelousas,15176
+LA,Pineville,13966
+LA,Gonzales,13837
+LA,Mandeville,12973
+LA,Carencro,12883
+LA,West Monroe,12476
+LA,Baker,12147
+LA,Covington,11686
+LA,Crowley,11216
+LA,Minden,11195
+LA,Abbeville,10902
+LA,Morgan City,10813
+LA,Bogalusa,10367
+LA,DeRidder,9508
+LA,Scott,9468
+LA,Denham Springs,9321
+LA,Jennings,9280
+LA,Eunice,9044
+LA,Bastrop,8922
+LA,Harahan,8819
+LA,Westwego,8231
+LA,Ponchatoula,7735
+LA,Breaux Bridge,7582
+LA,Addis,7538
+LA,Rayne,6983
+LA,Donaldsonville,6945
+LA,St. Gabriel,6857
+LA,Oakdale,6490
+LA,Walker,6402
+LA,Franklin,6284
+LA,Ville Platte,6148
+LA,Plaquemine,5985
+LA,Tallulah,5677
+LA,Patterson,5614
+LA,Leesville,5339
+LA,Grambling,5278
+LA,St. Martinville,5229
+MA,Boston,673458
+MA,Worcester,211286
+MA,Springfield,154888
+MA,Cambridge,121186
+MA,Lowell,120418
+MA,Brockton,105788
+MA,Lynn,103489
+MA,Quincy,103434
+MA,New Bedford,101318
+MA,Fall River,94689
+MA,Newton,90700
+MA,Lawrence,89332
+MA,Somerville,82149
+MA,Framingham,73361
+MA,Haverhill,68291
+MA,Malden,66693
+MA,Waltham,65849
+MA,Taunton,61936
+MA,Revere,60702
+MA,Weymouth Town,60159
+MA,Medford,59898
+MA,Peabody,55418
+MA,Chicopee,55381
+MA,Methuen,54272
+MA,Everett,51825
+MA,Barnstable Town,49831
+MA,Attleboro,47085
+MA,Salem,45677
+MA,Leominster,44209
+MA,Woburn,43895
+MA,Beverly,43223
+MA,Pittsfield,43121
+MA,Marlborough,42169
+MA,Fitchburg,42145
+MA,Amherst Town,40989
+MA,Westfield,40403
+MA,Chelsea,40245
+MA,Braintree Town,39134
+MA,Holyoke,37838
+MA,Watertown,35985
+MA,Randolph Town,35114
+MA,Franklin Town,33742
+MA,Northampton,31315
+MA,North Attleborough Town,31210
+MA,Gloucester,30491
+MA,Melrose,29938
+MA,Bridgewater Town,29167
+MA,West Springfield Town,29028
+MA,Agawam Town,28749
+MA,Gardner,21381
+MA,Newburyport,19163
+MA,Winthrop Town,18739
+MA,Southbridge Town,18106
+MA,Greenfield,17633
+MA,Amesbury,17617
+MA,Easthampton,16020
+MA,North Adams,12492
+MA,Palmer Town,12388
+MD,Baltimore,568271
+MD,Frederick,89537
+MD,Gaithersburg,70686
+MD,Rockville,68417
+MD,Bowie,58421
+MD,Hagerstown,43909
+MD,Annapolis,40689
+MD,College Park,34667
+MD,Salisbury,33616
+MD,Laurel,30238
+MD,Greenbelt,24843
+MD,Hyattsville,21052
+MD,Westminster,20662
+MD,Cumberland,18643
+MD,Aberdeen,18451
+MD,Takoma Park,17856
+MD,Easton,17381
+MD,Elkton,15977
+MD,Havre de Grace,15222
+MD,New Carrollton,13645
+MD,Cambridge,13262
+MD,La Plata,11374
+MD,Bel Air,10395
+MD,Mount Airy,9914
+MD,Bladensburg,9635
+MD,Brunswick,9015
+MD,Taneytown,8293
+MD,Mount Rainier,8269
+MD,Riverdale Park,7296
+MD,Frostburg,6972
+MD,Ocean City,6884
+MD,Walkersville,6535
+MD,Chesapeake Beach,6504
+MD,Glenarden,6394
+MD,Thurmont,6308
+MD,Hampstead,6288
+MD,Cheverly,6125
+MD,Fruitland,5973
+MD,District Heights,5916
+MD,Poolesville,5856
+MD,Chestertown,5702
+MD,Manchester,5440
+MD,Berlin,5349
+MD,Middletown,5055
+MD,Denton,5049
+MD,Leonardtown,5041
+ME,Portland,69568
+ME,Lewiston,38772
+ME,Bangor,32446
+ME,South Portland,26994
+ME,Auburn,25200
+ME,Sanford,22497
+ME,Biddeford,22370
+ME,Westbrook,21386
+ME,Saco,21064
+ME,Augusta,19168
+ME,Waterville,17336
+ME,Brewer,9629
+ME,Ellsworth,8822
+ME,Bath,8817
+ME,Presque Isle,8728
+ME,Old Town,7511
+ME,Caribou,7328
+ME,Rockland,7060
+ME,Belfast,6993
+ME,Gardiner,6160
+MI,Detroit,645705
+MI,Grand Rapids,200117
+MI,Warren,137686
+MI,Sterling Heights,134342
+MI,Ann Arbor,122925
+MI,Lansing,114336
+MI,Dearborn,106377
+MI,Livonia,93113
+MI,Troy,89209
+MI,Farmington Hills,84173
+MI,Westland,82745
+MI,Flint,79735
+MI,Wyoming,78559
+MI,Rochester Hills,78330
+MI,Southfield,76874
+MI,Kalamazoo,73290
+MI,Novi,67675
+MI,Pontiac,62528
+MI,Taylor,61544
+MI,Dearborn Heights,61040
+MI,Royal Oak,58251
+MI,St. Clair Shores,58077
+MI,Kentwood,54768
+MI,Battle Creek,52205
+MI,Portage,49975
+MI,East Lansing,48964
+MI,Roseville,47047
+MI,Saginaw,43001
+MI,Midland,42780
+MI,Lincoln Park,38774
+MI,Muskegon,37287
+MI,Holland,35023
+MI,Eastpointe,33943
+MI,Bay City,32086
+MI,Jackson,30920
+MI,Burton,29420
+MI,Oak Park,29402
+MI,Southgate,29081
+MI,Madison Heights,28626
+MI,Port Huron,28342
+MI,Allen Park,27604
+MI,Hamtramck,27424
+MI,Garden City,26410
+MI,Auburn Hills,26047
+MI,Walker,25921
+MI,Inkster,25108
+MI,Norton Shores,25070
+MI,Romulus,24652
+MI,Wyandotte,24214
+MI,Birmingham,22198
+MI,Marquette,21845
+MI,Mount Pleasant,21090
+MI,Adrian,20259
+MI,Monroe,20177
+MI,Ypsilanti,20150
+MI,Ferndale,19431
+MI,Trenton,17957
+MI,Wixom,17486
+MI,Wayne,17129
+MI,Grandville,17094
+MI,Grosse Pointe Woods,15897
+MI,Traverse City,15782
+MI,Mount Clemens,15480
+MI,Berkley,15313
+MI,Hazel Park,15064
+MI,Harper Woods,14936
+MI,Fraser,14549
+MI,Owosso,14544
+MI,Coldwater,14314
+MI,Sault Ste. Marie,13288
+MI,Rochester,12978
+MI,Woodhaven,12575
+MI,Melvindale,12401
+MI,Escanaba,12296
+MI,Ionia,12265
+MI,South Lyon,12219
+MI,New Baltimore,12132
+MI,Riverview,12011
+MI,Fenton,11882
+MI,Niles,11738
+MI,East Grand Rapids,11616
+MI,Farmington,11547
+MI,Clawson,11440
+MI,Grosse Pointe Park,11158
+MI,Grand Haven,11045
+MI,Sturgis,11030
+MI,Beverly Hills,10552
+MI,Cadillac,10521
+MI,Flat Rock,10249
+MI,Alpena,10116
+MI,Howell,9914
+MI,Marysville,9868
+MI,Muskegon Heights,9806
+MI,Grosse Pointe Farms,9794
+MI,Alma,9349
+MI,Charlotte,9301
+MI,Plymouth,9185
+MI,Lapeer,9146
+MI,Greenville,9110
+MI,Saline,9101
+MI,Ecorse,8938
+MI,Benton Harbor,8848
+MI,Tecumseh,8606
+MI,Big Rapids,8565
+MI,Houghton,8543
+MI,Center Line,8533
+MI,Highland Park,8390
+MI,Mason,8314
+MI,Menominee,8231
+MI,Flushing,8224
+MI,Hudsonville,7985
+MI,Hillsdale,7983
+MI,Three Rivers,7958
+MI,Brighton,7933
+MI,St. Joseph,7930
+MI,Grand Blanc,7924
+MI,Grand Ledge,7838
+MI,St. Johns,7723
+MI,Ludington,7577
+MI,Iron Mountain,7524
+MI,Hastings,7513
+MI,Albion,7494
+MI,St. Louis,7465
+MI,Walled Lake,7413
+MI,River Rouge,6877
+MI,Marshall,6802
+MI,New Haven,6711
+MI,Milford,6554
+MI,Huntington Woods,6345
+MI,Rockford,6291
+MI,Manistee,6241
+MI,Ishpeming,6207
+MI,Milan,6048
+MI,Northville,6047
+MI,Dundee,6006
+MI,Holly,5980
+MI,Belding,5967
+MI,Richmond,5905
+MI,Swartz Creek,5848
+MI,St. Clair,5824
+MI,Petoskey,5810
+MI,Dowagiac,5742
+MI,Zeeland,5637
+MI,Grosse Pointe,5526
+MI,Chelsea,5393
+MI,Springfield,5267
+MI,Gladstone,5226
+MI,Frankenmuth,5185
+MI,Eaton Rapids,5184
+MI,Allegan,5152
+MI,Utica,5139
+MI,Kingsford,5125
+MI,Davison,5059
+MN,Minneapolis,428579
+MN,St. Paul,307465
+MN,Rochester,123624
+MN,Bloomington,88344
+MN,Duluth,87986
+MN,Brooklyn Park,82893
+MN,Woodbury,80596
+MN,Plymouth,78551
+MN,Lakeville,77971
+MN,Blaine,75172
+MN,Maple Grove,72739
+MN,St. Cloud,72145
+MN,Eagan,67240
+MN,Burnsville,64864
+MN,Coon Rapids,63807
+MN,Eden Prairie,62905
+MN,Apple Valley,55272
+MN,Edina,53564
+MN,Minnetonka,52651
+MN,St. Louis Park,49899
+MN,Shakopee,48401
+MN,Mankato,46459
+MN,Moorhead,45726
+MN,Cottage Grove,42760
+MN,Maplewood,40142
+MN,Richfield,36491
+MN,Inver Grove Heights,36226
+MN,Roseville,35637
+MN,Andover,33426
+MN,Savage,32896
+MN,Brooklyn Center,31755
+MN,Fridley,30679
+MN,Rosemount,30581
+MN,Oakdale,30441
+MN,Chaska,30167
+MN,Ramsey,28999
+MN,Prior Lake,28018
+MN,Elk River,27606
+MN,Shoreview,26939
+MN,Austin,26690
+MN,Owatonna,26626
+MN,Winona,26173
+MN,Chanhassen,25746
+MN,Faribault,24983
+MN,Farmington,24464
+MN,Otsego,23875
+MN,White Bear Lake,23479
+MN,Champlin,23045
+MN,Lino Lakes,22774
+MN,Hastings,22502
+MN,New Brighton,22374
+MN,Columbia Heights,22358
+MN,Crystal,22082
+MN,West St. Paul,21920
+MN,Willmar,21892
+MN,St. Michael,21681
+MN,Northfield,21316
+MN,Golden Valley,21263
+MN,New Hope,20745
+MN,Forest Lake,20700
+MN,South St. Paul,20590
+MN,Sartell,19979
+MN,Hopkins,19462
+MN,Stillwater,19386
+MN,Albert Lea,18159
+MN,Anoka,18068
+MN,Ham Lake,16905
+MN,Red Wing,16788
+MN,Hugo,16765
+MN,Buffalo,16736
+MN,Hibbing,15940
+MN,Bemidji,15733
+MN,Monticello,15482
+MN,Alexandria,14914
+MN,Hutchinson,14708
+MN,Rogers,14493
+MN,Brainerd,14400
+MN,Fergus Falls,14258
+MN,Lake Elmo,14161
+MN,North Mankato,14142
+MN,Marshall,13996
+MN,Robbinsdale,13993
+MN,New Ulm,13970
+MN,Sauk Rapids,13832
+MN,Waconia,13831
+MN,Worthington,13754
+MN,Vadnais Heights,13108
+MN,Big Lake,12855
+MN,Mounds View,12841
+MN,North St. Paul,12644
+MN,Cloquet,12475
+MN,St. Peter,12456
+MN,East Bethel,12288
+MN,North Branch,12258
+MN,Victoria,11937
+MN,Mendota Heights,11542
+MN,Grand Rapids,11244
+MN,Cambridge,10974
+MN,Dayton,10744
+MN,Little Canada,10590
+MN,Hermantown,10265
+MN,Fairmont,10176
+MN,Detroit Lakes,10033
+MN,St. Anthony,9993
+MN,Arden Hills,9490
+MN,Oak Grove,9327
+MN,Little Falls,9206
+MN,Baxter,9186
+MN,Minnetrista,9091
+MN,Waseca,9067
+MN,Mound,9031
+MN,East Grand Forks,8915
+MN,Thief River Falls,8779
+MN,Albertville,8555
+MN,St. Francis,8523
+MN,Waite Park,8504
+MN,Corcoran,8378
+MN,Virginia,8267
+MN,New Prague,8235
+MN,Orono,8228
+MN,Mahtomedi,8199
+MN,Wyoming,8173
+MN,Shorewood,7557
+MN,Delano,7513
+MN,Isanti,7493
+MN,Belle Plaine,7444
+MN,Crookston,7269
+MN,Medina,7209
+MN,Kasson,7207
+MN,Spring Lake Park,7083
+MN,St. Joseph,6992
+MN,Stewartville,6919
+MN,Jordan,6831
+MN,Carver,6810
+MN,Byron,6809
+MN,Zimmerman,6772
+MN,Litchfield,6515
+MN,Chisago City,5953
+MN,Glencoe,5659
+MN,Credit River,5589
+MN,International Falls,5498
+MN,Newport,5415
+MN,St. Paul Park,5381
+MN,Princeton,5329
+MN,Lake City,5306
+MN,Montevideo,5300
+MN,La Crescent,5257
+MN,Becker,5252
+MN,North Oaks,5232
+MN,Elko New Market,5193
+MN,Morris,5192
+MN,Lonsdale,5066
+MN,Redwood Falls,5038
+MN,Lindstrom,5026
+MN,Falcon Heights,5002
+MO,Kansas City,516032
+MO,St. Louis,279695
+MO,Springfield,170596
+MO,Columbia,130900
+MO,Independence,121629
+MO,Lee's Summit,106419
+MO,O'Fallon,95355
+MO,St. Charles,72458
+MO,St. Joseph,71098
+MO,St. Peters,61398
+MO,Blue Springs,61246
+MO,Joplin,53605
+MO,Florissant,51290
+MO,Chesterfield,49465
+MO,Wentzville,48646
+MO,Jefferson City,42564
+MO,Cape Girardeau,40818
+MO,Wildwood,35082
+MO,University City,34349
+MO,Liberty,31245
+MO,Ballwin,31036
+MO,Kirkwood,29348
+MO,Raytown,29244
+MO,Maryland Heights,27671
+MO,Gladstone,27579
+MO,Grandview,26630
+MO,Nixa,26352
+MO,Raymore,25962
+MO,Belton,25861
+MO,Hazelwood,24951
+MO,Webster Groves,23525
+MO,Ozark,23248
+MO,Sedalia,22310
+MO,Republic,21392
+MO,Arnold,21036
+MO,Rolla,20660
+MO,Warrensburg,19998
+MO,Farmington,19165
+MO,Lake St. Louis,19160
+MO,Creve Coeur,18533
+MO,Manchester,18122
+MO,Ferguson,18043
+MO,Kirksville,17841
+MO,Clayton,17512
+MO,Grain Valley,16859
+MO,Hannibal,16809
+MO,Poplar Bluff,16177
+MO,Sikeston,16062
+MO,Jackson,15929
+MO,Carthage,15703
+MO,Overland,15547
+MO,Lebanon,15538
+MO,Washington,15521
+MO,Troy,14963
+MO,Dardenne Prairie,14407
+MO,Marshall,13791
+MO,Neosho,13782
+MO,Festus,13730
+MO,Webb City,13391
+MO,Moberly,13337
+MO,Eureka,13277
+MO,Union,13198
+MO,Jennings,13024
+MO,Branson,12869
+MO,St. Ann,12704
+MO,West Plains,12704
+MO,Fulton,12573
+MO,Crestwood,12239
+MO,Town and Country,11625
+MO,Bolivar,11549
+MO,Mexico,11482
+MO,Bridgeton,11301
+MO,Kearney,11215
+MO,Smithville,10971
+MO,Excelsior Springs,10727
+MO,Bellefontaine Neighbors,10401
+MO,Ellisville,10359
+MO,Maryville,10193
+MO,Kennett,10137
+MO,Monett,10108
+MO,Harrisonville,9980
+MO,Clinton,9449
+MO,Warrenton,9420
+MO,Des Peres,9171
+MO,Oak Grove,9129
+MO,Chillicothe,9103
+MO,Sunset Hills,9099
+MO,Richmond Heights,9096
+MO,Parkville,8980
+MO,Olivette,8960
+MO,Ladue,8937
+MO,Pleasant Hill,8864
+MO,Park Hills,8705
+MO,Perryville,8554
+MO,Carl Junction,8435
+MO,Nevada,8294
+MO,Brentwood,8111
+MO,Maplewood,8077
+MO,Berkeley,8058
+MO,Marshfield,7935
+MO,Dexter,7890
+MO,Boonville,7863
+MO,Pacific,7842
+MO,Aurora,7573
+MO,Cameron,7352
+MO,Sullivan,6925
+MO,Valley Park,6747
+MO,Willard,6632
+MO,Black Jack,6575
+MO,De Soto,6503
+MO,Bonne Terre,6487
+MO,St. John,6472
+MO,Cottleville,6378
+MO,Shrewsbury,6263
+MO,Battlefield,6236
+MO,Greenwood,6235
+MO,Peculiar,6226
+MO,Pevely,6103
+MO,Glendale,6082
+MO,Richmond,5939
+MO,Wright City,5723
+MO,Odessa,5689
+MO,North Kansas City,5630
+MO,Trenton,5588
+MO,St. Robert,5511
+MO,Macon,5509
+MO,Waynesville,5493
+MO,Rogersville,5344
+MO,Herculaneum,5321
+MO,Weldon Spring,5304
+MO,Caruthersville,5170
+MO,Ashland,5164
+MO,Osage Beach,5123
+MO,Savannah,5076
+MO,Ste. Genevieve,5025
+MS,Jackson,141449
+MS,Gulfport,74621
+MS,Southaven,57493
+MS,Hattiesburg,48522
+MS,Biloxi,48144
+MS,Olive Branch,47365
+MS,Tupelo,37775
+MS,Meridian,33549
+MS,Pearl,28458
+MS,Madison,28210
+MS,Greenville,27015
+MS,Oxford,26801
+MS,Clinton,26617
+MS,Horn Lake,26574
+MS,Brandon,25870
+MS,Starkville,25844
+MS,Ridgeland,24576
+MS,Columbus,22820
+MS,Pascagoula,21476
+MS,Vicksburg,20032
+MS,Gautier,19055
+MS,Ocean Springs,18954
+MS,Hernando,18542
+MS,Laurel,17508
+MS,Long Beach,17217
+MS,Natchez,14233
+MS,Corinth,14219
+MS,Clarksdale,13861
+MS,Greenwood,13627
+MS,D'Iberville,13399
+MS,Byram,12656
+MS,Grenada,12138
+MS,Picayune,12017
+MS,Moss Point,11791
+MS,McComb,11762
+MS,Brookhaven,11654
+MS,Petal,11538
+MS,Flowood,10853
+MS,Canton,10777
+MS,Bay St. Louis,10526
+MS,Cleveland,10183
+MS,Yazoo City,9913
+MS,West Point,9758
+MS,Diamondhead,9391
+MS,Booneville,9367
+MS,Indianola,8702
+MS,Senatobia,8428
+MS,New Albany,7729
+MS,Richland,7607
+MS,Batesville,7356
+MS,Waveland,7043
+MS,Philadelphia,6938
+MS,Kosciusko,6774
+MS,Columbia,6534
+MS,Holly Springs,6472
+MS,Pass Christian,6429
+MS,Amory,6412
+MS,Pontotoc,6046
+MS,Louisville,5899
+MS,Forest,5364
+MS,Ripley,5359
+MT,Billings,121483
+MT,Missoula,78204
+MT,Great Falls,60013
+MT,Bozeman,57894
+MT,Helena,34729
+MT,Kalispell,31296
+MT,Belgrade,12741
+MT,Anaconda-Deer Lodge County,9811
+MT,Whitefish,9256
+MT,Havre,9204
+MT,Livingston,9021
+MT,Miles City,8407
+MT,Laurel,7251
+MT,Lewistown,6204
+MT,Sidney,6031
+MT,Columbia Falls,5713
+MT,Polson,5631
+MT,Hamilton,5383
+NC,Charlotte,943476
+NC,Raleigh,499825
+NC,Greensboro,307381
+NC,Durham,301870
+NC,Winston-Salem,255769
+NC,Fayetteville,209496
+NC,Cary,182659
+NC,Wilmington,125284
+NC,High Point,118601
+NC,Concord,112395
+NC,Greenville,95138
+NC,Asheville,94992
+NC,Gastonia,85535
+NC,Apex,75977
+NC,Jacksonville,70840
+NC,Huntersville,67087
+NC,Chapel Hill,64028
+NC,Burlington,61365
+NC,Kannapolis,60521
+NC,Wake Forest,56764
+NC,Rocky Mount,54541
+NC,Mooresville,52884
+NC,Holly Springs,48674
+NC,Wilson,48579
+NC,Fuquay-Varina,46317
+NC,Hickory,45081
+NC,Indian Trail,43867
+NC,Monroe,40054
+NC,Garner,39345
+NC,Salisbury,36579
+NC,Goldsboro,34629
+NC,Leland,34451
+NC,Cornelius,34366
+NC,New Bern,34218
+NC,Sanford,32971
+NC,Morrisville,32628
+NC,Matthews,32048
+NC,Clayton,31732
+NC,Statesville,31693
+NC,Mint Hill,28825
+NC,Kernersville,28760
+NC,Asheboro,27928
+NC,Thomasville,27605
+NC,Waxhaw,23178
+NC,Shelby,22778
+NC,Clemmons,22471
+NC,Knightdale,21829
+NC,Carrboro,21079
+NC,Mebane,20654
+NC,Harrisburg,20335
+NC,Boone,20080
+NC,Lexington,19904
+NC,Kinston,19519
+NC,Graham,19311
+NC,Elizabeth City,19028
+NC,Lumberton,18882
+NC,Mount Holly,18723
+NC,Pinehurst,18502
+NC,Lenoir,18280
+NC,Hope Mills,18102
+NC,Morganton,17825
+NC,Stallings,17617
+NC,Havelock,17407
+NC,Albemarle,17344
+NC,Southern Pines,16987
+NC,Wendell,16845
+NC,Davidson,16276
+NC,Belmont,16044
+NC,Hendersonville,15656
+NC,Eden,15399
+NC,Laurinburg,15130
+NC,Henderson,14807
+NC,Reidsville,14646
+NC,Roanoke Rapids,14573
+NC,Weddington,14391
+NC,Lewisville,14203
+NC,Newton,13571
+NC,Smithfield,12806
+NC,Lincolnton,12353
+NC,Archdale,12147
+NC,Rolesville,11854
+NC,Kings Mountain,11797
+NC,Pineville,11567
+NC,Spring Lake,11530
+NC,Summerfield,11333
+NC,Elon,11282
+NC,Tarboro,10954
+NC,Winterville,10899
+NC,Waynesville,10709
+NC,Mount Airy,10583
+NC,Zebulon,10505
+NC,Morehead City,9963
+NC,Hillsborough,9773
+NC,Gibsonville,9744
+NC,Washington,9738
+NC,Aberdeen,9573
+NC,Wesley Chapel,9495
+NC,Oak Island,9322
+NC,Oxford,8972
+NC,Rockingham,8802
+NC,Conover,8760
+NC,Dunn,8754
+NC,Black Mountain,8572
+NC,Clinton,8317
+NC,Roxboro,8289
+NC,Angier,8284
+NC,Fletcher,8251
+NC,Woodfin,8158
+NC,Butner,8134
+NC,Siler City,8087
+NC,Brevard,7973
+NC,Oak Ridge,7900
+NC,King,7764
+NC,Kill Devil Hills,7742
+NC,Marion,7534
+NC,Mills River,7426
+NC,Forest City,7397
+NC,St. James,7315
+NC,Unionville,7258
+NC,Selma,7228
+NC,Trinity,7190
+NC,Marvin,6985
+NC,Carolina Beach,6864
+NC,Boiling Spring Lakes,6738
+NC,Cherryville,6385
+NC,Dallas,6270
+NC,Mocksville,6224
+NC,Stokesdale,6111
+NC,Walkertown,6027
+NC,Locust,5992
+NC,Hamlet,5888
+NC,Nashville,5850
+NC,Holly Ridge,5766
+NC,Bessemer City,5730
+NC,Cramerton,5604
+NC,Archer Lodge,5522
+NC,Carolina Shores,5463
+NC,Whispering Pines,5416
+NC,Long View,5289
+NC,Ayden,5190
+NC,Shallotte,5161
+NC,Pleasant Garden,5151
+NC,Williamston,5066
+NC,Sawmills,5059
+NC,Midway,5053
+NC,Creedmoor,5049
+NC,Midland,5027
+ND,Fargo,136285
+ND,Bismarck,77772
+ND,Grand Forks,59845
+ND,Minot,47440
+ND,West Fargo,41027
+ND,Williston,28821
+ND,Dickinson,25695
+ND,Mandan,24788
+ND,Jamestown,15789
+ND,Wahpeton,8115
+ND,Devils Lake,7314
+ND,Valley City,6580
+ND,Horace,6286
+ND,Watford City,6207
+NE,Omaha,489265
+NE,Lincoln,300619
+NE,Bellevue,64777
+NE,Grand Island,53250
+NE,Kearney,34741
+NE,Fremont,28190
+NE,Norfolk,26162
+NE,Papillion,25248
+NE,Hastings,25152
+NE,Columbus,25126
+NE,North Platte,22549
+NE,La Vista,16543
+NE,Scottsbluff,14323
+NE,South Sioux City,13910
+NE,Beatrice,12290
+NE,Lexington,11205
+NE,Gretna,9207
+NE,Gering,8554
+NE,York,8179
+NE,Alliance,8071
+NE,Blair,7999
+NE,Seward,7752
+NE,Crete,7580
+NE,Nebraska City,7526
+NE,McCook,7212
+NE,Plattsmouth,6887
+NE,Schuyler,6708
+NE,Sidney,6483
+NE,Ralston,6443
+NE,Wayne,6229
+NE,Holdrege,5556
+NE,Chadron,5094
+NH,Manchester,116386
+NH,Nashua,91851
+NH,Concord,44674
+NH,Dover,33909
+NH,Rochester,33598
+NH,Keene,23036
+NH,Portsmouth,22938
+NH,Laconia,17310
+NH,Lebanon,15389
+NH,Claremont,13105
+NH,Somersworth,12218
+NH,Berlin,9248
+NH,Franklin,8823
+NJ,Newark,317303
+NJ,Jersey City,302824
+NJ,Paterson,160463
+NJ,Elizabeth,140413
+NJ,Trenton,91193
+NJ,Clifton,90322
+NJ,Bayonne,74532
+NJ,East Orange,71850
+NJ,Camden,71749
+NJ,Passaic,70722
+NJ,Union City,66918
+NJ,Vineland,62070
+NJ,Hoboken,59149
+NJ,New Brunswick,57487
+NJ,Perth Amboy,56939
+NJ,Plainfield,56507
+NJ,West New York,52975
+NJ,Sayreville,47165
+NJ,Hackensack,46630
+NJ,Linden,45393
+NJ,Kearny,40866
+NJ,Fort Lee,40566
+NJ,Atlantic City,38959
+NJ,Fair Lawn,36489
+NJ,Garfield,33530
+NJ,Long Branch,33214
+NJ,Westfield,32050
+NJ,Princeton,31445
+NJ,Rahway,30763
+NJ,Englewood,30221
+NJ,Bergenfield,28921
+NJ,Millville,27838
+NJ,Bridgeton,27722
+NJ,Paramus,26786
+NJ,Ridgewood,26701
+NJ,Lodi,26358
+NJ,Cliffside Park,26183
+NJ,Carteret,26003
+NJ,South Plainfield,25062
+NJ,Glassboro,24322
+NJ,Summit,23102
+NJ,North Plainfield,23072
+NJ,Roselle,23064
+NJ,Secaucus,22710
+NJ,Harrison,22182
+NJ,Lindenwold,21919
+NJ,Elmwood Park,21680
+NJ,Pleasantville,20924
+NJ,Morristown,20732
+NJ,Palisades Park,20520
+NJ,Hawthorne,20006
+NJ,Point Pleasant,19565
+NJ,Tinton Falls,19435
+NJ,Rutherford,19214
+NJ,Dover,18909
+NJ,Dumont,18606
+NJ,New Milford,17229
+NJ,North Arlington,16694
+NJ,Madison,16555
+NJ,South River,16392
+NJ,Fairview,15606
+NJ,Asbury Park,15473
+NJ,Metuchen,15470
+NJ,Tenafly,15455
+NJ,Phillipsburg,15393
+NJ,Highland Park,15386
+NJ,Edgewater,15116
+NJ,Hammonton,15036
+NJ,Ramsey,15003
+NJ,Middlesex,14874
+NJ,Hopatcong,14750
+NJ,Florham Park,14533
+NJ,Somerville,14428
+NJ,Roselle Park,14390
+NJ,Collingswood,14344
+NJ,New Providence,13957
+NJ,Eatontown,13582
+NJ,Woodland Park,13477
+NJ,Ridgefield Park,13400
+NJ,Oakland,12926
+NJ,Red Bank,12830
+NJ,Haddonfield,12707
+NJ,Bound Brook,12643
+NJ,Freehold,12530
+NJ,Glen Rock,12346
+NJ,Hasbrouck Heights,12253
+NJ,River Edge,12235
+NJ,Wallington,12060
+NJ,Guttenberg,11945
+NJ,Bellmawr,11846
+NJ,Ringwood,11762
+NJ,Ridgefield,11666
+NJ,Gloucester City,11618
+NJ,Westwood,11434
+NJ,Wanaque,11346
+NJ,Franklin Lakes,11251
+NJ,Beachwood,11242
+NJ,Ocean City,11219
+NJ,Pompton Lakes,11156
+NJ,Little Ferry,11137
+NJ,Totowa,11064
+NJ,Manville,11031
+NJ,Lincoln Park,11030
+NJ,Pine Hill,10894
+NJ,East Rutherford,10624
+NJ,Somers Point,10611
+NJ,South Amboy,10549
+NJ,Wood-Ridge,10397
+NJ,Waldwick,10308
+NJ,Hillsdale,10266
+NJ,Maywood,10221
+NJ,Hackettstown,10182
+NJ,Burlington,10143
+NJ,Woodbury,10138
+NJ,Kinnelon,10108
+NJ,Chatham,10062
+NJ,Bogota,9799
+NJ,Matawan,9739
+NJ,Keansburg,9689
+NJ,Montvale,9663
+NJ,Park Ridge,9634
+NJ,Leonia,9492
+NJ,Ventnor City,9372
+NJ,Caldwell,9326
+NJ,Cresskill,9311
+NJ,Absecon,9249
+NJ,Haledon,9063
+NJ,Clayton,9016
+NJ,Pitman,8943
+NJ,Boonton,8894
+NJ,North Haledon,8854
+NJ,Audubon,8801
+NJ,Closter,8730
+NJ,Upper Saddle River,8696
+NJ,West Long Branch,8604
+NJ,Raritan,8584
+NJ,Kenilworth,8527
+NJ,Northfield,8527
+NJ,Newton,8435
+NJ,Runnemede,8425
+NJ,Dunellen,8411
+NJ,Oradell,8344
+NJ,Spotswood,8306
+NJ,Glen Ridge,8204
+NJ,Butler,8196
+NJ,Bernardsville,8020
+NJ,Fanwood,7968
+NJ,Bloomingdale,7795
+NJ,Brigantine,7697
+NJ,Berlin,7614
+NJ,Haddon Heights,7588
+NJ,Palmyra,7587
+NJ,Wharton,7444
+NJ,Emerson,7413
+NJ,Washington,7375
+NJ,Mountainside,7228
+NJ,Rumson,7191
+NJ,Stratford,7185
+NJ,Keyport,7182
+NJ,Milltown,7170
+NJ,Barrington,7140
+NJ,Midland Park,7104
+NJ,Linwood,7072
+NJ,Allendale,6928
+NJ,North Caldwell,6769
+NJ,Rockaway,6651
+NJ,Watchung,6606
+NJ,Morris Plains,6590
+NJ,Carlstadt,6454
+NJ,Oceanport,6383
+NJ,Prospect Park,6382
+NJ,Roseland,6370
+NJ,Old Tappan,6342
+NJ,Paulsboro,6316
+NJ,Woodcliff Lake,6234
+NJ,Fair Haven,6114
+NJ,Little Silver,6101
+NJ,Mount Arlington,5979
+NJ,Hightstown,5978
+NJ,Manasquan,5925
+NJ,Jamesburg,5869
+NJ,Norwood,5854
+NJ,Belmar,5846
+NJ,Somerdale,5712
+NJ,Union Beach,5691
+NJ,Clementon,5600
+NJ,Englewood Cliffs,5443
+NJ,Salem,5369
+NJ,Garwood,5346
+NJ,Margate City,5239
+NJ,Wildwood,5098
+NJ,Harrington Park,5088
+NJ,Franklin,5059
+NJ,Mendham,5000
+NM,Albuquerque,560326
+NM,Las Cruces,116998
+NM,Rio Rancho,112524
+NM,Santa Fe,90551
+NM,Roswell,47176
+NM,Farmington,46262
+NM,Hobbs,41061
+NM,Clovis,37555
+NM,Carlsbad,31999
+NM,Alamogordo,31667
+NM,Gallup,20339
+NM,Los Lunas,19907
+NM,Sunland Park,18185
+NM,Deming,15272
+NM,Las Vegas,12711
+NM,Artesia,12550
+NM,Portales,11789
+NM,Lovington,11693
+NM,Española,10475
+NM,Silver City,9399
+NM,Bernalillo,9159
+NM,Anthony,8910
+NM,Grants,8880
+NM,Corrales,8530
+NM,Socorro,8348
+NM,Ruidoso,7640
+NM,Belen,7556
+NM,Bloomfield,7363
+NM,Taos,6453
+NM,Edgewood,6170
+NM,Aztec,6129
+NM,Raton,6005
+NM,Truth or Consequences,5942
+NM,Los Ranchos de Albuquerque,5833
+NM,Tucumcari,5058
+NV,Las Vegas,678922
+NV,Henderson,350039
+NV,North Las Vegas,294034
+NV,Reno,281714
+NV,Sparks,111520
+NV,Carson,58148
+NV,Fernley,25508
+NV,Mesquite,23599
+NV,Elko,20822
+NV,Boulder City,15029
+NV,Fallon,9647
+NV,Winnemucca,8225
+NY,New York,8478072
+NY,Buffalo,276617
+NY,Yonkers,211040
+NY,Rochester,207282
+NY,Syracuse,146097
+NY,Albany,101317
+NY,New Rochelle,85512
+NY,Mount Vernon,71999
+NY,Schenectady,69495
+NY,Utica,63660
+NY,White Plains,62561
+NY,Hempstead,59569
+NY,Troy,51065
+NY,Niagara Falls,47512
+NY,Binghamton,46773
+NY,Freeport,44028
+NY,Kiryas Joel,43863
+NY,Valley Stream,40232
+NY,Long Beach,34777
+NY,Ithaca,33768
+NY,Spring Valley,33637
+NY,Poughkeepsie,32293
+NY,Rome,31990
+NY,Harrison,31321
+NY,Port Chester,30957
+NY,Middletown,30188
+NY,North Tonawanda,29981
+NY,Saratoga Springs,28741
+NY,Newburgh,28181
+NY,Glen Cove,28088
+NY,Jamestown,27699
+NY,Lindenhurst,27160
+NY,Ossining,26895
+NY,Elmira,26255
+NY,Auburn,25963
+NY,Peekskill,25757
+NY,Rockville Centre,25718
+NY,Watertown,24038
+NY,Kingston,23748
+NY,Garden City,22993
+NY,Mineola,21305
+NY,Lynbrook,20684
+NY,Lockport,20394
+NY,Mamaroneck,19783
+NY,Plattsburgh,19758
+NY,Lackawanna,19629
+NY,Cohoes,18530
+NY,Amsterdam,18169
+NY,Scarsdale,18036
+NY,Cortland,17459
+NY,Oswego,17047
+NY,Massapequa Park,16922
+NY,Rye,16463
+NY,Floral Park,15966
+NY,Westbury,15871
+NY,Oneonta,15679
+NY,Beacon,15292
+NY,Batavia,15071
+NY,Tonawanda,14984
+NY,Kenmore,14936
+NY,Depew,14910
+NY,Gloversville,14894
+NY,Johnson City,14698
+NY,Glens Falls,14455
+NY,Olean,13614
+NY,Endicott,13199
+NY,Patchogue,12447
+NY,Haverstraw,12445
+NY,Geneva,12397
+NY,Dunkirk,12379
+NY,Babylon,12193
+NY,Tarrytown,11829
+NY,Suffern,11537
+NY,Woodbury,11523
+NY,Dobbs Ferry,11513
+NY,Sleepy Hollow,11427
+NY,Fulton,11234
+NY,Lake Grove,11109
+NY,Great Neck,11075
+NY,West Haverstraw,10804
+NY,Chestnut Ridge,10746
+NY,Mount Kisco,10698
+NY,Corning,10605
+NY,Canandaigua,10476
+NY,Airmont,10380
+NY,Watervliet,10268
+NY,New Hyde Park,10220
+NY,Lancaster,10094
+NY,Oneida,10066
+NY,East Rockaway,10064
+NY,Massena,9998
+NY,New Square,9973
+NY,Rye Brook,9900
+NY,Hamburg,9835
+NY,Amityville,9718
+NY,Monroe,9502
+NY,Rensselaer,9453
+NY,Fredonia,9295
+NY,Ogdensburg,9282
+NY,Newark,8932
+NY,New Paltz,8646
+NY,Port Jervis,8566
+NY,Farmingdale,8553
+NY,Malverne,8464
+NY,Hastings-on-Hudson,8407
+NY,Croton-on-Hudson,8232
+NY,Port Jefferson,8189
+NY,Potsdam,8162
+NY,Hornell,8078
+NY,Johnstown,8027
+NY,Great Neck Plaza,7824
+NY,Geneseo,7722
+NY,Colonie,7691
+NY,Baldwinsville,7662
+NY,Pelham,7579
+NY,Ilion,7559
+NY,Williston Park,7503
+NY,Brockport,7489
+NY,Briarcliff Manor,7440
+NY,Nyack,7369
+NY,Hudson Falls,7359
+NY,Pleasantville,7351
+NY,Cedarhurst,7324
+NY,Scotia,7321
+NY,Northport,7317
+NY,East Hills,7295
+NY,Herkimer,7254
+NY,Monticello,7228
+NY,Manorhaven,6997
+NY,Tuckahoe,6984
+NY,Canton,6957
+NY,Walden,6909
+NY,Lawrence,6807
+NY,North Syracuse,6761
+NY,Bayville,6739
+NY,Larchmont,6640
+NY,Norwich,6608
+NY,Warwick,6546
+NY,Irvington,6502
+NY,Solvay,6495
+NY,Bronxville,6479
+NY,Horseheads,6343
+NY,Wesley Hills,6310
+NY,East Rochester,6139
+NY,Wappingers Falls,6070
+NY,East Aurora,5986
+NY,Hilton,5975
+NY,Kaser,5970
+NY,Medina,5912
+NY,Webster,5787
+NY,Goshen,5760
+NY,Salamanca,5757
+NY,Hudson,5735
+NY,Albion,5704
+NY,Kings Point,5680
+NY,Washingtonville,5650
+NY,Pelham Manor,5613
+NY,New Hempstead,5515
+NY,Bath,5512
+NY,Williamsville,5489
+NY,Alfred,5471
+NY,North Hills,5427
+NY,Malone,5373
+NY,Fairport,5341
+NY,Elmsford,5168
+NY,Liberty,5136
+NY,Mechanicville,5083
+NY,Penn Yan,5024
+NY,Sea Cliff,5024
+NY,Island Park,5019
+OH,Columbus,933263
+OH,Cleveland,365379
+OH,Cincinnati,314915
+OH,Toledo,265638
+OH,Akron,189664
+OH,Dayton,136346
+OH,Parma,79350
+OH,Canton,69211
+OH,Lorain,65751
+OH,Hamilton,63953
+OH,Youngstown,59123
+OH,Springfield,58138
+OH,Kettering,57028
+OH,Elyria,53604
+OH,Middletown,52291
+OH,Newark,51424
+OH,Cuyahoga Falls,50979
+OH,Lakewood,49517
+OH,Dublin,49456
+OH,Euclid,48421
+OH,Beavercreek,48012
+OH,Mansfield,47593
+OH,Mentor,47113
+OH,Delaware,46521
+OH,Strongsville,45768
+OH,Fairfield,45094
+OH,Cleveland Heights,44064
+OH,Grove City,44019
+OH,Huber Heights,43590
+OH,Reynoldsburg,42897
+OH,Lancaster,41671
+OH,Findlay,40343
+OH,Hilliard,38832
+OH,Warren,38683
+OH,Westerville,38612
+OH,North Ridgeville,37504
+OH,Upper Arlington,36140
+OH,Mason,36046
+OH,Marion,35576
+OH,Gahanna,35544
+OH,Brunswick,35166
+OH,Fairborn,35105
+OH,Lima,34690
+OH,Westlake,34232
+OH,Stow,34101
+OH,Massillon,32750
+OH,North Olmsted,31690
+OH,North Royalton,30894
+OH,Bowling Green,30463
+OH,Marysville,29276
+OH,Garfield Heights,29014
+OH,Shaker Heights,28689
+OH,Kent,27720
+OH,Green,27476
+OH,Troy,27122
+OH,Wooster,26982
+OH,Avon Lake,26342
+OH,Centerville,26311
+OH,Xenia,26067
+OH,Pickerington,25814
+OH,Medina,25757
+OH,Avon,25573
+OH,Perrysburg,25313
+OH,Zanesville,24916
+OH,Athens,24824
+OH,Wadsworth,24753
+OH,Barberton,24624
+OH,Riverside,24472
+OH,Willoughby,24208
+OH,Sandusky,24174
+OH,Solon,23875
+OH,Maple Heights,23081
+OH,Hudson,23073
+OH,Trotwood,23073
+OH,Oxford,22585
+OH,Lebanon,21995
+OH,Chillicothe,21769
+OH,Alliance,21523
+OH,Rocky River,21468
+OH,South Euclid,21363
+OH,Piqua,20940
+OH,Painesville,20660
+OH,Parma Heights,20524
+OH,Sidney,20392
+OH,Miamisburg,20253
+OH,Forest Park,20033
+OH,Whitehall,19940
+OH,Mayfield Heights,19886
+OH,Broadview Heights,19792
+OH,Oregon,19726
+OH,Springboro,19646
+OH,Twinsburg,19504
+OH,Norwood,19455
+OH,Sylvania,19102
+OH,Ashland,18770
+OH,Pataskala,18493
+OH,Tallmadge,18412
+OH,Niles,18238
+OH,Brook Park,18142
+OH,Steubenville,18029
+OH,Berea,17998
+OH,Aurora,17985
+OH,Streetsboro,17877
+OH,Ashtabula,17775
+OH,Tiffin,17729
+OH,North Canton,17677
+OH,Portsmouth,17489
+OH,Eastlake,17423
+OH,New Philadelphia,17378
+OH,Mount Vernon,17329
+OH,Defiance,17180
+OH,Norwalk,17172
+OH,Fairview Park,16860
+OH,Monroe,15950
+OH,Bay Village,15903
+OH,Fremont,15814
+OH,Middleburg Heights,15672
+OH,Vandalia,15013
+OH,Worthington,14649
+OH,Powell,14613
+OH,Washington Court House,14446
+OH,Circleville,14433
+OH,Willowick,14159
+OH,Trenton,14131
+OH,Bellefontaine,14100
+OH,Sharonville,14040
+OH,Brecksville,13951
+OH,New Franklin,13859
+OH,Beachwood,13820
+OH,Lyndhurst,13700
+OH,Maumee,13625
+OH,Blue Ash,13616
+OH,Harrison,13526
+OH,Warrensville Heights,13450
+OH,East Cleveland,13402
+OH,Clayton,13296
+OH,Englewood,13282
+OH,Loveland,13277
+OH,University Heights,13265
+OH,Fostoria,13063
+OH,Amherst,13048
+OH,Marietta,13039
+OH,Dover,12946
+OH,West Carrollton,12911
+OH,Bedford,12834
+OH,Bexley,12793
+OH,Greenville,12701
+OH,Wickliffe,12659
+OH,Wilmington,12639
+OH,Conneaut,12357
+OH,Macedonia,12139
+OH,Franklin,11758
+OH,Salem,11685
+OH,New Albany,11604
+OH,Bucyrus,11567
+OH,Seven Hills,11560
+OH,Norton,11423
+OH,Ravenna,11236
+OH,Urbana,11211
+OH,Springdale,11183
+OH,Van Wert,11123
+OH,Coshocton,11114
+OH,Brooklyn,11072
+OH,Montgomery,10952
+OH,Celina,10945
+OH,Heath,10822
+OH,Bedford Heights,10791
+OH,London,10743
+OH,Vermilion,10733
+OH,Tipp City,10596
+OH,Richmond Heights,10552
+OH,Reading,10482
+OH,Galion,10304
+OH,Ironton,10147
+OH,Canal Winchester,10060
+OH,Cambridge,10036
+OH,Willoughby Hills,9986
+OH,Struthers,9891
+OH,Wapakoneta,9817
+OH,Louisville,9793
+OH,Sunbury,9705
+OH,East Liverpool,9651
+OH,North College Hill,9552
+OH,Madeira,9542
+OH,Girard,9454
+OH,Oakwood,9400
+OH,Shelby,9238
+OH,Grandview Heights,9184
+OH,Sheffield Lake,9035
+OH,Wyoming,8781
+OH,Napoleon,8724
+OH,Olmsted Falls,8676
+OH,Cheviot,8640
+OH,Highland Heights,8612
+OH,Bryan,8601
+OH,Oberlin,8587
+OH,Orrville,8442
+OH,St. Marys,8376
+OH,Eaton,8337
+OH,Bellevue,8166
+OH,Kenton,7857
+OH,Fairlawn,7773
+OH,Campbell,7751
+OH,Canfield,7628
+OH,Hubbard,7565
+OH,Bellbrook,7532
+OH,Independence,7518
+OH,Wauseon,7455
+OH,Obetz,7306
+OH,Logan,7142
+OH,Mentor-on-the-Lake,7106
+OH,Union,7076
+OH,Delphos,7074
+OH,Cortland,7069
+OH,South Lebanon,6923
+OH,Mount Healthy,6916
+OH,Kirtland,6914
+OH,Pepper Pike,6881
+OH,Columbiana,6773
+OH,Ontario,6648
+OH,Huron,6630
+OH,Upper Sandusky,6627
+OH,Moraine,6603
+OH,Hillsboro,6599
+OH,Belpre,6588
+OH,Milford,6433
+OH,Clyde,6360
+OH,Rossford,6353
+OH,Granville,6308
+OH,Jackson,6226
+OH,Rittman,6119
+OH,Willard,6106
+OH,The Village of Indian Hill,6090
+OH,Martins Ferry,6050
+OH,Waterville,6022
+OH,Brookville,5946
+OH,Port Clinton,5915
+OH,Geneva,5871
+OH,Groveport,5867
+OH,Germantown,5863
+OH,Carlisle,5855
+OH,Grafton,5804
+OH,New Carlisle,5511
+OH,Wellston,5493
+OH,Deer Park,5437
+OH,Canal Fulton,5382
+OH,Johnstown,5356
+OH,Reminderville,5345
+OH,Ada,5293
+OH,Chardon,5233
+OH,Northwood,5222
+OH,Toronto,5187
+OH,Uhrichsville,5122
+OH,Whitehouse,5083
+OK,Oklahoma City,712919
+OK,Tulsa,415154
+OK,Norman,131010
+OK,Broken Arrow,122756
+OK,Edmond,99040
+OK,Lawton,90027
+OK,Moore,63845
+OK,Midwest City,58505
+OK,Enid,50519
+OK,Stillwater,50138
+OK,Owasso,42821
+OK,Bartlesville,38355
+OK,Muskogee,36849
+OK,Shawnee,32092
+OK,Bixby,31728
+OK,Jenks,27869
+OK,Yukon,27068
+OK,Ardmore,25064
+OK,Ponca City,24234
+OK,Mustang,23965
+OK,Sapulpa,23297
+OK,Duncan,23174
+OK,Del City,21272
+OK,Durant,20908
+OK,Claremore,20602
+OK,Bethany,20421
+OK,Sand Springs,20330
+OK,El Reno,20041
+OK,Altus,18543
+OK,McAlester,18108
+OK,Tahlequah,17319
+OK,Chickasha,17014
+OK,Ada,16578
+OK,Newcastle,14677
+OK,Glenpool,14567
+OK,Miami,12886
+OK,Guymon,12397
+OK,Choctaw,12358
+OK,Weatherford,12047
+OK,Woodward,11750
+OK,Guthrie,11682
+OK,Elk City,11383
+OK,Okmulgee,11354
+OK,Coweta,11093
+OK,Warr Acres,10456
+OK,Blanchard,9869
+OK,Collinsville,9757
+OK,Pryor Creek,9700
+OK,The Village,9337
+OK,Poteau,9111
+OK,Piedmont,9092
+OK,Skiatook,8879
+OK,Sallisaw,8708
+OK,Tuttle,8584
+OK,Cushing,8444
+OK,Wagoner,8387
+OK,Clinton,8355
+OK,Noble,7779
+OK,Catoosa,7497
+OK,Grove,7327
+OK,Seminole,7264
+OK,Idabel,6983
+OK,Purcell,6938
+OK,Harrah,6853
+OK,Tecumseh,6370
+OK,Pauls Valley,6112
+OK,Blackwell,6016
+OK,Holdenville,5893
+OK,Verdigris,5775
+OK,Henryetta,5606
+OK,Anadarko,5530
+OK,Vinita,5395
+OK,Lone Grove,5276
+OK,Kingfisher,5192
+OK,Hugo,5142
+OR,Portland,635749
+OR,Salem,180406
+OR,Eugene,178786
+OR,Gresham,111507
+OR,Hillsboro,110337
+OR,Bend,106926
+OR,Beaverton,98302
+OR,Medford,86301
+OR,Corvallis,61993
+OR,Springfield,61182
+OR,Tigard,57301
+OR,Albany,57156
+OR,Lake Oswego,40029
+OR,Grants Pass,39468
+OR,Keizer,39152
+OR,Oregon City,38327
+OR,Redmond,37626
+OR,McMinnville,35255
+OR,Woodburn,30449
+OR,Happy Valley,28969
+OR,Tualatin,28036
+OR,Wilsonville,27895
+OR,Newberg,27136
+OR,Forest Grove,27076
+OR,West Linn,26597
+OR,Roseburg,23795
+OR,Klamath Falls,22174
+OR,Milwaukie,21620
+OR,Ashland,20935
+OR,Sherwood,20441
+OR,Lebanon,19950
+OR,Hermiston,19746
+OR,Central Point,19128
+OR,Canby,18027
+OR,Dallas,17911
+OR,Pendleton,17026
+OR,The Dalles,15884
+OR,Coos Bay,15801
+OR,Troutdale,15749
+OR,Cornelius,15369
+OR,St. Helens,14460
+OR,La Grande,13058
+OR,Sandy,12990
+OR,Ontario,11957
+OR,Prineville,11917
+OR,Gladstone,11898
+OR,Monmouth,11651
+OR,Newport,10833
+OR,Fairview,10796
+OR,Cottage Grove,10690
+OR,Silverton,10391
+OR,Independence,10295
+OR,Sweet Home,10265
+OR,Baker City,10135
+OR,Molalla,10134
+OR,North Bend,10049
+OR,Lincoln City,10034
+OR,Astoria,9906
+OR,Eagle Point,9811
+OR,Florence,9504
+OR,Sutherlin,8643
+OR,Stayton,8521
+OR,Hood River,8350
+OR,Scappoose,8282
+OR,Umatilla,7899
+OR,Madras,7764
+OR,Junction City,7256
+OR,Seaside,7110
+OR,Milton-Freewater,7011
+OR,Brookings,6493
+OR,Sheridan,6375
+OR,Warrenton,6324
+OR,Talent,6306
+OR,Philomath,5795
+OR,Winston,5691
+OR,Creswell,5615
+OR,Estacada,5591
+OR,Veneta,5194
+OR,Tillamook,5157
+OR,King City,5002
+PA,Philadelphia,1573916
+PA,Pittsburgh,307668
+PA,Allentown,127138
+PA,Reading,96000
+PA,Erie,92940
+PA,Bethlehem,79453
+PA,Scranton,75905
+PA,Lancaster,58441
+PA,Harrisburg,50649
+PA,York,45241
+PA,Wilkes-Barre,44661
+PA,Altoona,42719
+PA,State College,41228
+PA,Norristown,36075
+PA,Chester,34052
+PA,Bethel Park,32376
+PA,Easton,30432
+PA,Hazleton,30354
+PA,Monroeville,27966
+PA,Williamsport,27628
+PA,Lebanon,26456
+PA,Plum,26420
+PA,Pottstown,23553
+PA,Chambersburg,23041
+PA,West Chester,22758
+PA,Carlisle,22517
+PA,New Castle,21332
+PA,Murrysville,20729
+PA,Baldwin,20712
+PA,Phoenixville,20286
+PA,Lansdale,19154
+PA,West Mifflin,18902
+PA,Johnstown,17853
+PA,McKeesport,17119
+PA,Hanover,16728
+PA,Hermitage,15839
+PA,Franklin Park,15079
+PA,Whitehall,14678
+PA,Greensburg,14586
+PA,Indiana,14294
+PA,Dunmore,14249
+PA,Wilkinsburg,13800
+PA,Ephrata,13719
+PA,Kingston,13476
+PA,Pottsville,13404
+PA,Coatesville,13390
+PA,Washington,13334
+PA,Bloomsburg,13286
+PA,Butler,13010
+PA,Sharon,12744
+PA,Yeadon,12405
+PA,St. Marys,12361
+PA,Meadville,12347
+PA,Emmaus,12314
+PA,Jefferson Hills,12291
+PA,Elizabethtown,11993
+PA,New Kensington,11877
+PA,Lower Burrell,11542
+PA,Wyomissing,11292
+PA,Lansdowne,11225
+PA,Waynesboro,11101
+PA,Darby,10749
+PA,Nanticoke,10730
+PA,Northampton,10587
+PA,Columbia,10399
+PA,Munhall,10371
+PA,Berwick,10332
+PA,Mechanicsburg,10085
+PA,Bristol,9982
+PA,Middletown,9748
+PA,Morrisville,9745
+PA,Lititz,9733
+PA,Brentwood,9704
+PA,Canonsburg,9601
+PA,Uniontown,9554
+PA,Sunbury,9549
+PA,East Stroudsburg,9445
+PA,Oil City,9368
+PA,Conshohocken,9342
+PA,Perkasie,9338
+PA,Quakertown,9302
+PA,Millersville,9290
+PA,Warren,9125
+PA,Aliquippa,9003
+PA,Economy,8990
+PA,Collingdale,8956
+PA,Carbondale,8805
+PA,Beaver Falls,8757
+PA,Old Forge,8654
+PA,Gettysburg,8647
+PA,Jeannette,8566
+PA,Lock Haven,8531
+PA,Downingtown,8463
+PA,Brookhaven,8407
+PA,Lewistown,8394
+PA,Doylestown,8382
+PA,Mount Joy,8364
+PA,Hatboro,8341
+PA,Pleasant Hills,8318
+PA,Swissvale,8280
+PA,Camp Hill,8231
+PA,Wilson,8169
+PA,Castle Shannon,8094
+PA,Bellevue,7996
+PA,Dormont,7922
+PA,Latrobe,7906
+PA,Carnegie,7855
+PA,Grove City,7749
+PA,Pittston,7743
+PA,Palmyra,7735
+PA,New Cumberland,7625
+PA,Bradford,7538
+PA,Archbald,7508
+PA,Ellwood City,7416
+PA,White Oak,7352
+PA,Ridley Park,7310
+PA,DuBois,7302
+PA,Souderton,7274
+PA,Glenolden,7266
+PA,Tamaqua,6944
+PA,Ambler,6900
+PA,Ambridge,6886
+PA,Clifton Heights,6880
+PA,Huntingdon,6857
+PA,Folcroft,6827
+PA,Shamokin,6787
+PA,Kennett Square,6713
+PA,Monessen,6704
+PA,Connellsville,6682
+PA,Blakely,6659
+PA,Oakmont,6628
+PA,Catasauqua,6625
+PA,Swarthmore,6596
+PA,Red Lion,6552
+PA,Milton,6483
+PA,Prospect Park,6452
+PA,West View,6426
+PA,Steelton,6358
+PA,Taylor,6252
+PA,Forest Hills,6186
+PA,South Williamsport,6176
+PA,Hellertown,6145
+PA,Nazareth,6088
+PA,Corry,6065
+PA,Sharon Hill,6039
+PA,Moosic,6018
+PA,Dickson City,6010
+PA,Bellefonte,5986
+PA,Norwood,5969
+PA,Clairton,5945
+PA,Media,5938
+PA,Franklin,5933
+PA,Oxford,5909
+PA,Somerset,5870
+PA,Crafton,5863
+PA,Stroudsburg,5819
+PA,Edinboro,5814
+PA,Plymouth,5810
+PA,New Holland,5800
+PA,Clearfield,5794
+PA,McKees Rocks,5694
+PA,Shippensburg,5638
+PA,Palmerton,5634
+PA,Mount Carmel,5626
+PA,Exeter,5590
+PA,Punxsutawney,5587
+PA,Hollidaysburg,5537
+PA,Shillington,5533
+PA,New Brighton,5517
+PA,Selinsgrove,5501
+PA,Monaca,5466
+PA,Greenville,5459
+PA,Bridgeport,5401
+PA,Olyphant,5397
+PA,Sayre,5394
+PA,Coraopolis,5340
+PA,Tyrone,5312
+PA,Collegeville,5308
+PA,Schuylkill Haven,5273
+PA,Lehighton,5262
+PA,Lewisburg,5253
+PA,West Hazleton,5231
+PA,Fox Chapel,5185
+PA,Bangor,5171
+PA,Birdsboro,5163
+PA,Titusville,5155
+PA,Duryea,5142
+PA,New Freedom,5131
+PA,West York,5127
+PA,Swoyersville,5092
+PA,Clarks Summit,5089
+PA,Duquesne,5074
+PA,Manheim,5011
+RI,Providence,194706
+RI,Cranston,84448
+RI,Warwick,83554
+RI,Pawtucket,76996
+RI,East Providence,47961
+RI,Woonsocket,44508
+RI,Newport,24482
+RI,Central Falls,23034
+SC,Charleston,157665
+SC,Columbia,144788
+SC,North Charleston,126005
+SC,Mount Pleasant,95604
+SC,Rock Hill,75798
+SC,Greenville,74371
+SC,Summerville,52625
+SC,Goose Creek,50352
+SC,Greer,46316
+SC,Sumter,42958
+SC,Florence,40923
+SC,Myrtle Beach,40535
+SC,Spartanburg,39606
+SC,Hilton Head Island,38158
+SC,Fort Mill,36244
+SC,Bluffton,36146
+SC,Aiken,32694
+SC,Anderson,30937
+SC,Mauldin,29746
+SC,Conway,29656
+SC,Simpsonville,28078
+SC,Easley,27001
+SC,North Augusta,26395
+SC,Lexington,25354
+SC,Greenwood,22667
+SC,Hanahan,21983
+SC,North Myrtle Beach,20798
+SC,Clemson,18610
+SC,West Columbia,18418
+SC,Moncks Corner,18359
+SC,Port Royal,16507
+SC,Beaufort,14334
+SC,Tega Cay,14294
+SC,Hardeeville,13862
+SC,Fountain Inn,13786
+SC,Cayce,13645
+SC,Orangeburg,13378
+SC,Gaffney,12546
+SC,James Island,12451
+SC,Irmo,12086
+SC,Newberry,10874
+SC,Forest Acres,10438
+SC,York,9830
+SC,Lancaster,9396
+SC,Laurens,9352
+SC,Seneca,9202
+SC,Travelers Rest,8960
+SC,Camden,8899
+SC,Georgetown,8821
+SC,Union,7988
+SC,Clinton,7852
+SC,Bennettsville,7595
+SC,Clover,7558
+SC,Hartsville,7360
+SC,Lyman,6939
+SC,Blythewood,6733
+SC,Dillon,6244
+SC,Marion,6068
+SC,Darlington,6045
+SC,Lake City,5916
+SC,Hollywood,5503
+SC,Walterboro,5488
+SC,Central,5339
+SC,Batesburg-Leesville,5321
+SC,Chester,5230
+SC,Woodruff,5072
+SD,Sioux Falls,209289
+SD,Rapid City,79894
+SD,Aberdeen,27919
+SD,Brookings,24555
+SD,Watertown,23492
+SD,Yankton,15670
+SD,Mitchell,15621
+SD,Huron,14515
+SD,Box Elder,13887
+SD,Spearfish,13803
+SD,Pierre,13788
+SD,Vermillion,11877
+SD,Brandon,10837
+SD,Harrisburg,10203
+SD,Tea,7699
+SD,Sturgis,7014
+SD,Madison,6086
+SD,Belle Fourche,5855
+TN,Memphis,610919
+TN,Knoxville,198722
+TN,Chattanooga,191496
+TN,Clarksville,185690
+TN,Murfreesboro,168387
+TN,Franklin,89142
+TN,Johnson City,73635
+TN,Jackson,69303
+TN,Hendersonville,63947
+TN,Smyrna,60302
+TN,Spring Hill,59398
+TN,Kingsport,57109
+TN,Bartlett,56708
+TN,Gallatin,52489
+TN,Collierville,51951
+TN,Lebanon,51501
+TN,Cleveland,50232
+TN,Columbia,48812
+TN,Brentwood,45525
+TN,Mount Juliet,44066
+TN,La Vergne,41430
+TN,Germantown,40128
+TN,Cookeville,37102
+TN,Oak Ridge,34039
+TN,Morristown,32994
+TN,Maryville,32373
+TN,Bristol,27867
+TN,Shelbyville,25792
+TN,Farragut,25242
+TN,East Ridge,21970
+TN,Tullahoma,21035
+TN,Springfield,19842
+TN,Sevierville,18231
+TN,Goodlettsville,17433
+TN,Dickson,16878
+TN,White House,16463
+TN,Greeneville,15979
+TN,Dyersburg,15915
+TN,Nolensville,15809
+TN,Arlington,15550
+TN,Athens,15050
+TN,Elizabethton,14461
+TN,Lakeland,14416
+TN,McMinnville,14032
+TN,Portland,13651
+TN,Alcoa,13588
+TN,Manchester,13484
+TN,Lewisburg,13473
+TN,Soddy-Daisy,13430
+TN,Crossville,12785
+TN,Hartsville/Trousdale County,12159
+TN,Lawrenceburg,12112
+TN,Red Bank,12073
+TN,Lenoir City,12041
+TN,Collegedale,11510
+TN,Millington,11486
+TN,Martin,10989
+TN,Union City,10876
+TN,Oakland,10769
+TN,Atoka,10624
+TN,Fairview,10535
+TN,Paris,10517
+TN,Clinton,10458
+TN,Winchester,10251
+TN,Brownsville,9358
+TN,Thompson's Station,9081
+TN,Jefferson City,9013
+TN,Signal Mountain,8877
+TN,Covington,8575
+TN,Milan,8306
+TN,Pulaski,8241
+TN,Lexington,8037
+TN,Humboldt,7852
+TN,Dayton,7796
+TN,Savannah,7565
+TN,Ripley,7546
+TN,Church Hill,7310
+TN,La Follette,7194
+TN,Fayetteville,7142
+TN,Greenbrier,7039
+TN,Newport,6954
+TN,Loudon,6942
+TN,Munford,6896
+TN,"Lynchburg, Moore County",6773
+TN,Jonesborough,6746
+TN,Sweetwater,6676
+TN,Henderson,6519
+TN,Pigeon Forge,6446
+TN,Millersville,6427
+TN,Kingston,6340
+TN,Harriman,6216
+TN,Erwin,6020
+TN,Dunlap,5960
+TN,Lafayette,5919
+TN,Ashland City,5689
+TN,Rockwood,5684
+TN,Medina,5681
+TN,Pleasant View,5629
+TN,McKenzie,5603
+TN,Mount Carmel,5549
+TN,Smithville,5546
+TN,Madisonville,5395
+TN,Bolivar,5084
+TX,Houston,2390125
+TX,San Antonio,1526656
+TX,Dallas,1326087
+TX,Fort Worth,1008106
+TX,Austin,993588
+TX,El Paso,681723
+TX,Arlington,403672
+TX,Corpus Christi,317317
+TX,Plano,293286
+TX,Lubbock,272086
+TX,Laredo,261260
+TX,Irving,258060
+TX,Garland,250431
+TX,Frisco,235208
+TX,McKinney,227526
+TX,Grand Prairie,207331
+TX,Amarillo,203729
+TX,Brownsville,191967
+TX,Denton,165998
+TX,Killeen,160616
+TX,Mesquite,150140
+TX,Pasadena,149617
+TX,McAllen,148782
+TX,Waco,146608
+TX,Midland,143687
+TX,Lewisville,135983
+TX,Carrollton,135456
+TX,Round Rock,135359
+TX,Abilene,130501
+TX,Pearland,129620
+TX,College Station,128023
+TX,Odessa,119748
+TX,League City,118456
+TX,Richardson,118221
+TX,New Braunfels,116477
+TX,Conroe,114581
+TX,Allen,113746
+TX,Beaumont,112893
+TX,Tyler,112219
+TX,Sugar Land,109851
+TX,Edinburg,108733
+TX,Wichita Falls,102372
+TX,Georgetown,101344
+TX,San Angelo,100159
+TX,Temple,96267
+TX,Bryan,91541
+TX,Mission,88574
+TX,Leander,87511
+TX,Baytown,86004
+TX,Longview,83668
+TX,Pharr,81142
+TX,Mansfield,80803
+TX,Flower Mound,79990
+TX,Missouri City,78582
+TX,Cedar Park,78380
+TX,San Marcos,74316
+TX,Harlingen,72234
+TX,North Richland Hills,71436
+TX,Rowlett,68123
+TX,Pflugerville,66819
+TX,Victoria,66020
+TX,Kyle,65833
+TX,Wylie,62954
+TX,Little Elm,61219
+TX,Euless,60010
+TX,Texas City,57875
+TX,DeSoto,56711
+TX,Burleson,56253
+TX,Port Arthur,55799
+TX,Fulshear,54629
+TX,Rockwall,53547
+TX,Galveston,53538
+TX,Celina,51661
+TX,Grapevine,51320
+TX,Sherman,50229
+TX,Cedar Hill,49618
+TX,Huntsville,49500
+TX,Bedford,48728
+TX,Waxahachie,48617
+TX,Keller,46643
+TX,The Colony,45897
+TX,Haltom City,45786
+TX,Prosper,44503
+TX,Schertz,44428
+TX,Midlothian,44104
+TX,Weslaco,43864
+TX,Hutto,42661
+TX,Rosenberg,42571
+TX,Coppell,41785
+TX,Friendswood,41291
+TX,Lancaster,40780
+TX,Copperas Cove,39627
+TX,Hurst,39500
+TX,Weatherford,39397
+TX,Duncanville,39203
+TX,Seguin,38789
+TX,Socorro,38642
+TX,Forney,38572
+TX,Cleburne,38131
+TX,La Porte,38046
+TX,Cibolo,37816
+TX,Farmers Branch,37341
+TX,San Juan,37341
+TX,Princeton,37019
+TX,Texarkana,35971
+TX,Harker Heights,35263
+TX,Del Rio,34678
+TX,Deer Park,34495
+TX,Lufkin,34399
+TX,Greenville,34355
+TX,Sachse,33008
+TX,Nacogdoches,32381
+TX,Anna,31986
+TX,Southlake,31500
+TX,Converse,31400
+TX,Alvin,29869
+TX,Eagle Pass,28768
+TX,Lake Jackson,28158
+TX,Katy,27741
+TX,Fate,27467
+TX,Balch Springs,27307
+TX,Denison,26446
+TX,Royse City,26387
+TX,Melissa,26194
+TX,Saginaw,26116
+TX,Colleyville,26012
+TX,Belton,25635
+TX,Corsicana,25591
+TX,University Park,25268
+TX,Kerrville,25141
+TX,Paris,25037
+TX,Kingsville,24884
+TX,Horizon City,24802
+TX,Ennis,24753
+TX,San Benito,24712
+TX,Benbrook,24542
+TX,Corinth,24450
+TX,Marshall,24263
+TX,Watauga,23120
+TX,Terrell,22977
+TX,Alton,22907
+TX,Boerne,22712
+TX,Big Spring,22541
+TX,Stephenville,22147
+TX,Dickinson,21941
+TX,Manor,21500
+TX,Murphy,21109
+TX,Angleton,20979
+TX,Portland,20725
+TX,Alamo,20694
+TX,Crowley,20483
+TX,Universal City,20267
+TX,La Marque,20194
+TX,Seagoville,20124
+TX,Glenn Heights,19752
+TX,Brenham,19728
+TX,Palestine,19583
+TX,Plainview,19429
+TX,Red Oak,19365
+TX,Manvel,19309
+TX,Orange,19275
+TX,Lakeway,19056
+TX,Brownwood,18772
+TX,Gainesville,18295
+TX,Nederland,18168
+TX,White Settlement,18099
+TX,Taylor,17872
+TX,Alice,17595
+TX,Stafford,17555
+TX,Mercedes,17535
+TX,Bay City,17471
+TX,Bellaire,17439
+TX,Addison,17257
+TX,Iowa Colony,17240
+TX,Lockhart,17166
+TX,Sulphur Springs,16891
+TX,Donna,16876
+TX,Groves,16866
+TX,Hewitt,16749
+TX,Humble,16561
+TX,Pampa,16487
+TX,Canyon,16457
+TX,Gatesville,16388
+TX,Mount Pleasant,16238
+TX,Live Oak,16218
+TX,South Houston,16146
+TX,Highland Village,16137
+TX,Buda,16090
+TX,Palmview,16030
+TX,Mineral Wells,15688
+TX,Uvalde,15589
+TX,Rio Grande City,15526
+TX,Hidalgo,15164
+TX,Tomball,15152
+TX,West University Place,15149
+TX,Azle,15046
+TX,Hereford,14860
+TX,Dumas,14834
+TX,Jacksonville,14639
+TX,Forest Hill,14314
+TX,Lumberton,14255
+TX,Seabrook,13976
+TX,Port Neches,13709
+TX,Trophy Club,13704
+TX,Andrews,13677
+TX,Kilgore,13583
+TX,Athens,13575
+TX,Henderson,13485
+TX,Richmond,13305
+TX,Beeville,13176
+TX,Santa Fe,13131
+TX,Robinson,12986
+TX,Granbury,12934
+TX,Bastrop,12720
+TX,Webster,12548
+TX,Levelland,12494
+TX,Elgin,12438
+TX,El Campo,12176
+TX,Liberty Hill,11984
+TX,Selma,11900
+TX,Borger,11892
+TX,Fredericksburg,11766
+TX,Fair Oaks Ranch,11744
+TX,Roma,11635
+TX,Heath,11499
+TX,Leon Valley,11424
+TX,Pleasanton,11409
+TX,Port Lavaca,11299
+TX,Snyder,11151
+TX,Bonham,11115
+TX,Burkburnett,11101
+TX,Rockport,11069
+TX,Fairview,10922
+TX,Roanoke,10895
+TX,Clute,10893
+TX,Kennedale,10771
+TX,Northlake,10746
+TX,Freeport,10635
+TX,Bellmead,10607
+TX,Galena Park,10438
+TX,Robstown,10383
+TX,Providence Village,10350
+TX,Mont Belvieu,10229
+TX,Town of Pecos,10224
+TX,Helotes,10223
+TX,Lago Vista,10201
+TX,Sweetwater,10196
+TX,Dripping Springs,10165
+TX,Ingleside,10155
+TX,Sanger,10142
+TX,San Elizario,10128
+TX,Raymondville,10107
+TX,Bridge City,9806
+TX,Commerce,9800
+TX,Kaufman,9785
+TX,Whitehouse,9781
+TX,Cleveland,9757
+TX,Dayton,9752
+TX,Vernon,9728
+TX,Vidor,9686
+TX,Woodway,9686
+TX,Pearsall,9541
+TX,Navasota,9471
+TX,Jacinto City,9431
+TX,Marble Falls,9413
+TX,Joshua,9146
+TX,Liberty,8974
+TX,Hondo,8969
+TX,Hillsboro,8878
+TX,Graham,8859
+TX,Aubrey,8843
+TX,Lucas,8840
+TX,Sunnyvale,8839
+TX,Josephine,8807
+TX,Highland Park,8762
+TX,Wharton,8755
+TX,Aransas Pass,8742
+TX,Floresville,8738
+TX,Brownfield,8682
+TX,Prairie View,8662
+TX,Los Fresnos,8563
+TX,Richland Hills,8546
+TX,Bee Cave,8510
+TX,Lavon,8491
+TX,Dalhart,8443
+TX,Decatur,8266
+TX,Perryton,8219
+TX,Cuero,8215
+TX,Venus,8209
+TX,Fort Stockton,8147
+TX,Lamesa,8108
+TX,Kirby,8104
+TX,Hutchins,7996
+TX,Wolfforth,7982
+TX,Lampasas,7936
+TX,Lake Dallas,7915
+TX,Jersey Village,7791
+TX,Hitchcock,7752
+TX,Alamo Heights,7557
+TX,Sealy,7553
+TX,Jasper,7505
+TX,River Oaks,7505
+TX,Nolanville,7395
+TX,Seminole,7386
+TX,Monahans,7334
+TX,Alvarado,7312
+TX,Lacy-Lakeview,7262
+TX,Gonzales,7238
+TX,Lindale,7227
+TX,Willis,7222
+TX,Van Alstyne,7220
+TX,Bulverde,7198
+TX,La Feria,7036
+TX,Mabank,7021
+TX,Gun Barrel City,6999
+TX,Keene,6930
+TX,Mexia,6916
+TX,Hickory Creek,6901
+TX,Burnet,6869
+TX,Willow Park,6851
+TX,Oak Point,6826
+TX,Krum,6799
+TX,Wilmer,6774
+TX,Pilot Point,6771
+TX,Bridgeport,6763
+TX,Silsbee,6711
+TX,Hempstead,6658
+TX,Aledo,6655
+TX,Carthage,6653
+TX,Iowa Park,6583
+TX,Penitas,6568
+TX,Magnolia,6506
+TX,Crockett,6387
+TX,Everman,6347
+TX,Parker,6332
+TX,Gladewater,6307
+TX,Argyle,6294
+TX,White Oak,6241
+TX,Justin,6197
+TX,McGregor,6161
+TX,Bowie,6054
+TX,Alpine,6039
+TX,Edna,6039
+TX,Crystal City,6009
+TX,Crandall,5950
+TX,Kermit,5909
+TX,Yoakum,5875
+TX,Wake Village,5813
+TX,Brookshire,5782
+TX,Windcrest,5782
+TX,Luling,5752
+TX,Elsa,5750
+TX,Littlefield,5740
+TX,Sandy Oaks,5698
+TX,Slaton,5698
+TX,Childress,5683
+TX,Sinton,5648
+TX,Rockdale,5637
+TX,Marlin,5572
+TX,Livingston,5562
+TX,Rusk,5553
+TX,Cameron,5527
+TX,Primera,5449
+TX,Atlanta,5448
+TX,Granite Shoals,5417
+TX,Sansom Park,5402
+TX,Mineola,5380
+TX,Giddings,5324
+TX,McLendon-Chisholm,5291
+TX,Hudson,5288
+TX,Caddo Mills,5257
+TX,Center,5231
+TX,Nassau Bay,5229
+TX,Horseshoe Bay,5218
+TX,Muleshoe,5218
+TX,Port Isabel,5210
+TX,Gilmer,5207
+TX,Breckenridge,5190
+TX,Progreso,5182
+TX,Jarrell,5151
+TX,Terrell Hills,5142
+TX,La Joya,5129
+TX,Diboll,5108
+TX,Bullard,5070
+UT,Salt Lake City,217783
+UT,West Valley City,138144
+UT,West Jordan,116688
+UT,Provo,115479
+UT,St. George,106288
+UT,Orem,96646
+UT,Lehi,93446
+UT,Sandy,92840
+UT,Ogden,88656
+UT,South Jordan,86156
+UT,Layton,84348
+UT,Millcreek,64217
+UT,Herriman,62352
+UT,Eagle Mountain,60575
+UT,Taylorsville,57819
+UT,Saratoga Springs,57411
+UT,Logan,56770
+UT,Murray,50817
+UT,Draper,50166
+UT,Spanish Fork,47809
+UT,Riverton,46680
+UT,Bountiful,45024
+UT,American Fork,41298
+UT,Tooele,40919
+UT,Cedar City,40885
+UT,Kearns metro township,39398
+UT,Syracuse,38999
+UT,Roy,38719
+UT,Pleasant Grove,38127
+UT,Midvale,36219
+UT,Springville,36027
+UT,Washington,35501
+UT,Clearfield,34778
+UT,Kaysville,33252
+UT,Cottonwood Heights,32437
+UT,Magna metro township,31381
+UT,Holladay,30588
+UT,South Salt Lake,26561
+UT,Farmington,26163
+UT,Hurricane,24753
+UT,Payson,24666
+UT,West Haven,24617
+UT,Clinton,23728
+UT,North Salt Lake,23593
+UT,North Ogden,22908
+UT,Highland,21146
+UT,Brigham City,20319
+UT,Bluffdale,19393
+UT,Heber,19042
+UT,Santaquin,18394
+UT,South Ogden,17749
+UT,Centerville,16560
+UT,Vineyard,16077
+UT,Grantsville,15682
+UT,Smithfield,15018
+UT,Mapleton,14812
+UT,West Point,12726
+UT,Tremonton,12677
+UT,Lindon,12018
+UT,North Logan,11727
+UT,Woods Cross,11493
+UT,Pleasant View,11337
+UT,Salem,11283
+UT,Ivins,11108
+UT,Hyrum,11043
+UT,Vernal,10698
+UT,Alpine,10548
+UT,Cedar Hills,9916
+UT,Hooper,9548
+UT,Providence,9447
+UT,Riverdale,9184
+UT,Washington Terrace,9091
+UT,Plain City,8880
+UT,Enoch,8664
+UT,Santa Clara,8631
+UT,Nibley,8615
+UT,Richfield,8330
+UT,Park City,8292
+UT,Price,8278
+UT,South Weber,8155
+UT,Farr West,8121
+UT,Roosevelt,7390
+UT,Nephi,7326
+UT,Harrisville,6947
+UT,Ephraim,6220
+UT,Perry,6111
+UT,Midway,6064
+UT,Fruit Heights,5969
+UT,White City metro township,5918
+UT,West Bountiful,5884
+UT,Hyde Park,5766
+UT,Sunset,5372
+UT,Kanab,5291
+UT,Moab,5242
+UT,Elk Ridge,5003
+VA,Virginia Beach,454808
+VA,Chesapeake,254997
+VA,Richmond,233655
+VA,Norfolk,231105
+VA,Newport News,183056
+VA,Alexandria,159102
+VA,Hampton,137596
+VA,Suffolk,103105
+VA,Roanoke,97912
+VA,Portsmouth,96482
+VA,Lynchburg,80301
+VA,Harrisonburg,51164
+VA,Leesburg,49831
+VA,Blacksburg,45452
+VA,Charlottesville,44767
+VA,Manassas,43616
+VA,Danville,41993
+VA,Petersburg,34058
+VA,Fredericksburg,29992
+VA,Winchester,27800
+VA,Staunton,26361
+VA,Fairfax,26340
+VA,Salem,25908
+VA,Herndon,25180
+VA,Waynesboro,23498
+VA,Hopewell,22970
+VA,Christiansburg,22632
+VA,Culpeper,21464
+VA,Colonial Heights,18674
+VA,Radford,17273
+VA,Manassas Park,16611
+VA,Vienna,16562
+VA,Bristol,16316
+VA,Williamsburg,16030
+VA,Front Royal,15628
+VA,Falls Church,15034
+VA,Martinsville,13834
+VA,Poquoson,12854
+VA,Warrenton,10224
+VA,Smithfield,9032
+VA,Purcellville,8965
+VA,Pulaski,8805
+VA,Franklin,8373
+VA,Abingdon,8316
+VA,Wytheville,8160
+VA,Vinton,8059
+VA,Ashland,7910
+VA,Bedford,7823
+VA,Lexington,7802
+VA,South Boston,7795
+VA,Farmville,7578
+VA,Strasburg,7290
+VA,Bridgewater,6826
+VA,Galax,6739
+VA,Buena Vista,6581
+VA,Dumfries,5978
+VA,Woodstock,5954
+VA,Covington,5663
+VA,Marion,5602
+VA,Emporia,5402
+VA,Orange,5210
+VA,Big Stone Gap,5087
+VA,Richlands,5074
+VT,Burlington,44432
+VT,South Burlington,21713
+VT,Rutland,15565
+VT,Essex Junction,10787
+VT,Winooski,8370
+VT,Barre,8304
+VT,Montpelier,7915
+VT,St. Albans,7031
+WA,Seattle,780995
+WA,Spokane,230609
+WA,Tacoma,228202
+WA,Vancouver,198992
+WA,Bellevue,154377
+WA,Kent,136588
+WA,Everett,113011
+WA,Spokane Valley,108267
+WA,Renton,105543
+WA,Federal Way,100252
+WA,Yakima,97390
+WA,Bellingham,95860
+WA,Kirkland,95499
+WA,Kennewick,86728
+WA,Auburn,85513
+WA,Redmond,82195
+WA,Pasco,81724
+WA,Marysville,76209
+WA,Sammamish,66474
+WA,Shoreline,66251
+WA,Richland,64372
+WA,Lakewood,62709
+WA,Lacey,58644
+WA,Olympia,56271
+WA,Burien,52046
+WA,Bothell,51770
+WA,Bremerton,45291
+WA,Edmonds,42871
+WA,Puyallup,42552
+WA,Lynnwood,41597
+WA,Lake Stevens,41350
+WA,Issaquah,39664
+WA,Longview,38294
+WA,Wenatchee,35401
+WA,Mount Vernon,35344
+WA,University Place,35160
+WA,SeaTac,34024
+WA,Walla Walla,33901
+WA,Pullman,33543
+WA,Des Moines,33207
+WA,Maple Valley,28553
+WA,Tumwater,27826
+WA,Camas,27313
+WA,Moses Lake,26969
+WA,Mercer Island,25302
+WA,Mountlake Terrace,25198
+WA,Bainbridge Island,24618
+WA,Kenmore,24166
+WA,Oak Harbor,24163
+WA,Battle Ground,22959
+WA,Bonney Lake,22145
+WA,Arlington,21959
+WA,Tukwila,21636
+WA,Covington,21567
+WA,Mukilteo,21299
+WA,Ellensburg,20996
+WA,Mill Creek,20993
+WA,Port Angeles,20112
+WA,Monroe,19927
+WA,Port Orchard,19122
+WA,Centralia,19061
+WA,West Richland,18820
+WA,Anacortes,18148
+WA,Washougal,17944
+WA,Aberdeen,17044
+WA,Lynden,16783
+WA,Ferndale,16706
+WA,Sunnyside,16317
+WA,Ridgefield,15359
+WA,East Wenatchee,14330
+WA,Woodinville,13942
+WA,Snoqualmie,13748
+WA,Edgewood,13496
+WA,Liberty Lake,13353
+WA,Lake Forest Park,13276
+WA,Sedro-Woolley,13215
+WA,Enumclaw,13173
+WA,Newcastle,13072
+WA,Kelso,12737
+WA,Cheney,12700
+WA,Gig Harbor,12643
+WA,Poulsbo,12562
+WA,Airway Heights,11950
+WA,Yelm,11715
+WA,Grandview,11599
+WA,Fife,11077
+WA,Burlington,10945
+WA,Sumner,10885
+WA,Shelton,10737
+WA,Port Townsend,10649
+WA,Snohomish,10534
+WA,College Place,9846
+WA,DuPont,9823
+WA,Duvall,9176
+WA,Othello,9001
+WA,Stanwood,8943
+WA,Orting,8911
+WA,Milton,8833
+WA,Hoquiam,8771
+WA,Ephrata,8718
+WA,Toppenish,8658
+WA,Selah,8653
+WA,North Bend,8553
+WA,Quincy,8294
+WA,Sequim,8199
+WA,Ocean Shores,7731
+WA,Chehalis,7717
+WA,Clarkston,7138
+WA,Pacific,7085
+WA,Sultan,7002
+WA,Fircrest,6988
+WA,Black Diamond,6787
+WA,Normandy Park,6661
+WA,Steilacoom,6649
+WA,Brier,6603
+WA,Union Gap,6582
+WA,Prosser,6540
+WA,Woodland,6496
+WA,Blaine,6371
+WA,Buckley,5641
+WA,Deer Park,5191
+WA,Omak,5167
+WA,Connell,5071
+WA,Colville,5009
+WA,Medical Lake,5003
+WI,Milwaukee,563531
+WI,Madison,285300
+WI,Green Bay,106311
+WI,Kenosha,99578
+WI,Racine,78057
+WI,Appleton,75344
+WI,Eau Claire,72331
+WI,Waukesha,71461
+WI,Oshkosh,67242
+WI,Janesville,66428
+WI,West Allis,59784
+WI,La Crosse,51049
+WI,Sheboygan,49624
+WI,Wauwatosa,48794
+WI,Fond du Lac,44469
+WI,Brookfield,41268
+WI,Menomonee Falls,40700
+WI,New Berlin,40302
+WI,Wausau,40262
+WI,Sun Prairie,39253
+WI,Oak Creek,38373
+WI,Greenfield,37232
+WI,Beloit,36633
+WI,Franklin,36591
+WI,Manitowoc,34616
+WI,Fitchburg,34357
+WI,West Bend,32149
+WI,Mount Pleasant,28184
+WI,Neenah,27502
+WI,Superior,26620
+WI,Stevens Point,26465
+WI,Muskego,25759
+WI,De Pere,25453
+WI,Mequon,25329
+WI,Caledonia,25240
+WI,Watertown,22617
+WI,Middleton,22566
+WI,Howard,21961
+WI,Pleasant Prairie,21802
+WI,Germantown,21032
+WI,South Milwaukee,20233
+WI,Oconomowoc,20002
+WI,Onalaska,19898
+WI,Fox Crossing,19362
+WI,Marshfield,18973
+WI,Wisconsin Rapids,18675
+WI,Menasha,18433
+WI,Kaukauna,18363
+WI,River Falls,17802
+WI,Cudahy,17704
+WI,Ashwaubenon,17437
+WI,Verona,16825
+WI,Bellevue,16749
+WI,Menomonie,16709
+WI,Beaver Dam,16443
+WI,Pewaukee,16437
+WI,Waunakee,16363
+WI,Whitewater,16076
+WI,Hartford,15984
+WI,Weston,15866
+WI,Chippewa Falls,15075
+WI,Hudson,15031
+WI,Whitefish Bay,14532
+WI,Greendale,14455
+WI,Glendale,14381
+WI,Salem Lakes,14302
+WI,Harrison,14254
+WI,Plover,14208
+WI,Allouez,13923
+WI,Shorewood,13521
+WI,Greenville,13273
+WI,Stoughton,13134
+WI,Suamico,13109
+WI,Baraboo,13096
+WI,Cedarburg,13011
+WI,Port Washington,12750
+WI,Grafton,12741
+WI,Sussex,12607
+WI,Brown Deer,12527
+WI,Fort Atkinson,12377
+WI,DeForest,12260
+WI,Oregon,11895
+WI,Holmen,11866
+WI,Platteville,11833
+WI,Richfield,11783
+WI,Little Chute,11761
+WI,Two Rivers,11214
+WI,Marinette,11139
+WI,Waupun,11131
+WI,Lisbon,11127
+WI,Burlington,10939
+WI,New Richmond,10879
+WI,Hobart,10876
+WI,Monroe,10579
+WI,Reedsburg,10314
+WI,Hartland,10203
+WI,Elkhorn,10122
+WI,Windsor,10005
+WI,Portage,9975
+WI,Sparta,9963
+WI,Sturgeon Bay,9940
+WI,Shawano,9635
+WI,Tomah,9574
+WI,Merrill,9445
+WI,Altoona,9302
+WI,McFarland,9224
+WI,Delavan,9055
+WI,Cottage Grove,8974
+WI,Rice Lake,8971
+WI,St. Francis,8951
+WI,Plymouth,8854
+WI,Lake Geneva,8691
+WI,Sheboygan Falls,8656
+WI,Monona,8616
+WI,Mukwonago,8512
+WI,Kronenwetter,8435
+WI,Rhinelander,8286
+WI,Somers,8194
+WI,Jackson,8169
+WI,Antigo,8096
+WI,Ashland,7940
+WI,Mount Horeb,7803
+WI,Hales Corners,7766
+WI,Jefferson,7766
+WI,Ripon,7716
+WI,Kimberly,7529
+WI,New London,7524
+WI,Vernon,7505
+WI,Lake Hallie,7349
+WI,Delafield,7275
+WI,Rib Mountain,7275
+WI,Sturtevant,6855
+WI,Lake Mills,6617
+WI,Fox Point,6591
+WI,Slinger,6443
+WI,Elm Grove,6416
+WI,Twin Lakes,6328
+WI,Waupaca,6231
+WI,Edgerton,6138
+WI,Waterford,5885
+WI,Evansville,5819
+WI,Milton,5778
+WI,Rothschild,5629
+WI,Berlin,5607
+WI,Prairie du Chien,5472
+WI,Columbus,5429
+WI,North Fond du Lac,5419
+WI,Summit,5346
+WI,West Salem,5306
+WI,Union Grove,5241
+WI,Bristol,5239
+WI,Mayville,5205
+WI,Dodgeville,5077
+WI,Richland Center,5052
+WI,East Troy,5011
+WV,Charleston,46482
+WV,Huntington,44942
+WV,Morgantown,30490
+WV,Parkersburg,28834
+WV,Wheeling,26060
+WV,Martinsburg,19047
+WV,Weirton,18317
+WV,Fairmont,18063
+WV,Beckley,16515
+WV,Clarksburg,15262
+WV,South Charleston,13177
+WV,Vienna,10406
+WV,St. Albans,10301
+WV,Bridgeport,9397
+WV,Bluefield,9157
+WV,Charles Town,8869
+WV,Oak Hill,7732
+WV,Moundsville,7703
+WV,Dunbar,7111
+WV,Hurricane,6813
+WV,Elkins,6698
+WV,Nitro,6366
+WV,Ranson,6035
+WV,Princeton,5595
+WV,Buckhannon,5049
+WV,New Martinsville,5038
+WY,Cheyenne,65704
+WY,Casper,58823
+WY,Gillette,33846
+WY,Laramie,32957
+WY,Rock Springs,22967
+WY,Sheridan,19813
+WY,Evanston,11691
+WY,Green River,11474
+WY,Riverton,10953
+WY,Jackson,10680
+WY,Cody,10391
+WY,Rawlins,7952
+WY,Lander,7451
+WY,Powell,6551
+WY,Douglas,6442
+WY,Torrington,6211

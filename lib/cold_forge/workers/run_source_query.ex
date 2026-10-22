@@ -26,8 +26,11 @@ defmodule ColdForge.Workers.RunSourceQuery do
   def perform(%Oban.Job{args: %{"source_id" => source_id, "segment" => segment} = args}) do
     source = Sourcing.get_source!(source_id)
     locality = Map.get(args, "locality")
+    # Jobs queued before phrases ran separately carry no "query"; they search
+    # the segment's first phrase, as they always did.
+    phrase = Map.get(args, "query")
 
-    with {:ok, rows} <- discover(source.provider, segment, locality),
+    with {:ok, rows} <- discover(source.provider, segment, phrase, locality),
          rows = Enum.map(rows, &Map.put(&1, :source_id, source.id)),
          {:ok, counts} <- Sourcing.record_discovered(rows) do
       queued =
@@ -35,7 +38,7 @@ defmodule ColdForge.Workers.RunSourceQuery do
         |> Sourcing.enqueue_crawls()
 
       Logger.info(
-        "sourcing: #{source.name} / #{segment} / #{locality} — " <>
+        "sourcing: #{source.name} / #{phrase || segment} / #{locality} — " <>
           "#{counts.inserted} new, #{counts.skipped} already known, #{queued} queued to crawl"
       )
 
@@ -51,9 +54,10 @@ defmodule ColdForge.Workers.RunSourceQuery do
     end
   end
 
-  defp discover("places", segment, locality), do: places_pages(segment, locality, nil, [], 1)
+  defp discover("places", segment, phrase, locality),
+    do: places_pages(segment, phrase, locality, nil, [], 1)
 
-  defp discover("overpass", segment, iso_region) do
+  defp discover("overpass", segment, _phrase, iso_region) do
     query = Overpass.query([segment], iso_region)
 
     case Req.post(Overpass.endpoint(),
@@ -68,18 +72,24 @@ defmodule ColdForge.Workers.RunSourceQuery do
     end
   end
 
-  defp discover(provider, _segment, _locality), do: {:error, {:unsupported_provider, provider}}
+  defp discover(provider, _segment, _phrase, _locality),
+    do: {:error, {:unsupported_provider, provider}}
 
-  defp places_pages(_segment, _locality, _token, acc, page) when page > @max_pages,
+  defp places_pages(_segment, _phrase, _locality, _token, acc, page) when page > @max_pages,
     do: {:ok, acc}
 
-  defp places_pages(segment, locality, token, acc, page) do
-    opts = if token, do: [page_token: token], else: []
+  defp places_pages(segment, phrase, locality, token, acc, page) do
+    opts = Enum.reject([page_token: token, query: phrase], fn {_k, v} -> is_nil(v) end)
 
     case Places.search(segment, locality, opts) do
-      {:ok, rows, nil} -> {:ok, acc ++ rows}
-      {:ok, rows, next} -> places_pages(segment, locality, next, acc ++ rows, page + 1)
-      {:error, reason} -> if acc == [], do: {:error, reason}, else: {:ok, acc}
+      {:ok, rows, nil} ->
+        {:ok, acc ++ rows}
+
+      {:ok, rows, next} ->
+        places_pages(segment, phrase, locality, next, acc ++ rows, page + 1)
+
+      {:error, reason} ->
+        if acc == [], do: {:error, reason}, else: {:ok, acc}
     end
   end
 end

@@ -104,6 +104,37 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       assert html =~ "add at least one place to search"
     end
 
+    test "shows what a run will search and roughly cost, as you type",
+         %{conn: conn, project: project} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")
+
+      html =
+        live
+        |> form("#source-form",
+          source: %{
+            name: "ExteriorPro — Michigan",
+            provider: "places",
+            segments_text: ~s(Roofing, "Window & Doors"),
+            localities_text: "Michigan"
+          }
+        )
+        |> render_change()
+
+      assert has_element?(live, "#source-plan")
+      assert html =~ "Michigan becomes its"
+      assert html =~ "window and door contractor"
+      assert html =~ "about $"
+    end
+
+    test "the run button says what it will cost before it starts",
+         %{conn: conn, project: project} do
+      source = source_fixture(project, %{localities: ["Michigan"]})
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      assert has_element?(live, "#run-plan")
+      assert has_element?(live, "button[phx-click='run'][data-confirm*='Google']")
+    end
+
     test "parses the towns out of the textarea, one per line",
          %{conn: conn, project: project} do
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/new")

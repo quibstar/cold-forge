@@ -55,15 +55,50 @@ defmodule ColdForge.Sourcing.Discovery.PlacesTest do
       assert body["pageToken"] == "abc"
     end
 
-    test "an unknown segment is an error rather than an empty search" do
-      assert {:error, {:unknown_segment, "plumbing"}} =
-               Places.search_body("plumbing", "Grand Rapids, MI")
+    test "a trade with no tuned phrases is searched as written" do
+      # A new business shouldn't need a code change to look for its customers.
+      assert {:ok, body} = Places.search_body("deck builder", "Holland, MI")
+      assert body["textQuery"] == "deck builder in Holland, MI"
+    end
+
+    test "an empty segment is an error rather than an empty search" do
+      assert {:error, {:unknown_segment, ""}} = Places.search_body("", "Holland, MI")
+    end
+
+    test "searches the phrase it is asked for, not just the first" do
+      # Each built-in segment lists several phrasings; only the first used to
+      # run, so the rest were listed and never searched.
+      assert {:ok, body} =
+               Places.search_body("windows", "Holland, MI", query: "window and door contractor")
+
+      assert body["textQuery"] == "window and door contractor in Holland, MI"
+    end
+
+    test "| separates alternative phrasings of one trade" do
+      assert Places.queries_for("deck builder | deck contractor") ==
+               ["deck builder", "deck contractor"]
     end
 
     test "covers every segment both products need" do
       for segment <- ~w(roofing siding windows gutters shelter rescue humane_society breeder) do
         assert Places.queries_for(segment) != [], segment
       end
+    end
+  end
+
+  describe "canonical/1" do
+    test "everyday wording lands on the built-in trade" do
+      assert Places.canonical("Windows & Doors") == "windows"
+      assert Places.canonical(~s("Window & Doors")) == "windows"
+      assert Places.canonical("Roofers") == "roofing"
+      assert Places.canonical("Gutter") == "gutters"
+      assert Places.canonical("Humane Society") == "humane_society"
+    end
+
+    test "anything else is kept as written, tidied" do
+      assert Places.canonical("  Deck   Builder ") == "deck builder"
+      assert Places.canonical("Deck builder|deck contractor") == "deck builder | deck contractor"
+      assert Places.canonical("  ") == ""
     end
   end
 
