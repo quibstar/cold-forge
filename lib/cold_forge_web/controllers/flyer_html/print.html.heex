@@ -3,27 +3,39 @@
   <head>
     <meta charset="utf-8" />
     <title>Flyers · Cold Forge</title>
+    <%!-- ExteriorPro's own faces, from its brand kit: Instrument Sans for the
+    wordmark, headline and body, IBM Plex Mono for the web address. Loaded here
+    rather than in app.css because this page is printed, not browsed, and
+    nothing else in Cold Forge uses them. `display=block` so a print started
+    the moment the page opens doesn't go out in the fallback face. --%>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=IBM+Plex+Mono:wght@500&display=block"
+    />
     <%!-- A standalone page with its own stylesheet: it's printed, not browsed,
-    and the app's layout and CSS would only fight the Letter sheet. Ported from
-    ExteriorPro's docs/flyers/build.mjs, sizes and all. --%>
+    and the app's layout and CSS would only fight the Letter sheet. --%>
     <style>
-      /* Letter, edge to edge — the sheet supplies its own margin so the ink area
-         is the same whatever the printer's default happens to be. */
+      /* Letter, edge to edge — the sheet supplies its own margin, wide enough
+         for the strip a cheap printer can't reach. */
       @page { size: letter portrait; margin: 0; }
 
       :root {
-        --ink: #111111;
-        /* teal-700: mid-dark, so it stays teal on a cheap printer instead of
-           washing out the way a bright brand colour does on paper */
-        --accent: #0f766e;
-        --muted: #4b5563;
+        /* The brand kit's slate ink and deep teal. Deep rather than primary
+           teal for anything that has to read: #14B8A6 washes out on a toner
+           printer, #0F766E stays teal, and in black and white it's a solid
+           dark grey. Nothing on the sheet depends on colour to make sense. */
+        --ink: #0F172A;
+        --teal: #0F766E;
+        --muted: #475569;
       }
 
       * { box-sizing: border-box; }
 
       body {
         margin: 0;
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-family: "Instrument Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
         color: var(--ink);
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
@@ -32,108 +44,226 @@
       .sheet {
         width: 8.5in;
         height: 11in;
-        padding: 0.75in 0.8in;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
         page-break-after: always;
         background: #fff;
+        overflow: hidden;
       }
       .sheet:last-child { page-break-after: auto; }
 
-      .eyebrow {
-        margin: 0 0 0.18in;
-        font-size: 14pt;
-        font-weight: 700;
-        letter-spacing: 0.09em;
-        text-transform: uppercase;
-        color: var(--accent);
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 0.42in 0.55in 0.22in;
+        min-height: 0;
       }
 
-      /* The one thing that has to work from six feet away. */
-      h1 {
+      /* Logo left, who it's for right: what you read first from across the
+         room, after the headline. */
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.3in;
+      }
+      .lockup { height: 0.46in; width: auto; display: block; }
+      .eyebrow {
         margin: 0;
-        font-size: 52pt;
-        line-height: 1.0;
-        letter-spacing: -0.02em;
-        font-weight: 800;
+        font-size: 13pt;
+        font-weight: 600;
+        color: var(--teal);
+        text-align: right;
+      }
+
+      /* The one thing that has to work from six feet away: condensed so it
+         can be enormous and still fit the line it was written on. */
+      h1 {
+        margin: 0.32in 0 0;
+        font-size: 70pt;
+        font-stretch: 75%;
+        font-variation-settings: "wdth" 75;
+        font-weight: 700;
+        line-height: 0.92;
+        letter-spacing: -0.015em;
       }
 
       .lede {
-        margin: 0.28in 0 0;
+        margin: 0.2in 0 0;
+        max-width: 6.1in;
         font-size: 15pt;
-        line-height: 1.4;
+        line-height: 1.38;
         color: var(--muted);
-        max-width: 6.2in;
       }
 
-      .steps {
+      /* From the call to the check, in order — a real sequence, so it's
+         drawn as one line with a stop for each step. */
+      .pipeline {
+        position: relative;
+        display: grid;
+        gap: 0.18in;
         margin: 0.3in 0 0;
         padding: 0;
         list-style: none;
-        font-size: 14pt;
-        line-height: 1.65;
       }
-      .steps li { padding-left: 0.32in; position: relative; }
-      .steps li::before {
+      .pipeline li { position: relative; }
+      /* Each step draws the line to the next one, so it ends at the last
+         stop however many steps there are. */
+      .pipeline li:not(:last-child)::after {
         content: "";
         position: absolute;
-        left: 0;
-        top: 0.085in;
-        width: 0.15in;
-        height: 0.15in;
-        border-radius: 50%;
-        background: var(--accent);
+        top: 0.155in;
+        left: 0.17in;
+        width: calc(100% + 0.18in);
+        height: 3px;
+        background: var(--ink);
       }
-      .steps b { font-weight: 700; }
+      .stop {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 0.34in;
+        height: 0.34in;
+        border-radius: 50%;
+        background: var(--teal);
+        color: #fff;
+        font-size: 12pt;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+        /* A white ring, so the line reads as passing behind each stop. */
+        box-shadow: 0 0 0 4px #fff;
+      }
+      .step-name {
+        margin: 0.14in 0 0;
+        font-size: 13pt;
+        font-weight: 700;
+        line-height: 1.15;
+      }
+      .step-detail {
+        margin: 0.05in 0 0;
+        font-size: 10pt;
+        line-height: 1.35;
+        color: var(--muted);
+      }
 
       .closing {
-        margin: 0.32in 0 0;
-        font-size: 12.5pt;
+        margin: 0.24in 0 0;
+        font-size: 12pt;
         font-weight: 600;
         color: var(--muted);
       }
 
       /* The QR and the reason to scan it, side by side — a code with no
-         sentence next to it gets ignored. */
+         sentence next to it gets ignored. Pushed to the bottom so the tabs
+         sit directly under the address they repeat. */
       .scan {
+        margin-top: auto;
+        padding-top: 0.22in;
         display: flex;
         align-items: center;
-        gap: 0.4in;
-        border-top: 3px solid var(--ink);
-        border-bottom: 3px solid var(--ink);
-        padding: 0.32in 0;
+        gap: 0.38in;
       }
-      .qr-box { flex: 0 0 auto; }
+      .qr-box {
+        flex: 0 0 auto;
+        padding: 0.1in;
+        border: 4px solid var(--ink);
+        border-radius: 0.12in;
+      }
       /* Scannable from arm's length, including by an older phone. */
-      .qr { width: 2.4in; height: 2.4in; display: block; }
-
-      .scan-lead { margin: 0; font-size: 25pt; font-weight: 800; line-height: 1.1; }
-      .scan-url { margin: 0.1in 0 0; font-size: 19pt; font-weight: 700; color: var(--accent); }
-      .scan-terms { margin: 0.14in 0 0; font-size: 13pt; color: var(--muted); }
+      .qr { width: 1.95in; height: 1.95in; display: block; }
+      .scan-lead {
+        margin: 0;
+        font-size: 26pt;
+        font-weight: 700;
+        font-stretch: 85%;
+        font-variation-settings: "wdth" 85;
+        line-height: 1.05;
+      }
+      .scan-url {
+        margin: 0.1in 0 0;
+        font-size: 19pt;
+        font-weight: 700;
+        color: var(--teal);
+      }
+      .scan-terms { margin: 0.1in 0 0; font-size: 13pt; color: var(--muted); }
 
       .foot {
-        margin: 0;
-        font-size: 11pt;
-        color: var(--muted);
+        margin: 0.18in 0 0;
         display: flex;
         justify-content: space-between;
         align-items: baseline;
         gap: 0.3in;
+        font-size: 9.5pt;
+        color: var(--muted);
       }
-
       /* Which flyer this is, small enough that only the person holding the
          stack reads it — it's for sorting, not for the contractor. */
       .code {
-        font-family: ui-monospace, "SF Mono", Menlo, monospace;
-        font-size: 8pt;
-        color: #9ca3af;
+        font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+        font-size: 7.5pt;
+        color: #94A3B8;
+        white-space: nowrap;
+      }
+
+      /* Tear-off tabs: the corkboard's own format. Somebody who won't scan
+         at the counter tears one off and has the address in their pocket.
+         Dashed lines are where the scissors go. */
+      .tabs {
+        flex: 0 0 1.7in;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        margin: 0 0.3in;
+        border-top: 1.5px dashed var(--ink);
+        position: relative;
+      }
+      .tabs::before {
+        content: "✂";
+        position: absolute;
+        top: -0.11in;
+        left: -0.04in;
+        font-size: 13pt;
+        line-height: 1;
+        background: #fff;
+        padding-right: 0.04in;
+      }
+      .tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tab + .tab { border-left: 1.5px dashed var(--ink); }
+      /* Read bottom to top, the way a tab on a board is read with the head
+         tilted. Only the words turn, so the cut lines stay where they are. */
+      .tab-text {
+        display: flex;
+        align-items: center;
+        gap: 0.09in;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+      }
+      .tab-mark { width: 0.19in; height: 0.19in; transform: rotate(90deg); flex: none; }
+      .tab-url {
+        font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+        font-size: 9pt;
+        font-weight: 500;
         white-space: nowrap;
       }
 
       /* On screen only: the two print settings that ruin a flyer. */
-      .how { padding: 24px; font-size: 14px; color: #374151; background: #f3f4f6; }
+      .how {
+        padding: 24px;
+        font-family: -apple-system, system-ui, sans-serif;
+        font-size: 14px;
+        color: #374151;
+        background: #f3f4f6;
+      }
       .how kbd { background: #fff; border: 1px solid #d1d5db; border-radius: 4px; padding: 1px 5px; }
+      @media screen {
+        body { background: #e5e7eb; }
+        .sheet { margin: 24px auto; box-shadow: 0 1px 6px rgb(15 23 42 / 0.18); }
+      }
       @media print { .how { display: none; } }
     </style>
   </head>
@@ -156,8 +286,11 @@
     </div>
 
     <section :for={sheet <- @sheets} class="sheet" id={"flyer-#{sheet.placement.code}"}>
-      <div class="stack">
-        <p :if={sheet.eyebrow} class="eyebrow">{sheet.eyebrow}</p>
+      <div class="main">
+        <div class="top">
+          <.lockup class="lockup" />
+          <p :if={sheet.eyebrow} class="eyebrow">{sheet.eyebrow}</p>
+        </div>
 
         <h1>
           <%= for {line, i} <- Enum.with_index(ColdForge.Flyers.Content.headline_lines(@content)) do %>
@@ -167,28 +300,43 @@
 
         <p :if={@content.lede not in [nil, ""]} class="lede">{@content.lede}</p>
 
-        <ul :if={ColdForge.Flyers.Content.steps(@content) != []} class="steps">
-          <li :for={{bold, rest} <- ColdForge.Flyers.Content.steps(@content)}>
-            <b :if={bold}>{bold}</b>{rest}
+        <ol
+          :if={@steps != []}
+          class="pipeline"
+          style={"grid-template-columns: repeat(#{length(@steps)}, 1fr)"}
+        >
+          <li :for={{{bold, rest}, n} <- Enum.with_index(@steps, 1)}>
+            <span class="stop">{n}</span>
+            <p :if={bold} class="step-name">{bold}</p>
+            <p class={if(bold, do: "step-detail", else: "step-name")}>{step_detail(rest)}</p>
           </li>
-        </ul>
+        </ol>
 
         <p :if={@content.closing not in [nil, ""]} class="closing">{@content.closing}</p>
+
+        <div class="scan">
+          <div class="qr-box">{Phoenix.HTML.raw(sheet.qr)}</div>
+          <div>
+            <p class="scan-lead">Point your camera here</p>
+            <p class="scan-url">{@display_url}</p>
+            <p :if={@content.terms not in [nil, ""]} class="scan-terms">{@content.terms}</p>
+          </div>
+        </div>
+
+        <p class="foot">
+          <span>{@content.footer}</span>
+          <span class="code">{sheet.placement.code}</span>
+        </p>
       </div>
 
-      <div class="scan">
-        <div class="qr-box">{Phoenix.HTML.raw(sheet.qr)}</div>
-        <div>
-          <p class="scan-lead">Point your camera here</p>
-          <p class="scan-url">{@display_url}</p>
-          <p :if={@content.terms not in [nil, ""]} class="scan-terms">{@content.terms}</p>
+      <div class="tabs" aria-hidden="true">
+        <div :for={_ <- 1..8} class="tab">
+          <span class="tab-text">
+            <.mark class="tab-mark" />
+            <span class="tab-url">{@display_url}</span>
+          </span>
         </div>
       </div>
-
-      <p class="foot">
-        <span>{@content.footer}</span>
-        <span class="code">{sheet.placement.code}</span>
-      </p>
     </section>
   </body>
 </html>
