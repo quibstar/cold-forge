@@ -291,7 +291,10 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
       <%!-- Where flyers go, and what each has produced --%>
       <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-3">
-          <div class="flex flex-wrap items-center gap-2">
+          <%!-- Stays in view while you tick rows: with hundreds of places,
+          a Print button at the top of the list is off screen by the time
+          you've ticked anything, and the click seems to do nothing. --%>
+          <div class="flex flex-wrap items-center gap-2 sticky top-0 z-10 -mx-2 px-2 py-2 bg-base-100">
             <h2 class="card-title text-base flex-1">Where flyers go</h2>
             <button
               :if={@placements != []}
@@ -333,6 +336,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
                   <th>Place</th>
                   <th>Status</th>
                   <th class="text-right">Scans</th>
+                  <th class="w-8"></th>
                 </tr>
               </thead>
               <tbody>
@@ -380,6 +384,18 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
                     <div :if={p.last_scanned_at} class="text-xs opacity-50">
                       last {Calendar.strftime(p.last_scanned_at, "%b %-d")}
                     </div>
+                  </td>
+                  <td>
+                    <.link
+                      :if={@content.headline}
+                      id={"preview-#{p.id}"}
+                      href={~p"/admin/p/#{@project_id}/flyers/print?#{[ids: p.id, preview: 1]}"}
+                      target="_blank"
+                      class="btn btn-xs btn-ghost"
+                      title={"Preview the flyer for #{p.venue_name}"}
+                    >
+                      <.icon name="hero-eye" class="size-4" /> Preview
+                    </.link>
                   </td>
                 </tr>
               </tbody>
@@ -524,6 +540,14 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
             placeholder="Lead comes in — call, web form, or forwarded from Angi"
           />
           <p class="text-xs opacity-60 -mt-2">The part before " — " prints bold.</p>
+          <.input
+            field={@content_form[:highlights]}
+            type="textarea"
+            rows="2"
+            label="Highlights, one per line"
+            placeholder="Offline mobile app"
+          />
+          <p class="text-xs opacity-60 -mt-2">Printed as badges under the points.</p>
           <.input field={@content_form[:closing]} label="Closing line" />
           <.input
             field={@content_form[:terms]}
