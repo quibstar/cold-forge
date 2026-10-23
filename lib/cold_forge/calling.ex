@@ -212,26 +212,6 @@ defmodule ColdForge.Calling do
     end
   end
 
-  @doc """
-  Which voicemail script to leave next, given how many have already been left.
-
-  Returns `nil` once the fourth — the breakup — has gone, because there is no
-  fifth message that helps.
-  """
-  def next_script(prospect_id) do
-    left =
-      Call
-      |> where([c], c.prospect_id == ^prospect_id and not is_nil(c.voicemail_script))
-      |> select([c], max(c.voicemail_script))
-      |> Repo.one()
-
-    case left do
-      nil -> 1
-      n when n < 4 -> n + 1
-      _ -> nil
-    end
-  end
-
   @doc "Headline numbers for the calling screen."
   def stats(project_id) do
     counts =

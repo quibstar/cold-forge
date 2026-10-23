@@ -35,13 +35,6 @@ defmodule ColdForge.Outreach.CallScripts do
     |> Enum.map(&{&1, render(&1, prospect, project)})
   end
 
-  @doc "The voicemails, as `{script, rendered}`, in cadence order."
-  def voicemails_for_prospect(prospect, project) do
-    project.id
-    |> Outreach.list_call_scripts("voicemail")
-    |> Enum.map(&{&1, render(&1, prospect, project)})
-  end
-
   @doc "One script rendered for one prospect."
   def render(%CallScript{body: body}, prospect, project) when is_binary(body),
     do: Renderer.preview(body, prospect, project)

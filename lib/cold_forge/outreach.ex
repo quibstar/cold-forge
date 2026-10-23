@@ -47,15 +47,10 @@ defmodule ColdForge.Outreach do
   def change_project(%Project{} = project, attrs \\ %{}),
     do: Project.changeset(project, attrs)
 
-  ## Call scripts and voicemails
+  ## Call scripts
 
-  @doc """
-  One project's scripts, or its voicemails, in the order they are read.
-
-  Position orders them because for a voicemail it is also its number in the
-  cadence — `ColdForge.Calling.next_script/1` asks for the next one by it.
-  """
-  def list_call_scripts(project_id, kind) when kind in ["script", "voicemail"] do
+  @doc "One project's scripts, in the order their tabs appear."
+  def list_call_scripts(project_id, kind \\ "script") when kind == "script" do
     CallScript
     |> where([s], s.project_id == ^project_id and s.kind == ^kind)
     |> order_by([s], asc: s.position, asc: s.inserted_at)
@@ -65,11 +60,9 @@ defmodule ColdForge.Outreach do
   def get_call_script!(id), do: Repo.get!(CallScript, id)
 
   @doc """
-  Adds one, at the end of its list unless a position is given.
-
-  Numbering it for you matters more than it looks: a voicemail with no number
-  has no place in the cadence, and the first thing anybody adding one wants is
-  for it to come after the ones already there.
+  Adds one, at the end of the list unless a position is given — the first
+  thing anybody adding one wants is for it to come after the ones already
+  there.
   """
   def create_call_script(attrs) do
     attrs = string_keys(attrs)
@@ -102,10 +95,10 @@ defmodule ColdForge.Outreach do
   defp next_position(attrs) do
     attrs = string_keys(attrs)
 
-    case {attrs["project_id"], attrs["kind"]} do
-      {project_id, kind} when is_binary(project_id) and is_binary(kind) ->
+    case attrs["project_id"] do
+      project_id when is_binary(project_id) ->
         CallScript
-        |> where([s], s.project_id == ^project_id and s.kind == ^kind)
+        |> where([s], s.project_id == ^project_id)
         |> select([s], max(s.position))
         |> Repo.one()
         |> case do

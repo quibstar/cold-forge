@@ -64,9 +64,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
     socket
     |> assign(:scripts, scripts)
     |> assign(:script_tab, socket.assigns[:script_tab] || CallScripts.default_tab(scripts))
-    |> assign(:voicemails, CallScripts.voicemails_for_prospect(prospect, project))
     |> assign(:history, Calling.list_calls(prospect.id))
-    |> assign(:next_script, Calling.next_script(prospect.id))
   end
 
   defp reload(socket) do
@@ -175,15 +173,10 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
       than 24 — these are spoken scripts, and at 24 a sentence broke into three
       ragged lines, which is hard to read aloud. --%>
       <div class="flex flex-col xl:flex-row gap-6 xl:items-start">
-        <aside
-          :if={@scripts != [] || @next_script}
-          class="xl:w-[30rem] xl:shrink-0 xl:order-last"
-        >
+        <aside class="xl:w-[30rem] xl:shrink-0 xl:order-last">
           <.call_script
             scripts={@scripts}
-            voicemails={@voicemails}
             tab={@script_tab}
-            next_script={@next_script}
             project_id={@project_id}
           />
         </aside>
@@ -406,9 +399,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
   end
 
   attr :scripts, :list, required: true
-  attr :voicemails, :list, required: true
   attr :tab, :any, default: nil
-  attr :next_script, :integer, default: nil
   attr :project_id, :string, required: true
 
   # What to say, in the order it gets said. Verbatim rather than paraphrased:
@@ -460,26 +451,9 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
           <p class="text-sm leading-relaxed whitespace-pre-line">{elem(@showing, 1)}</p>
         </div>
 
-        <p
-          :if={is_nil(@showing) && @voicemails == []}
-          class="px-5 py-4 text-sm text-base-content/50"
-        >
+        <p :if={is_nil(@showing)} class="px-5 py-4 text-sm text-base-content/50">
           Nothing written yet. <.link navigate={~p"/admin/p/#{@project_id}/scripts"} class="link">Write one</.link>.
         </p>
-
-        <%!-- Under every tab rather than belonging to one: which script you
-        opened with says nothing about whether anybody picks up. The one due
-        next is marked, because that is the choice being made in the second
-        after it rings out. --%>
-        <div :for={{script, body} <- @voicemails} class="px-5 py-4 space-y-1.5">
-          <p class="text-xs font-semibold uppercase tracking-wide text-primary">
-            {script.name}
-            <span :if={script.position == @next_script} class="badge badge-xs badge-primary ml-1">
-              due next
-            </span>
-          </p>
-          <p class="text-sm leading-relaxed whitespace-pre-line">{body}</p>
-        </div>
       </div>
     </section>
     """

@@ -1,21 +1,17 @@
 defmodule ColdForge.Outreach.CallScript do
   @moduledoc """
-  One script or voicemail: a template with merge tags, belonging to a project.
+  One script: a template with merge tags, belonging to a project, read as a
+  tab on the call page in `position` order.
 
-  Both kinds are the same thing — words written once, read with one prospect's
-  details in them — so they share a table and differ only in where they are
-  read. A `script` is a tab on the call page. A `voicemail` is one step of the
-  cadence, and its `position` is the number a call records when it is left.
-
-  They used to be fixed keys in two maps on the project: three scripts, four
-  voicemails, no way to add a fifth or drop one. That was never a decision
-  about how many a person should be allowed, just the shape the data arrived
-  in.
+  Voicemails were a second kind for a while, listed under every tab. They are
+  words to read like any other, so they are a script now — one called
+  "Voicemails" — and `script` is the only kind left. The column stays so the
+  table needn't change shape for it.
   """
   use ColdForge.Schema
   import Ecto.Changeset
 
-  @kinds ~w(script voicemail)
+  @kinds ~w(script)
 
   schema "call_scripts" do
     field :kind, :string, default: "script"
@@ -27,14 +23,6 @@ defmodule ColdForge.Outreach.CallScript do
 
     timestamps(type: :utc_datetime)
   end
-
-  @doc "The two lists a script can belong to."
-  def kinds, do: @kinds
-
-  @doc "How each reads on screen."
-  def kind_label("script"), do: "Script"
-  def kind_label("voicemail"), do: "Voicemail"
-  def kind_label(other), do: other
 
   @doc false
   def changeset(script, attrs) do

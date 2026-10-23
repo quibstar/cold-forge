@@ -1,7 +1,7 @@
 defmodule ColdForge.CallScriptsTest do
   @moduledoc """
-  Scripts and voicemails as rows: adding, ordering, throwing out, and reading
-  one with a prospect's details in it.
+  Scripts as rows: adding, ordering, throwing out, and reading one with a
+  prospect's details in it.
 
   The wording group at the end is unusual — those assertions are about sales
   copy rather than code. They are here because the constraints came out of the
@@ -43,13 +43,9 @@ defmodule ColdForge.CallScriptsTest do
     test "lands at the end of its own list", ctx do
       first = script(ctx.project, name: "Script 1")
       second = script(ctx.project, name: "Script 2")
-      voicemail = script(ctx.project, kind: "voicemail", name: "First attempt")
 
       assert first.position == 1
       assert second.position == 2
-      # Its own list: a voicemail doesn't start at three because two scripts
-      # already exist.
-      assert voicemail.position == 1
     end
 
     test "a position can be given instead", ctx do
@@ -78,11 +74,11 @@ defmodule ColdForge.CallScriptsTest do
       assert %{name: _, body: _} = errors_on(changeset)
     end
 
-    test "only the two kinds", ctx do
+    test "voicemail is no longer a kind of its own", ctx do
       assert {:error, changeset} =
                Outreach.create_call_script(%{
                  project_id: ctx.project.id,
-                 kind: "postcard",
+                 kind: "voicemail",
                  name: "No",
                  body: "No."
                })
@@ -92,16 +88,12 @@ defmodule ColdForge.CallScriptsTest do
   end
 
   describe "the lists" do
-    test "come back in position order, each kind on its own", ctx do
+    test "come back in position order", ctx do
       script(ctx.project, name: "Second", position: 2)
       script(ctx.project, name: "First", position: 1)
-      script(ctx.project, kind: "voicemail", name: "Breakup", position: 4)
 
-      assert Enum.map(Outreach.list_call_scripts(ctx.project.id, "script"), & &1.name) ==
+      assert Enum.map(Outreach.list_call_scripts(ctx.project.id), & &1.name) ==
                ["First", "Second"]
-
-      assert Enum.map(Outreach.list_call_scripts(ctx.project.id, "voicemail"), & &1.name) ==
-               ["Breakup"]
     end
 
     test "one project's scripts are not another's", ctx do
@@ -169,36 +161,17 @@ defmodule ColdForge.CallScriptsTest do
     end
   end
 
-  describe "the voicemail cadence" do
-    setup ctx do
-      for default <- Scripts.defaults() do
-        default
-        |> Map.merge(%{project_id: ctx.project.id, kind: "voicemail"})
+  describe "the starter voicemails" do
+    test "are one script, read like any other", ctx do
+      {:ok, voicemails} =
+        Scripts.voicemails()
+        |> Map.put(:project_id, ctx.project.id)
         |> Outreach.create_call_script()
-      end
 
-      ctx
-    end
-
-    test "renders the one at a position", ctx do
-      assert Scripts.render(2, ctx.prospect, ctx.project) =~
-               "what does the software you're on now"
-    end
-
-    test "a position nobody wrote is nothing", ctx do
-      assert Scripts.render(9, ctx.prospect, ctx.project) == nil
-    end
-
-    test "no callback number means no voicemail at all", ctx do
-      {:ok, numberless} = Outreach.update_project(ctx.project, %{"phone" => ""})
-
-      # A voicemail that says "ring me back on —" is a wasted call, and a
-      # placeholder would be worse than an obvious gap.
-      assert Scripts.render(1, ctx.prospect, numberless) == nil
-    end
-
-    test "the name is what the screen calls it", ctx do
-      assert Scripts.note(4, ctx.project) =~ "breakup"
+      assert voicemails.name == "Voicemails"
+      assert [{_, rendered}] = CallScripts.for_prospect(ctx.prospect, ctx.project)
+      assert rendered =~ "it's Kris, (616) 555-0142"
+      assert rendered =~ "Had a quick idea for\nMoore & Sons Roofing"
     end
   end
 
@@ -217,9 +190,16 @@ defmodule ColdForge.CallScriptsTest do
     end
   end
 
+  # The starter script's four messages, without their headings.
+  defp voicemails do
+    Scripts.voicemails().body
+    |> String.split(~r/^VOICEMAIL \d+ — .*$/m, trim: true)
+    |> Enum.map(&String.trim/1)
+  end
+
   describe "voicemail 2, which the pain-point research wrote" do
     setup do
-      %{text: Enum.find(Scripts.defaults(), &(&1.position == 2)).body}
+      %{text: Enum.at(voicemails(), 1)}
     end
 
     test "asks a question rather than asserting what everyone does", ctx do
@@ -254,26 +234,25 @@ defmodule ColdForge.CallScriptsTest do
   end
 
   describe "the four built-in voicemails" do
-    test "each has a name and a body, and they are numbered 1 to 4" do
-      assert Enum.map(Scripts.defaults(), & &1.position) == [1, 2, 3, 4]
+    test "are headed and numbered 1 to 4" do
+      assert Regex.scan(~r/^VOICEMAIL (\d+) — \S/m, Scripts.voicemails().body,
+               capture: :all_but_first
+             ) == [["1"], ["2"], ["3"], ["4"]]
 
-      for default <- Scripts.defaults() do
-        assert default.name =~ ~r/\w/
-        assert default.body =~ ~r/\w/
-      end
+      assert length(voicemails()) == 4
     end
 
     test "each says the callback number twice — once to catch, once to write down" do
-      for default <- Scripts.defaults() do
-        count = default.body |> String.split("{{callback}}") |> length()
-        assert count == 3, "voicemail #{default.position} says the number #{count - 1} time(s)"
+      for {text, n} <- Enum.with_index(voicemails(), 1) do
+        count = text |> String.split("{{callback}}") |> length()
+        assert count == 3, "voicemail #{n} says the number #{count - 1} time(s)"
       end
     end
 
     test "each is under twenty seconds read aloud" do
-      for default <- Scripts.defaults() do
-        words = default.body |> String.split(~r/\s+/, trim: true) |> length()
-        assert words <= 70, "voicemail #{default.position} runs to #{words} words"
+      for {text, n} <- Enum.with_index(voicemails(), 1) do
+        words = text |> String.split(~r/\s+/, trim: true) |> length()
+        assert words <= 70, "voicemail #{n} runs to #{words} words"
       end
     end
   end

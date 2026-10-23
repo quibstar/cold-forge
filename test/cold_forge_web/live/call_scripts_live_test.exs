@@ -34,14 +34,6 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
         body: "The five stages, for a {{industry|exterior}} shop."
       })
 
-    {:ok, voicemail} =
-      Outreach.create_call_script(%{
-        project_id: project.id,
-        kind: "voicemail",
-        name: "First attempt",
-        body: "Hey, it's Kris on {{callback}} about {{company}}."
-      })
-
     prospect =
       prospect_fixture(project,
         email: nil,
@@ -58,8 +50,7 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
       project: project,
       prospect: prospect,
       script: script,
-      nepq: nepq,
-      voicemail: voicemail
+      nepq: nepq
     }
   end
 
@@ -68,20 +59,31 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
   defp call_path(project, prospect), do: ~p"/admin/p/#{project.id}/calls/#{prospect.id}"
 
   describe "the scripts screen" do
-    test "lists the scripts and the voicemails apart", ctx do
+    test "lists the scripts", ctx do
       {:ok, _view, html} = live(ctx.conn, scripts_path(ctx.project))
 
       assert html =~ "Script 1"
       assert html =~ "NEPQ Awareness"
-      assert html =~ "First attempt"
-      assert html =~ "Scripts"
-      assert html =~ "Voicemails"
+    end
+
+    test "the starter voicemails are added as one script, once", ctx do
+      {:ok, view, _html} = live(ctx.conn, scripts_path(ctx.project))
+
+      view |> element("#add-voicemails") |> render_click()
+
+      assert [%{name: "Voicemails", position: 3, body: body}] =
+               ctx.project.id
+               |> Outreach.list_call_scripts()
+               |> Enum.filter(&(&1.name == "Voicemails"))
+
+      assert body =~ "VOICEMAIL 4"
+      refute has_element?(view, "#add-voicemails")
     end
 
     test "one can be added", ctx do
       {:ok, view, _html} = live(ctx.conn, scripts_path(ctx.project))
 
-      view |> element("button[phx-click='new'][phx-value-kind='script']") |> render_click()
+      view |> element("button[phx-click='new']") |> render_click()
 
       view
       |> form("#script-form", call_script: %{"name" => "Script 2", "body" => "Straight pitch."})
@@ -94,7 +96,7 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
     test "a new one lands at the end rather than colliding", ctx do
       {:ok, view, _html} = live(ctx.conn, scripts_path(ctx.project))
 
-      view |> element("button[phx-click='new'][phx-value-kind='script']") |> render_click()
+      view |> element("button[phx-click='new']") |> render_click()
 
       view
       |> form("#script-form", call_script: %{"name" => "Third", "body" => "Hi."})
@@ -192,21 +194,21 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
       refute html =~ "Is the owner in?"
     end
 
-    test "the voicemail shows under every tab", ctx do
-      {:ok, view, _html} = live(ctx.conn, call_path(ctx.project, ctx.prospect))
+    test "voicemails are a tab like any other", ctx do
+      {:ok, voicemails} =
+        Outreach.create_call_script(%{
+          project_id: ctx.project.id,
+          name: "Voicemails",
+          body: "Hey, it's Kris on {{callback}} about {{company}}."
+        })
 
-      # Which script you opened with says nothing about whether anybody picks up.
-      assert render(view) =~
-               "Hey, it&#39;s Kris on (616) 555-0142 about Moore &amp; Sons Roofing."
+      {:ok, view, html} = live(ctx.conn, call_path(ctx.project, ctx.prospect))
 
-      html = view |> element("button[phx-value-tab='#{ctx.nepq.id}']") |> render_click()
+      # Not under the script you opened with: only on its own tab.
+      refute html =~ "Hey, it&#39;s Kris"
+
+      html = view |> element("button[phx-value-tab='#{voicemails.id}']") |> render_click()
       assert html =~ "Hey, it&#39;s Kris on (616) 555-0142 about Moore &amp; Sons Roofing."
-    end
-
-    test "the one due next is marked", ctx do
-      {:ok, _view, html} = live(ctx.conn, call_path(ctx.project, ctx.prospect))
-
-      assert html =~ "due next"
     end
 
     test "a project with nothing written says so and points at the screen", ctx do
