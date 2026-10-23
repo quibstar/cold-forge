@@ -540,6 +540,14 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
             placeholder="Lead comes in — call, web form, or forwarded from Angi"
           />
           <p class="text-xs opacity-60 -mt-2">The part before " — " prints bold.</p>
+          <.input
+            field={@content_form[:highlights]}
+            type="textarea"
+            rows="2"
+            label="Highlights, one per line"
+            placeholder="Offline mobile app"
+          />
+          <p class="text-xs opacity-60 -mt-2">Printed as badges under the points.</p>
           <.input field={@content_form[:closing]} label="Closing line" />
           <.input
             field={@content_form[:terms]}

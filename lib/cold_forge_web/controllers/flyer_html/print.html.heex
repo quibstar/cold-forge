@@ -125,13 +125,37 @@
         grid-template-columns: 0.3in 1fr;
         gap: 0.1in;
         align-items: start;
-        padding: 0.075in 0;
+        padding: 0.065in 0;
         border-top: 1px solid #E2E8F0;
       }
       .checks li:first-child { border-top: 0; }
       .check { width: 0.3in; height: 0.3in; display: block; }
       .check-name { margin: 0.02in 0 0; font-size: 12.5pt; font-weight: 700; line-height: 1.2; }
       .check-detail { margin: 0.03in 0 0; font-size: 10pt; line-height: 1.35; color: var(--muted); }
+
+      /* Short claims that aren't a step in the job, as solid badges — they're
+         read at a glance, not as sentences. */
+      .highlights {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.08in;
+        margin: 0.12in 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .highlights li {
+        display: flex;
+        align-items: center;
+        gap: 0.07in;
+        padding: 0.06in 0.13in 0.06in 0.09in;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 10.5pt;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .highlights svg { width: 0.15in; height: 0.15in; flex: none; }
 
       /* The trades, as a band: the one line that tells a roofer from across
          the room that this is for them. */
@@ -267,6 +291,15 @@
                     {step_detail(rest)}
                   </p>
                 </div>
+              </li>
+            </ul>
+
+            <ul :if={@highlights != []} class="highlights">
+              <li :for={highlight <- @highlights}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#5EEAD4" d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
+                </svg>
+                {highlight}
               </li>
             </ul>
           </div>

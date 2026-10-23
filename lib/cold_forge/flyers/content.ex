@@ -21,12 +21,15 @@ defmodule ColdForge.Flyers.Content do
     field :lede, :string
     # One per line. "Bold part — the rest" bolds the part before the dash.
     field :steps, :string
+    # One per line, printed as badges under the steps: the short claims that
+    # aren't a step in the job — "Offline mobile app".
+    field :highlights, :string
     field :closing, :string
     field :terms, :string
     field :footer, :string
   end
 
-  @fields ~w(url eyebrow trade_eyebrow headline lede steps closing terms footer)a
+  @fields ~w(url eyebrow trade_eyebrow headline lede steps highlights closing terms footer)a
 
   def changeset(content, attrs) do
     content
@@ -81,6 +84,16 @@ defmodule ColdForge.Flyers.Content do
   end
 
   def steps(_content), do: []
+
+  @doc "The highlights, one per line, blanks dropped."
+  def highlights(%__MODULE__{highlights: highlights}) when is_binary(highlights) do
+    highlights
+    |> String.split(["\r\n", "\n"], trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  def highlights(_content), do: []
 
   @doc "The headline's lines, so a deliberate line break survives printing."
   def headline_lines(%__MODULE__{headline: headline}) when is_binary(headline),

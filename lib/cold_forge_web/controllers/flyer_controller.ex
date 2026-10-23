@@ -54,6 +54,7 @@ defmodule ColdForgeWeb.FlyerController do
       content: content,
       sheets: sheets,
       steps: Content.steps(content),
+      highlights: Content.highlights(content),
       phone: ColdForgeWeb.FlyerHTML.phone(project.phone),
       preview?: params["preview"] in ["1", "true"],
       display_url: Content.display_url(content)

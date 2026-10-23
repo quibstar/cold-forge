@@ -18,6 +18,7 @@ defmodule ColdForgeWeb.FlyersWebTest do
       Flyers.update_content(project, %{
         "url" => "https://exteriorpro.io/pro",
         "headline" => "Run the job.\nNot the paperwork.",
+        "highlights" => "Offline mobile app\n\nSuper easy to use",
         "terms" => "Free for 30 days. No credit card."
       })
 
@@ -66,6 +67,9 @@ defmodule ColdForgeWeb.FlyersWebTest do
       assert length(Regex.scan(~r/<svg class="qr"/, html)) == 2
       assert html =~ "Run the job.<br/>Not the paperwork." or html =~ "Not the paperwork."
       assert html =~ "exteriorpro.io/pro"
+      # Each highlight a badge, blank lines dropped.
+      assert length(Regex.scan(~r/Offline mobile app/, html)) == 2
+      assert length(Regex.scan(~r/Super easy to use/, html)) == 2
       # The logo on every sheet.
       assert length(Regex.scan(~r/aria-label="ExteriorPro"/, html)) == 2
       # Standalone: none of the admin chrome.
