@@ -71,19 +71,6 @@ defmodule ColdForgeWeb.FlyerHTML do
     """
   end
 
-  @doc """
-  The project's callback number as people write it: `"6164015969"` →
-  `"(616) 401-5969"`. Anything that isn't ten US digits prints as entered.
-  """
-  def phone(nil), do: nil
-
-  def phone(number) do
-    case String.replace(number, ~r/\D/, "") |> String.replace_prefix("1", "") do
-      <<a::binary-3, b::binary-3, c::binary-4>> -> "(#{a}) #{b}-#{c}"
-      _ -> String.trim(number) |> then(&if(&1 == "", do: nil, else: &1))
-    end
-  end
-
   @doc "A step's detail without the dash that joined it to its bold part."
   def step_detail(rest), do: rest |> to_string() |> String.replace_prefix(" — ", "")
 end
