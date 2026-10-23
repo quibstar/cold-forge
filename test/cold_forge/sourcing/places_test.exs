@@ -131,6 +131,14 @@ defmodule ColdForge.Sourcing.Discovery.PlacesTest do
       assert row.source_url =~ "place_id:ChIJrooferGR"
     end
 
+    test "splits the address into street, town, state and ZIP" do
+      {:ok, rows, _} = Places.parse(@response, "roofing")
+      row = Enum.find(rows, &(&1.source_ref == "ChIJrooferGR"))
+
+      assert {row.street, row.city, row.region, row.postal_code} ==
+               {"123 Monroe Ave NW", "Grand Rapids", "MI", "49503"}
+    end
+
     test "drops a permanently closed business" do
       {:ok, rows, _} = Places.parse(@response, "roofing")
       refute Enum.find(rows, &(&1.source_ref == "ChIJclosed"))
@@ -176,6 +184,29 @@ defmodule ColdForge.Sourcing.Discovery.PlacesTest do
 
     test "malformed json is an error" do
       assert {:error, {:invalid_json, _}} = Places.parse("{nope", "roofing")
+    end
+  end
+
+  describe "split_address/1" do
+    test "keeps a suite with the street, and a ZIP+4 as the ZIP" do
+      assert Places.split_address("123 Main St, Ste 4, Holland, MI 49423-1234, USA") ==
+               %{
+                 street: "123 Main St, Ste 4",
+                 city: "Holland",
+                 region: "MI",
+                 postal_code: "49423"
+               }
+    end
+
+    test "a town with no street is still a town" do
+      assert %{street: nil, city: "Holland", region: "MI"} =
+               Places.split_address("Holland, MI, USA")
+    end
+
+    test "anything else is nothing rather than a guess" do
+      empty = %{street: nil, city: nil, region: nil, postal_code: nil}
+      assert Places.split_address("Somewhere vague") == empty
+      assert Places.split_address(nil) == empty
     end
   end
 end
