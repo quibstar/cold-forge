@@ -82,6 +82,18 @@ defmodule ColdForge.Sourcing.CrawlQueueTest do
     assert inserted.name == "New Co"
   end
 
+  test "a place found under a trade written as free text is kept", %{source: source} do
+    attrs = %{
+      name: "Lakeshore Roofing Supply",
+      segment: "roofing supply",
+      provider: "places",
+      source_ref: "supply-1",
+      source_id: source.id
+    }
+
+    assert {:ok, %{inserted: 1, skipped: 0}} = Sourcing.record_discovered([attrs])
+  end
+
   test "queue_missing_crawls queues every waiting website, however new", %{source: source} do
     queued = org(source)
     Sourcing.enqueue_crawls([queued])

@@ -10,6 +10,7 @@ defmodule ColdForge.Sourcing do
   """
 
   import Ecto.Query
+  require Logger
 
   alias ColdForge.Outreach
   alias ColdForge.Outreach.Prospect
@@ -87,12 +88,28 @@ defmodule ColdForge.Sourcing do
     {orgs, skipped} =
       Enum.reduce(rows, {[], 0}, fn attrs, {orgs, skip} ->
         case %Org{} |> Org.discovery_changeset(attrs) |> Repo.insert() do
-          {:ok, org} -> {[org | orgs], skip}
-          {:error, _changeset} -> {orgs, skip + 1}
+          {:ok, org} ->
+            {[org | orgs], skip}
+
+          {:error, changeset} ->
+            # Already found is the expected miss. Anything else is a row thrown
+            # away, and counting it as "already known" is how a whole run once
+            # saved nothing without a word.
+            unless already_known?(changeset) do
+              Logger.warning(
+                "sourcing: dropped #{inspect(attrs[:name])} — #{inspect(changeset.errors)}"
+              )
+            end
+
+            {orgs, skip + 1}
         end
       end)
 
     {:ok, %{inserted: length(orgs), skipped: skipped, orgs: Enum.reverse(orgs)}}
+  end
+
+  defp already_known?(changeset) do
+    Enum.all?(changeset.errors, fn {_field, {_msg, opts}} -> opts[:constraint] == :unique end)
   end
 
   @crawl_worker "ColdForge.Workers.CrawlOrg"
