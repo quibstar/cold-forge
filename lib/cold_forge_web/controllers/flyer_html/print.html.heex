@@ -139,13 +139,19 @@
   </head>
   <body>
     <div class="how">
-      <%= if @sheets == [] do %>
-        <strong>No flyers selected.</strong> Go back and tick the places to print for.
-      <% else %>
-        <strong>{length(@sheets)} {if length(@sheets) == 1, do: "flyer", else: "flyers"} ready.</strong>
-        Print at <b>100% scale</b>
-        with <b>headers and footers off</b>, or the QR shrinks and
-        the browser writes a URL across the bottom of your flyer. <kbd>⌘P</kbd>
+      <%= cond do %>
+        <% @sheets == [] -> %>
+          <strong>No flyers selected.</strong> Go back and tick the places to print for.
+        <% @preview? -> %>
+          <strong>Preview.</strong>
+          This is exactly how it prints, QR code and all. To print it, <kbd>⌘P</kbd>
+          at <b>100% scale</b>
+          with <b>headers and footers off</b>.
+        <% true -> %>
+          <strong>{length(@sheets)} {if length(@sheets) == 1, do: "flyer", else: "flyers"} ready.</strong>
+          Print at <b>100% scale</b>
+          with <b>headers and footers off</b>, or the QR shrinks and
+          the browser writes a URL across the bottom of your flyer. <kbd>⌘P</kbd>
       <% end %>
     </div>
 

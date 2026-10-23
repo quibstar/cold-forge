@@ -70,6 +70,17 @@ defmodule ColdForgeWeb.FlyersWebTest do
       refute html =~ "admin-drawer"
     end
 
+    test "a preview says it's a preview", %{conn: conn, project: project, placement: placement} do
+      html =
+        conn
+        |> log_in_user(user_fixture())
+        |> get(~p"/admin/p/#{project.id}/flyers/print?#{[ids: placement.id, preview: 1]}")
+        |> html_response(200)
+
+      assert html =~ "Preview."
+      assert html =~ ~s(id="flyer-#{placement.code}")
+    end
+
     test "needs a login", %{conn: conn, project: project} do
       conn = get(conn, ~p"/admin/p/#{project.id}/flyers/print")
       assert redirected_to(conn) == ~p"/users/log-in"
@@ -94,6 +105,19 @@ defmodule ColdForgeWeb.FlyersWebTest do
 
       live |> element("#placement-#{placement.id} input[type=checkbox]") |> render_click()
       assert has_element?(live, "#print-flyers[href*='#{placement.id}']")
+    end
+
+    test "every place has a preview, no ticking needed", %{
+      conn: conn,
+      project: project,
+      placement: placement
+    } do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/flyers")
+
+      assert has_element?(
+               live,
+               "#preview-#{placement.id}[target=_blank][href*='ids=#{placement.id}'][href*='preview=1']"
+             )
     end
 
     test "adds a place by hand", %{conn: conn, project: project} do
