@@ -429,16 +429,25 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
               </button>
             </div>
             <div class="max-h-64 overflow-y-auto grid gap-x-4 gap-y-1 sm:grid-cols-2 pr-1">
-              <label :for={org <- @candidates} class="flex items-center gap-2 text-sm cursor-pointer">
+              <label
+                :for={org <- @candidates}
+                id={"candidate-#{org.id}"}
+                class="flex items-start gap-2 text-sm cursor-pointer rounded px-1 py-0.5 hover:bg-base-200 transition-colors"
+              >
                 <input
                   type="checkbox"
-                  class="checkbox checkbox-xs"
+                  class="checkbox checkbox-xs mt-0.5"
                   checked={MapSet.member?(@pick_org_ids, org.id)}
                   phx-click="toggle_org"
                   phx-value-id={org.id}
                 />
-                <span class="truncate">{org.name}</span>
-                <span class="ml-auto text-xs opacity-50 whitespace-nowrap">{org.city}</span>
+                <%!-- The street as well as the town: a chain has a dozen
+                branches with one name, and the street is what tells them
+                apart. --%>
+                <span class="min-w-0">
+                  <span class="block truncate">{org.name}</span>
+                  <span class="block truncate text-xs opacity-50">{org_address(org)}</span>
+                </span>
               </label>
             </div>
             <button
@@ -543,4 +552,8 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
 
   defp count(1, singular, _plural), do: "1 #{singular}"
   defp count(n, _singular, plural), do: "#{n} #{plural}"
+
+  defp org_address(org) do
+    [org.street, org.city] |> Enum.reject(&(&1 in [nil, ""])) |> Enum.join(", ")
+  end
 end

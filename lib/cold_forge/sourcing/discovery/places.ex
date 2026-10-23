@@ -293,15 +293,17 @@ defmodule ColdForge.Sourcing.Discovery.Places do
         nil
 
       true ->
+        address = split_address(Map.get(place, "formattedAddress"))
+
         %{
           name: name,
           segment: segment,
           website: Org.normalize_website(Map.get(place, "websiteUri")),
           phone: presence(Map.get(place, "nationalPhoneNumber")),
-          street: nil,
-          city: nil,
-          region: nil,
-          postal_code: nil,
+          street: address.street,
+          city: address.city,
+          region: address.region,
+          postal_code: address.postal_code,
           country: "US",
           provider: "places",
           source_ref: id,
@@ -319,6 +321,43 @@ defmodule ColdForge.Sourcing.Discovery.Places do
   end
 
   defp place_to_attrs(_place, _segment), do: nil
+
+  @doc """
+  Google's one-line address in its parts:
+  `"6685 S Westnedge Ave, Portage, MI 49002, USA"` →
+  `%{street: "6685 S Westnedge Ave", city: "Portage", region: "MI", postal_code: "49002"}`.
+
+  Read from the end, because the end is the regular part — country, then
+  "ST 12345", then the town — and whatever is left in front is the street,
+  suite and all. Anything that doesn't fit that shape comes back as all `nil`
+  rather than a guess.
+  """
+  def split_address(address) when is_binary(address) do
+    parts =
+      address
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.reverse()
+      |> drop_country()
+
+    with [state_zip, city | street] <- parts,
+         [_, region | zip] <- Regex.run(~r/^([A-Z]{2})(?:\s+(\d{5})(?:-\d{4})?)?$/, state_zip) do
+      %{
+        street: street |> Enum.reverse() |> Enum.join(", ") |> presence(),
+        city: city,
+        region: region,
+        postal_code: List.first(zip)
+      }
+    else
+      _ -> %{street: nil, city: nil, region: nil, postal_code: nil}
+    end
+  end
+
+  def split_address(_), do: %{street: nil, city: nil, region: nil, postal_code: nil}
+
+  defp drop_country([country | rest]) when country in ["USA", "United States"], do: rest
+  defp drop_country(parts), do: parts
 
   defp presence(nil), do: nil
 
