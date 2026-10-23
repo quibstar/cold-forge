@@ -5,8 +5,7 @@ defmodule ColdForgeWeb.FlyerHTML do
   embed_templates "flyer_html/*"
 
   # ExteriorPro's E: three bars, 45° cut on the right, from the brand kit
-  # (Sales & Marketing/brand). One path, so it's drawn twice without copying
-  # the geometry.
+  # (Sales & Marketing/brand).
   @mark "M8 9 H41 L32.5 17.5 H8 A1 1 0 0 1 7 16.5 V10 A1 1 0 0 1 8 9 Z M8 19.75 H35.5 L27 28.25 H8 A1 1 0 0 1 7 27.25 V20.75 A1 1 0 0 1 8 19.75 Z M8 30.5 H30 L21.5 39 H8 A1 1 0 0 1 7 38 V31.5 A1 1 0 0 1 8 30.5 Z"
 
   @doc """
@@ -49,19 +48,6 @@ defmodule ColdForgeWeb.FlyerHTML do
       >
         Exterior<tspan fill="#14B8A6">Pro</tspan>
       </text>
-    </svg>
-    """
-  end
-
-  @doc "The E alone, flat — small enough on a tear-off tab that a gradient would band."
-  attr :class, :string, default: nil
-
-  def mark(assigns) do
-    assigns = assign(assigns, :mark, @mark)
-
-    ~H"""
-    <svg class={@class} viewBox="6 8 36 32" aria-hidden="true">
-      <path fill="#0F766E" d={@mark} />
     </svg>
     """
   end

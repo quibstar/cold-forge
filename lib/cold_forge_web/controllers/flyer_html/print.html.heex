@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title>Flyers · Cold Forge</title>
     <%!-- ExteriorPro's own faces, from its brand kit: Instrument Sans for the
-    wordmark, headline and body, IBM Plex Mono for the web address. Loaded here
+    wordmark, headline and body, IBM Plex Mono for the flyer's code. Loaded here
     rather than in app.css because this page is printed, not browsed, and
     nothing else in Cold Forge uses them. `display=block` so a print started
     the moment the page opens doesn't go out in the fallback face. --%>
@@ -56,7 +56,7 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        padding: 0.42in 0.55in 0.22in;
+        padding: 0.6in 0.6in 0.5in;
         min-height: 0;
       }
 
@@ -80,8 +80,8 @@
       /* The one thing that has to work from six feet away: condensed so it
          can be enormous and still fit the line it was written on. */
       h1 {
-        margin: 0.32in 0 0;
-        font-size: 70pt;
+        margin: 0.55in 0 0;
+        font-size: 76pt;
         font-stretch: 75%;
         font-variation-settings: "wdth" 75;
         font-weight: 700;
@@ -90,9 +90,9 @@
       }
 
       .lede {
-        margin: 0.2in 0 0;
-        max-width: 6.1in;
-        font-size: 15pt;
+        margin: 0.3in 0 0;
+        max-width: 6.3in;
+        font-size: 16pt;
         line-height: 1.38;
         color: var(--muted);
       }
@@ -103,7 +103,7 @@
         position: relative;
         display: grid;
         gap: 0.18in;
-        margin: 0.3in 0 0;
+        margin: 0.5in 0 0;
         padding: 0;
         list-style: none;
       }
@@ -149,18 +149,18 @@
       }
 
       .closing {
-        margin: 0.24in 0 0;
+        margin: 0.36in 0 0;
         font-size: 12pt;
         font-weight: 600;
         color: var(--muted);
       }
 
       /* The QR and the reason to scan it, side by side — a code with no
-         sentence next to it gets ignored. Pushed to the bottom so the tabs
-         sit directly under the address they repeat. */
+         sentence next to it gets ignored. Pushed to the bottom of the
+         sheet, where a hand holding it leaves it uncovered. */
       .scan {
         margin-top: auto;
-        padding-top: 0.22in;
+        padding-top: 0.35in;
         display: flex;
         align-items: center;
         gap: 0.38in;
@@ -172,10 +172,10 @@
         border-radius: 0.12in;
       }
       /* Scannable from arm's length, including by an older phone. */
-      .qr { width: 1.95in; height: 1.95in; display: block; }
+      .qr { width: 2.3in; height: 2.3in; display: block; }
       .scan-lead {
         margin: 0;
-        font-size: 26pt;
+        font-size: 30pt;
         font-weight: 700;
         font-stretch: 85%;
         font-variation-settings: "wdth" 85;
@@ -183,14 +183,14 @@
       }
       .scan-url {
         margin: 0.1in 0 0;
-        font-size: 19pt;
+        font-size: 21pt;
         font-weight: 700;
         color: var(--teal);
       }
       .scan-terms { margin: 0.1in 0 0; font-size: 13pt; color: var(--muted); }
 
       .foot {
-        margin: 0.18in 0 0;
+        margin: 0.35in 0 0;
         display: flex;
         justify-content: space-between;
         align-items: baseline;
@@ -204,50 +204,6 @@
         font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
         font-size: 7.5pt;
         color: #94A3B8;
-        white-space: nowrap;
-      }
-
-      /* Tear-off tabs: the corkboard's own format. Somebody who won't scan
-         at the counter tears one off and has the address in their pocket.
-         Dashed lines are where the scissors go. */
-      .tabs {
-        flex: 0 0 1.7in;
-        display: grid;
-        grid-template-columns: repeat(8, 1fr);
-        margin: 0 0.3in;
-        border-top: 1.5px dashed var(--ink);
-        position: relative;
-      }
-      .tabs::before {
-        content: "✂";
-        position: absolute;
-        top: -0.11in;
-        left: -0.04in;
-        font-size: 13pt;
-        line-height: 1;
-        background: #fff;
-        padding-right: 0.04in;
-      }
-      .tab {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .tab + .tab { border-left: 1.5px dashed var(--ink); }
-      /* Read bottom to top, the way a tab on a board is read with the head
-         tilted. Only the words turn, so the cut lines stay where they are. */
-      .tab-text {
-        display: flex;
-        align-items: center;
-        gap: 0.09in;
-        writing-mode: vertical-rl;
-        transform: rotate(180deg);
-      }
-      .tab-mark { width: 0.19in; height: 0.19in; transform: rotate(90deg); flex: none; }
-      .tab-url {
-        font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-        font-size: 9pt;
-        font-weight: 500;
         white-space: nowrap;
       }
 
@@ -327,15 +283,6 @@
           <span>{@content.footer}</span>
           <span class="code">{sheet.placement.code}</span>
         </p>
-      </div>
-
-      <div class="tabs" aria-hidden="true">
-        <div :for={_ <- 1..8} class="tab">
-          <span class="tab-text">
-            <.mark class="tab-mark" />
-            <span class="tab-url">{@display_url}</span>
-          </span>
-        </div>
       </div>
     </section>
   </body>

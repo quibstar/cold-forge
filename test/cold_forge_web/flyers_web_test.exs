@@ -66,9 +66,8 @@ defmodule ColdForgeWeb.FlyersWebTest do
       assert length(Regex.scan(~r/<svg class="qr"/, html)) == 2
       assert html =~ "Run the job.<br/>Not the paperwork." or html =~ "Not the paperwork."
       assert html =~ "exteriorpro.io/pro"
-      # The logo on every sheet, and eight tear-off tabs carrying the address.
+      # The logo on every sheet.
       assert length(Regex.scan(~r/aria-label="ExteriorPro"/, html)) == 2
-      assert length(Regex.scan(~r/class="tab-url">exteriorpro.io\/pro</, html)) == 16
       # Standalone: none of the admin chrome.
       refute html =~ "admin-drawer"
     end
