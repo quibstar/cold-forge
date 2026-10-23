@@ -84,11 +84,29 @@ defmodule ColdForge.FlyersTest do
       {:ok, a} =
         Flyers.create_placement(project, %{venue_name: "ABC Supply Co.", address: "Wyoming, MI"})
 
+      # A second branch in the same town.
       {:ok, b} =
-        Flyers.create_placement(project, %{venue_name: "ABC Supply Co.", address: "Wyoming, MI"})
+        Flyers.create_placement(project, %{
+          venue_name: "ABC Supply Co.",
+          address: "1 Main St, Wyoming, MI"
+        })
 
       assert a.code == "abc-supply-co-wyoming"
       assert b.code == "abc-supply-co-wyoming-2"
+    end
+
+    test "one flyer per place: the same name at the same address is refused",
+         %{project: project} do
+      {:ok, _} =
+        Flyers.create_placement(project, %{venue_name: "ABC Supply Co.", address: "Wyoming, MI"})
+
+      assert {:error, cs} =
+               Flyers.create_placement(project, %{
+                 venue_name: " abc supply co. ",
+                 address: "WYOMING, MI"
+               })
+
+      assert "already has a flyer at that address" in errors_on(cs).venue_name
     end
 
     test "take the town from a full address, not the street", %{project: project} do
@@ -130,6 +148,25 @@ defmodule ColdForge.FlyersTest do
       # Already placed, so no longer offered — and adding again does nothing.
       assert Flyers.candidate_orgs(project.id, found.source_id) == []
       assert Flyers.add_orgs(project, [found.id]) == 0
+    end
+
+    test "a store Google lists twice is offered and added once", %{project: project} do
+      first = org(project, %{name: "Lumber and Building Materials", city: "Novi", region: "MI"})
+
+      second =
+        Repo.insert!(%Org{
+          source_id: first.source_id,
+          provider: "places",
+          source_ref: "ref-twin",
+          segment: "roofing supply",
+          name: "Lumber and Building Materials",
+          city: "Novi",
+          region: "MI"
+        })
+
+      assert [_one] = Flyers.candidate_orgs(project.id, first.source_id)
+      assert Flyers.add_orgs(project, [first.id, second.id]) == 1
+      assert Flyers.candidate_orgs(project.id, first.source_id) == []
     end
 
     test "only offers the one search chosen, never the contractor list beside it",

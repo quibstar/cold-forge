@@ -106,9 +106,31 @@ defmodule ColdForge.Flyers do
     |> where([_o, s], s.purpose == "flyers")
     |> where([o], o.id not in subquery(placed))
     |> where([o], o.status != "rejected")
-    |> order_by([o], asc: o.city, asc: o.name)
-    |> limit(^Keyword.get(opts, :limit, 300))
+    |> order_by([o], asc: o.city, asc: o.name, asc: o.inserted_at)
     |> Repo.all()
+    # Google lists some stores twice under two ids. Offering both is how two
+    # flyers ended up on one board, so a place already on the list, or a
+    # second listing of one above it, isn't offered.
+    |> reject_placed(placed_keys(project_id))
+    |> Enum.uniq_by(&place_key(org_place(&1)))
+    |> Enum.take(Keyword.get(opts, :limit, 300))
+  end
+
+  defp reject_placed(orgs, keys), do: Enum.reject(orgs, &(place_key(org_place(&1)) in keys))
+
+  defp placed_keys(project_id) do
+    from(p in Placement, where: p.project_id == ^project_id, select: {p.venue_name, p.address})
+    |> Repo.all()
+    |> MapSet.new(fn {name, address} ->
+      place_key(%{"venue_name" => name, "address" => address})
+    end)
+  end
+
+  # Matches the unique index: name and address, ignoring case and the spaces
+  # at either end.
+  defp place_key(attrs) do
+    {attrs["venue_name"] |> to_string() |> String.trim() |> String.downcase(),
+     attrs["address"] |> to_string() |> String.trim() |> String.downcase()}
   end
 
   @doc """
@@ -133,15 +155,20 @@ defmodule ColdForge.Flyers do
   end
 
   defp org_attrs(%Org{} = org) do
-    town = [org.city, org.region] |> Enum.reject(&blank?/1) |> Enum.join(", ")
+    org
+    |> org_place()
+    |> Map.merge(%{"phone" => org.phone, "code" => unique_code(org.name, org_town(org))})
+  end
 
+  defp org_place(%Org{} = org) do
     %{
       "venue_name" => org.name,
-      "address" => [org.street, town] |> Enum.reject(&blank?/1) |> Enum.join(", "),
-      "phone" => org.phone,
-      "code" => unique_code(org.name, town)
+      "address" => [org.street, org_town(org)] |> Enum.reject(&blank?/1) |> Enum.join(", ")
     }
   end
+
+  defp org_town(%Org{} = org),
+    do: [org.city, org.region] |> Enum.reject(&blank?/1) |> Enum.join(", ")
 
   ## Scans
 
