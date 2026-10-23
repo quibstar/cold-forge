@@ -42,6 +42,10 @@ defmodule ColdForge.Flyers.Placement do
     |> validate_required([:venue_name])
     |> validate_inclusion(:status, @statuses)
     |> update_change(:trade, &(&1 |> String.trim() |> String.downcase()))
+    |> unique_constraint(:venue_name,
+      name: :flyer_placements_one_per_place_index,
+      message: "already has a flyer at that address"
+    )
   end
 
   @doc false
