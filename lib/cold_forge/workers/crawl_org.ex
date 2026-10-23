@@ -15,7 +15,9 @@ defmodule ColdForge.Workers.CrawlOrg do
   Snoozes rather than sleeps when the host was hit too recently, so one slow
   host cannot occupy a worker. `max_attempts` is low because the failures worth
   retrying are transient by definition; a site that is genuinely gone should
-  stop costing us attempts.
+  stop costing us attempts — and on the last one, whatever went wrong, the
+  place is settled as unreachable rather than left "checking" for ever, which
+  is what kept a finished Michigan run saying 64 left.
   """
 
   # One check per place at a time. Without this every finished search re-queued
@@ -31,13 +33,47 @@ defmodule ColdForge.Workers.CrawlOrg do
   # patience, and that belongs on the queue.
   @inline_wait_ms 5_000
 
+  # Once a page has been read, a snooze would start the site over from its
+  # homepage — and a site that asks for a long gap between pages would then
+  # loop for ever, reading its homepage and snoozing. So past the first page
+  # the gap is waited out here, up to this long; a site asking for more than
+  # a minute between pages gets what was read so far.
+  @max_wait_after_first_page_ms 60_000
+
   require Logger
 
   alias ColdForge.Sourcing
   alias ColdForge.Sourcing.{Extractor, Fetcher, Org}
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"org_id" => org_id}}) do
+  def perform(%Oban.Job{args: %{"org_id" => org_id}} = job) do
+    check(org_id)
+  rescue
+    error ->
+      if job.attempt >= job.max_attempts do
+        Logger.warning(
+          "sourcing: giving up on #{org_id} after #{job.attempt} tries — " <>
+            Exception.format_banner(:error, error, __STACKTRACE__)
+        )
+
+        give_up(org_id)
+      else
+        reraise error, __STACKTRACE__
+      end
+  end
+
+  defp give_up(org_id) do
+    case Sourcing.get_org(org_id) do
+      %Org{status: "discovered"} = org ->
+        {:ok, _} = Sourcing.record_unreachable(org)
+        :ok
+
+      _settled_or_gone ->
+        :ok
+    end
+  end
+
+  defp check(org_id) do
     case Sourcing.get_org!(org_id) do
       %Org{status: status} when status in ["rejected", "promoted"] ->
         # Already settled; a duplicate job shouldn't re-crawl.
@@ -48,19 +84,19 @@ defmodule ColdForge.Workers.CrawlOrg do
         :ok
 
       %Org{} = org ->
-        crawl(org, Fetcher.candidate_urls(org.website))
+        crawl(org, Fetcher.candidate_urls(org.website), false)
     end
   end
 
   # Out of pages to try: nothing published. Not a failure — it is the answer
   # for most owner-operated contractors and small rescues, and it is what puts
   # them on the call list instead.
-  defp crawl(org, []) do
+  defp crawl(org, [], _read_one?) do
     {:ok, _} = Sourcing.record_nothing_found(org)
     :ok
   end
 
-  defp crawl(org, [url | rest]) do
+  defp crawl(org, [url | rest], read_one?) do
     case Fetcher.fetch(url) do
       {:ok, %{body: body}} ->
         result = Extractor.extract(body, url)
@@ -82,7 +118,7 @@ defmodule ColdForge.Workers.CrawlOrg do
 
           true ->
             # Nothing here; remember a contact form if we saw one, then move on.
-            crawl(note_form(org, result), rest)
+            crawl(note_form(org, result), rest, true)
         end
 
       # The host was hit too recently. Every candidate page is on the same host,
@@ -92,18 +128,26 @@ defmodule ColdForge.Workers.CrawlOrg do
       # Crawl-delay — goes back on the queue rather than parking a worker.
       {:error, {:wait, ms}} when ms <= @inline_wait_ms ->
         Process.sleep(ms)
-        crawl(org, [url | rest])
+        crawl(org, [url | rest], read_one?)
 
-      {:error, {:wait, ms}} ->
+      # Nothing read yet, so nothing lost by starting over later.
+      {:error, {:wait, ms}} when not read_one? ->
         {:snooze, max(div(ms, 1000), 1)}
+
+      {:error, {:wait, ms}} when ms <= @max_wait_after_first_page_ms ->
+        Process.sleep(ms)
+        crawl(org, [url | rest], read_one?)
+
+      {:error, {:wait, _ms}} ->
+        crawl(org, [], read_one?)
 
       {:error, :disallowed_by_robots} ->
         # Only this path is forbidden; another might not be.
-        crawl(org, rest)
+        crawl(org, rest, read_one?)
 
       {:error, reason} ->
         Logger.debug("sourcing: #{url} unavailable (#{inspect(reason)})")
-        crawl(org, rest)
+        crawl(org, rest, read_one?)
     end
   end
 

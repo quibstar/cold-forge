@@ -230,6 +230,7 @@ defmodule ColdForge.Sourcing do
   end
 
   def get_org!(id), do: Repo.get!(Org, id)
+  def get_org(id), do: Repo.get(Org, id)
 
   @doc """
   Organisations for the review queue, newest first.
@@ -273,10 +274,10 @@ defmodule ColdForge.Sourcing do
   defp maybe_status(query, status), do: where(query, [o], o.status == ^status)
 
   # Reasons a place was rejected that still leave it worth a phone call: its
-  # website had no address on it, or it has no website at all. Every other
-  # reason — a no-solicitation notice, "not a fit" — is a real decision to
-  # leave it alone.
-  @phone_reasons ~w(no_address_published no_website)
+  # website had no address on it, couldn't be read at all, or it has no
+  # website. Every other reason — a no-solicitation notice, "not a fit" — is a
+  # real decision to leave it alone.
+  @phone_reasons ~w(no_address_published unreachable no_website)
 
   # What the review page shows, by what can be done with each place rather
   # than by the crawler's internal status. "Rejected" used to be one tab, and
@@ -392,6 +393,16 @@ defmodule ColdForge.Sourcing do
   end
 
   def record_nothing_found(%Org{} = org), do: reject(org, :no_address_published)
+
+  @doc """
+  Settles a place whose website couldn't be read after every try, so the run
+  it belongs to can finish. An email found on an earlier try is kept;
+  otherwise it goes to the call list as `unreachable`.
+  """
+  def record_unreachable(%Org{email: email} = org) when is_binary(email) and email != "",
+    do: record_nothing_found(org)
+
+  def record_unreachable(%Org{} = org), do: reject(org, :unreachable)
 
   @doc """
   Records that this organisation is not an email target, and why.

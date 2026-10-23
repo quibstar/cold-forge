@@ -121,16 +121,23 @@ defmodule ColdForgeWeb.Layouts do
             >
               Do not contact
             </.nav_link>
-            <%!-- A plain link: the dashboard is its own live session, so
-                  navigating to it is a page load either way. --%>
+            <%!-- A plain link in a new tab: the dashboard is its own app, with
+                  no way back to this one, so it opens beside it. --%>
             <a
               href={~p"/admin/oban"}
+              id="nav-job-queues"
+              target="_blank"
+              rel="noopener"
               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-base-content/80 hover:bg-base-200 hover:text-base-content"
             >
               <.icon
                 name="hero-queue-list"
                 class="size-5 shrink-0 text-base-content/60 group-hover:text-base-content"
               /> Job queues
+              <.icon
+                name="hero-arrow-top-right-on-square"
+                class="size-3.5 ml-auto text-base-content/40"
+              />
             </a>
             <.nav_link
               navigate={~p"/admin/guide"}

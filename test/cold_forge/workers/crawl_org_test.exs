@@ -71,6 +71,36 @@ defmodule ColdForge.Workers.CrawlOrgTest do
     end
   end
 
+  describe "a website that can't be read on any try" do
+    test "fails the early tries, so they're retried" do
+      assert_raise Ecto.NoResultsError, fn ->
+        perform_job(CrawlOrg, %{org_id: Ecto.UUID.generate()}, attempt: 1)
+      end
+    end
+
+    test "is settled on the last try instead of left checking for ever" do
+      assert :ok = perform_job(CrawlOrg, %{org_id: Ecto.UUID.generate()}, attempt: 3)
+    end
+
+    test "goes to the call list" do
+      {:ok, org} = Sourcing.record_unreachable(org_fixture())
+
+      assert org.status == "rejected"
+      assert org.reject_reason == "unreachable"
+      assert Sourcing.view_of(org) == "phone"
+    end
+
+    test "keeps an address an earlier try already found" do
+      {:ok, org} =
+        org_fixture()
+        |> Org.crawl_changeset(%{email: "office@summitroofing.test", status: "fetched"})
+        |> Repo.update()
+
+      {:ok, org} = Sourcing.record_unreachable(org)
+      assert Sourcing.view_of(org) == "email"
+    end
+  end
+
   describe "the discovery changeset decides what gets crawled" do
     test "a row with a website is crawlable" do
       org = org_fixture()

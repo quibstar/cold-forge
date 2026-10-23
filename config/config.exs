@@ -76,6 +76,11 @@ config :cold_forge, Oban,
   queues: [scheduler: 1, sending: 3, crawl: 4, search: 2],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
+    # A deploy restarts the app mid-job, and a job that was running then
+    # stays marked "executing" forever — a website check that never finishes,
+    # a send that never goes. This puts them back on the queue. Thirty minutes
+    # is far past the longest job either queue runs.
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
     {Oban.Plugins.Cron,
      crontab: [
        {"*/5 * * * *", ColdForge.Workers.CampaignScheduler}
