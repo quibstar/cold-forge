@@ -40,6 +40,12 @@ defmodule ColdForge.Workers.CrawlOrg do
   # a minute between pages gets what was read so far.
   @max_wait_after_first_page_ms 60_000
 
+  # A hard stop on waiting for a host's turn: three, the same as the tries a
+  # failure gets. Each snooze costs nothing but a visit to the business's own
+  # site, yet a check that never finishes keeps a run from ever saying it's
+  # done. After that the place goes to the call list.
+  @max_snoozes 3
+
   require Logger
 
   alias ColdForge.Sourcing
@@ -47,7 +53,7 @@ defmodule ColdForge.Workers.CrawlOrg do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"org_id" => org_id}} = job) do
-    check(org_id)
+    check(org_id, snoozes(job))
   rescue
     error ->
       if job.attempt >= job.max_attempts do
@@ -73,7 +79,10 @@ defmodule ColdForge.Workers.CrawlOrg do
     end
   end
 
-  defp check(org_id) do
+  defp snoozes(%Oban.Job{meta: %{"snoozed" => n}}) when is_integer(n), do: n
+  defp snoozes(_job), do: 0
+
+  defp check(org_id, snoozes) do
     case Sourcing.get_org!(org_id) do
       %Org{status: status} when status in ["rejected", "promoted"] ->
         # Already settled; a duplicate job shouldn't re-crawl.
@@ -84,19 +93,19 @@ defmodule ColdForge.Workers.CrawlOrg do
         :ok
 
       %Org{} = org ->
-        crawl(org, Fetcher.candidate_urls(org.website), false)
+        crawl(org, Fetcher.candidate_urls(org.website), false, snoozes)
     end
   end
 
   # Out of pages to try: nothing published. Not a failure — it is the answer
   # for most owner-operated contractors and small rescues, and it is what puts
   # them on the call list instead.
-  defp crawl(org, [], _read_one?) do
+  defp crawl(org, [], _read_one?, _snoozes) do
     {:ok, _} = Sourcing.record_nothing_found(org)
     :ok
   end
 
-  defp crawl(org, [url | rest], read_one?) do
+  defp crawl(org, [url | rest], read_one?, snoozes) do
     case Fetcher.fetch(url) do
       {:ok, %{body: body}} ->
         result = Extractor.extract(body, url)
@@ -118,7 +127,7 @@ defmodule ColdForge.Workers.CrawlOrg do
 
           true ->
             # Nothing here; remember a contact form if we saw one, then move on.
-            crawl(note_form(org, result), rest, true)
+            crawl(note_form(org, result), rest, true, snoozes)
         end
 
       # The host was hit too recently. Every candidate page is on the same host,
@@ -128,7 +137,13 @@ defmodule ColdForge.Workers.CrawlOrg do
       # Crawl-delay — goes back on the queue rather than parking a worker.
       {:error, {:wait, ms}} when ms <= @inline_wait_ms ->
         Process.sleep(ms)
-        crawl(org, [url | rest], read_one?)
+        crawl(org, [url | rest], read_one?, snoozes)
+
+      # Waited for this host's turn as long as we will: never read, so it's
+      # unreachable as far as we can tell.
+      {:error, {:wait, _ms}} when not read_one? and snoozes >= @max_snoozes ->
+        {:ok, _} = Sourcing.record_unreachable(org)
+        :ok
 
       # Nothing read yet, so nothing lost by starting over later.
       {:error, {:wait, ms}} when not read_one? ->
@@ -136,18 +151,18 @@ defmodule ColdForge.Workers.CrawlOrg do
 
       {:error, {:wait, ms}} when ms <= @max_wait_after_first_page_ms ->
         Process.sleep(ms)
-        crawl(org, [url | rest], read_one?)
+        crawl(org, [url | rest], read_one?, snoozes)
 
       {:error, {:wait, _ms}} ->
-        crawl(org, [], read_one?)
+        crawl(org, [], read_one?, snoozes)
 
       {:error, :disallowed_by_robots} ->
         # Only this path is forbidden; another might not be.
-        crawl(org, rest, read_one?)
+        crawl(org, rest, read_one?, snoozes)
 
       {:error, reason} ->
         Logger.debug("sourcing: #{url} unavailable (#{inspect(reason)})")
-        crawl(org, rest, read_one?)
+        crawl(org, rest, read_one?, snoozes)
     end
   end
 

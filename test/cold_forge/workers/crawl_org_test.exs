@@ -101,6 +101,32 @@ defmodule ColdForge.Workers.CrawlOrgTest do
     end
   end
 
+  describe "a host that is never free" do
+    # The host's next turn is a minute away, and nothing has been read: the
+    # check waits on the queue — but only so many times.
+    setup do
+      host = "busy-#{System.unique_integer([:positive])}.test"
+      :ok = ColdForge.Sourcing.Politeness.put_robots(host, nil)
+      :ok = ColdForge.Sourcing.Politeness.reserve(host, 60)
+      %{org: org_fixture(%{website: "https://#{host}"})}
+    end
+
+    test "waits its turn on the queue", %{org: org} do
+      assert {:snooze, seconds} = perform_job(CrawlOrg, %{org_id: org.id})
+      assert seconds > 5
+      assert Repo.get!(Org, org.id).status == "discovered"
+    end
+
+    test "stops waiting after three turns and goes to the call list", %{org: org} do
+      assert {:snooze, _} = perform_job(CrawlOrg, %{org_id: org.id}, meta: %{"snoozed" => 2})
+      assert :ok = perform_job(CrawlOrg, %{org_id: org.id}, meta: %{"snoozed" => 3})
+
+      reloaded = Repo.get!(Org, org.id)
+      assert reloaded.reject_reason == "unreachable"
+      assert Sourcing.view_of(reloaded) == "phone"
+    end
+  end
+
   describe "the discovery changeset decides what gets crawled" do
     test "a row with a website is crawlable" do
       org = org_fixture()
