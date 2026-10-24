@@ -256,7 +256,7 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
       # real number was, because it counted the list it had been handed.
       assert html =~ "61"
       assert html =~ "1–50 of 61"
-      assert html =~ "Page 1 of 2"
+      assert html =~ ~s(aria-current="page" aria-label="Page 1")
 
       rows = fn -> view |> render() |> then(&Regex.scan(~r/id="queue-/, &1)) |> length() end
       assert rows.() == 50
@@ -270,7 +270,7 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
     test "no pager under a list that fits on one page", ctx do
       {:ok, _view, html} = live(ctx.conn, queue_path(ctx.project))
 
-      refute html =~ "Page 1 of"
+      refute html =~ ~s(aria-label="Next page")
     end
 
     test "a placeholder where the number should be is marked", ctx do

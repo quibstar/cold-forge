@@ -20,8 +20,8 @@ defmodule ColdForgeWeb.AdminLive.ProspectPagingTest do
   test "shows the first page and how many there are", %{conn: conn, project: project} do
     {:ok, _live, html} = live(conn, ~p"/admin/p/#{project.id}/prospects")
 
-    assert html =~ "Page 1 of 2"
     assert html =~ "1–50 of 60"
+    assert html =~ ~s(aria-current="page" aria-label="Page 1")
   end
 
   test "Next moves to the second page", %{conn: conn, project: project} do
@@ -29,8 +29,8 @@ defmodule ColdForgeWeb.AdminLive.ProspectPagingTest do
 
     html = live |> element(~s(button[phx-click="page"][phx-value-to="next"])) |> render_click()
 
-    assert html =~ "Page 2 of 2"
     assert html =~ "51–60 of 60"
+    assert html =~ ~s(aria-current="page" aria-label="Page 2")
   end
 
   test "Previous comes back", %{conn: conn, project: project} do
@@ -39,7 +39,7 @@ defmodule ColdForgeWeb.AdminLive.ProspectPagingTest do
     live |> element(~s(button[phx-value-to="next"])) |> render_click()
     html = live |> element(~s(button[phx-value-to="prev"])) |> render_click()
 
-    assert html =~ "Page 1 of 2"
+    assert html =~ ~s(aria-current="page" aria-label="Page 1")
   end
 
   test "filtering returns to page 1 rather than an empty page 2",
@@ -54,7 +54,7 @@ defmodule ColdForgeWeb.AdminLive.ProspectPagingTest do
       |> render_change()
 
     assert html =~ "Co 001"
-    refute html =~ "Page 2"
+    refute html =~ ~s(aria-label="Page 2")
   end
 
   test "no pager at all when everything fits on one page", %{conn: conn} do
@@ -64,6 +64,7 @@ defmodule ColdForgeWeb.AdminLive.ProspectPagingTest do
     {:ok, _live, html} = live(conn, ~p"/admin/p/#{small.id}/prospects")
 
     assert html =~ "Only One"
-    refute html =~ "Page 1 of"
+    # No pager at all, so not even the arrows.
+    refute html =~ ~s(aria-label="Next page")
   end
 end

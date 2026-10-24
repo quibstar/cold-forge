@@ -553,6 +553,92 @@ defmodule ColdForgeWeb.CoreComponents do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
 
+  @doc """
+  Page controls for a list longer than one page.
+
+  Numbered, not just Previous/Next: "page 7 of 16" is somewhere you can go back
+  to and "Next" is not. A long run of pages collapses to a single ellipsis, so
+  the control is about as wide at three hundred pages as at three.
+
+  The caller handles `"page"` with `phx-value-to` of `"prev"`, `"next"`, or a
+  page number.
+  """
+  attr :page, :integer, required: true
+  attr :pages, :integer, required: true
+  attr :total, :integer, required: true, doc: "rows in the whole list, not on this page"
+  attr :per_page, :integer, required: true
+  attr :class, :any, default: nil
+
+  def pagination(assigns) do
+    assigns = assign(assigns, :window, page_window(assigns.page, assigns.pages))
+
+    ~H"""
+    <div class={["flex flex-wrap items-center justify-between gap-3", @class]}>
+      <p class="text-xs text-base-content/60">
+        {(@page - 1) * @per_page + 1}–{min(@page * @per_page, @total)} of {@total}
+      </p>
+
+      <div class="join">
+        <button
+          type="button"
+          class="join-item btn btn-sm"
+          phx-click="page"
+          phx-value-to="prev"
+          disabled={@page <= 1}
+          aria-label="Previous page"
+        >
+          «
+        </button>
+
+        <button
+          :for={entry <- @window}
+          type="button"
+          class={[
+            "join-item btn btn-sm",
+            entry == @page && "btn-active",
+            entry == :gap && "btn-disabled"
+          ]}
+          phx-click={entry != :gap && "page"}
+          phx-value-to={entry != :gap && entry}
+          disabled={entry == :gap}
+          aria-current={entry == @page && "page"}
+          aria-label={entry != :gap && "Page #{entry}"}
+        >
+          {if entry == :gap, do: "…", else: entry}
+        </button>
+
+        <button
+          type="button"
+          class="join-item btn btn-sm"
+          phx-click="page"
+          phx-value-to="next"
+          disabled={@page >= @pages}
+          aria-label="Next page"
+        >
+          »
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  # The first page, the last, and the current one with a neighbour either side.
+  # Whatever that skips becomes one `:gap`, never two in a row and never a gap
+  # standing in for a single page — an ellipsis hiding page 4 alone is wider
+  # than the 4 would have been.
+  defp page_window(page, pages) do
+    [1, page - 1, page, page + 1, pages]
+    |> Enum.filter(&(&1 >= 1 and &1 <= pages))
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> add_gaps()
+  end
+
+  defp add_gaps([a, b | rest]) when b - a == 2, do: [a, a + 1 | add_gaps([b | rest])]
+  defp add_gaps([a, b | rest]) when b - a > 2, do: [a, :gap | add_gaps([b | rest])]
+  defp add_gaps([a | rest]), do: [a | add_gaps(rest)]
+  defp add_gaps([]), do: []
+
   # Accepts what options_for_select/2 does: {label, value} pairs, keyword
   # pairs, or bare values that are their own label.
   defp radio_options(options) do
