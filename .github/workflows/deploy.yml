@@ -43,6 +43,59 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+
+          # Check the key parses before asking SSH to use it. A malformed
+          # secret otherwise surfaces as "Load key: error in libcrypto" and
+          # then "Permission denied (publickey,password)", which reads like
+          # the server rejected us when in fact the file never parsed — the
+          # deploy failed that way for thirty hours and the log said nothing
+          # about which of the two it was.
+          #
+          # Everything printed here is safe: a line and byte count, and the
+          # PUBLIC half with its fingerprint, derived by ssh-keygen -y and -l.
+          # No part of the private key is ever echoed, not even one line of it.
+          if [ ! -s ~/.ssh/deploy_key ]; then
+            echo "::error::DEPLOY_SSH_KEY is empty. Set it to the whole private key file, headers included."
+            exit 1
+          fi
+
+          lines=$(wc -l < ~/.ssh/deploy_key | tr -d ' ')
+          echo "key file: $lines lines, $(wc -c < ~/.ssh/deploy_key | tr -d ' ') bytes"
+
+          # Classified, never echoed. A key pasted without its line breaks is
+          # one line long, so printing "the first line" would print the whole
+          # private key — and Actions only masks a secret it can match exactly,
+          # which a reformatted copy of it would not be.
+          if head -1 ~/.ssh/deploy_key | grep -q "PuTTY-User-Key-File"; then
+            echo "::error::That is a PuTTY .ppk key. Convert it to OpenSSH (puttygen -O private-openssh) and re-add the secret."
+            exit 1
+          fi
+
+          if ! head -1 ~/.ssh/deploy_key | grep -q -- "-----BEGIN .*PRIVATE KEY-----"; then
+            echo "::error::The key does not start with a BEGIN...PRIVATE KEY line. Set the secret to the whole file, headers included."
+            exit 1
+          fi
+
+          if [ "$lines" -lt 3 ]; then
+            echo "::error::The key is $lines line(s) long, so its line breaks were lost on the way into the secret. Re-add it from the file rather than from a copy-paste."
+            exit 1
+          fi
+
+          if grep -q $'\r' ~/.ssh/deploy_key; then
+            echo "::error::The key has Windows line endings. Re-add the secret from a file saved with Unix newlines."
+            exit 1
+          fi
+
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > ~/.ssh/deploy_key.pub 2>/tmp/keygen.err; then
+            echo "::error::The key does not parse. ssh-keygen said: $(tr '\n' ' ' < /tmp/keygen.err)"
+            echo "Most often the secret was pasted without its line breaks, or is missing the BEGIN/END lines."
+            exit 1
+          fi
+
+          # The public half and its fingerprint, so this can be compared
+          # against the box's authorized_keys without anyone guessing.
+          echo "parses OK. public half: $(cat ~/.ssh/deploy_key.pub)"
+          echo "fingerprint: $(ssh-keygen -l -f ~/.ssh/deploy_key.pub)"
           # The box's host key, pinned — not secret, just not spoofable. Same
           # machine exteriorpro.io deploys to.
           echo "5.78.120.185 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHLOLxBLj+ts96lcQNjxDO6slVcxnFhLpsOyMCs2gzv1" > ~/.ssh/known_hosts
