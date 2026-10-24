@@ -337,6 +337,31 @@ defmodule ColdForge.Sourcing do
     end)
   end
 
+  @doc """
+  What a source's "Added" number is actually made of.
+
+  Added counts organisations, and organisations are not prospects: Places lists
+  a company once per location, so a shop with three branches is three rows that
+  promote onto one prospect. `prospects` is how many rows the project gained,
+  counted distinctly, and is exact however old the rows are.
+
+  `created` and `linked` say which happened, and are only recorded for rows
+  promoted since the column existed — `unrecorded` is the rest. Which org of a
+  group created the shared prospect isn't recoverable after the fact, so those
+  are left uncounted rather than guessed at.
+  """
+  def promotion_breakdown(%Source{} = source) do
+    promoted = where(Org, [o], o.source_id == ^source.id and o.status == "promoted")
+
+    %{
+      total: Repo.aggregate(promoted, :count),
+      prospects: Repo.one(from o in promoted, select: count(o.prospect_id, :distinct)),
+      created: promoted |> where([o], o.promotion == "created") |> Repo.aggregate(:count),
+      linked: promoted |> where([o], o.promotion == "linked") |> Repo.aggregate(:count),
+      unrecorded: promoted |> where([o], is_nil(o.promotion)) |> Repo.aggregate(:count)
+    }
+  end
+
   defp phone_shaped(query),
     do:
       where(
@@ -487,7 +512,11 @@ defmodule ColdForge.Sourcing do
       with {:ok, prospect} <- Outreach.create_prospect(attrs),
            {:ok, org} <-
              org
-             |> Ecto.Changeset.change(%{status: "promoted", prospect_id: prospect.id})
+             |> Ecto.Changeset.change(%{
+               status: "promoted",
+               prospect_id: prospect.id,
+               promotion: "created"
+             })
              |> Repo.update() do
         {prospect, org}
       else
@@ -545,7 +574,11 @@ defmodule ColdForge.Sourcing do
           prospect ->
             {:ok, _} =
               org
-              |> Ecto.Changeset.change(%{status: "promoted", prospect_id: prospect.id})
+              |> Ecto.Changeset.change(%{
+                status: "promoted",
+                prospect_id: prospect.id,
+                promotion: "linked"
+              })
               |> Repo.update()
 
             Map.update!(acc, :existing, &(&1 + 1))

@@ -49,6 +49,10 @@ defmodule ColdForge.Sourcing.Org do
     field :has_contact_form, :boolean, default: false
     field :fetched_at, :utc_datetime
 
+    # Whether promoting this row created its prospect or linked it to one that
+    # was already there. Null on rows promoted before it was recorded.
+    field :promotion, :string
+
     belongs_to :source, ColdForge.Sourcing.Source
     belongs_to :prospect, ColdForge.Outreach.Prospect
 

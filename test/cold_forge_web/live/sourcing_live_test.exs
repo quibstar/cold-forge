@@ -480,6 +480,66 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       assert has_element?(live, "#run-progress", "Done")
     end
 
+    test "Added says how many prospects the project gained, not just how many rows",
+         %{conn: conn, project: project} do
+      source = source_fixture(project)
+
+      # Places lists a company once per location, so the same shop arrives
+      # twice with one phone number between them.
+      org_fixture(source, %{
+        name: "Summit Roofing — Grandville",
+        website: nil,
+        phone: "616-555-0100"
+      })
+
+      org_fixture(source, %{
+        name: "Summit Roofing — Holland",
+        website: nil,
+        phone: "(616) 555-0100"
+      })
+
+      {:ok, %{added: 1, existing: 1}} = Sourcing.promote_all(source, :calls)
+
+      breakdown = Sourcing.promotion_breakdown(source)
+
+      assert breakdown.total == 2
+      assert breakdown.prospects == 1
+      assert breakdown.created == 1
+      assert breakdown.linked == 1
+      assert breakdown.unrecorded == 0
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      html = live |> element("button[phx-value-status='added']") |> render_click()
+
+      assert html =~ "2 places added, and the project gained 1 prospect."
+      assert html =~ "1 place shared a prospect with another row here."
+      assert html =~ "rather than making a new one"
+    end
+
+    test "a row promoted before it was recorded isn't guessed at",
+         %{conn: conn, project: project} do
+      source = source_fixture(project)
+      org = org_fixture(source) |> with_address()
+      {:ok, {prospect, org}} = Sourcing.promote(org, project.id)
+
+      # As rows promoted before the column existed look.
+      org |> Ecto.Changeset.change(%{promotion: nil}) |> Repo.update!()
+
+      breakdown = Sourcing.promotion_breakdown(source)
+      assert breakdown.unrecorded == 1
+      assert breakdown.created == 0
+      assert breakdown.prospects == 1
+      assert prospect.id
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      html = live |> element("button[phx-value-status='added']") |> render_click()
+
+      assert html =~ "1 place added, and the project gained 1 prospect."
+      # HEEx escapes the apostrophe in "isn't", so match either side of it.
+      assert html =~ "recorded for rows promoted this long ago"
+    end
+
     test "a search for flyer locations offers no way to add them as prospects",
          %{conn: conn, project: project} do
       source = source_fixture(project, %{purpose: "flyers", name: "Supply houses"})

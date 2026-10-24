@@ -49,6 +49,11 @@ defmodule ColdForge.Calling do
   end
   """
 
+  @per_page 50
+
+  @doc "How many of the queue one page holds."
+  def per_page, do: @per_page
+
   @doc """
   Who to call, soonest first, and within that, best fit first.
 
@@ -61,7 +66,43 @@ defmodule ColdForge.Calling do
   than in the caller's head.
   """
   def queue(project_id, opts \\ []) do
-    limit = opts[:limit] || 50
+    per_page = opts[:limit] || @per_page
+    page = opts |> Keyword.get(:page, 1) |> max(1)
+
+    project_id
+    |> queue_query(opts)
+    |> order_by([p],
+      asc_nulls_first: p.next_call_at,
+      asc: fragment(@fit_rank, p.custom_fields),
+      asc: p.inserted_at,
+      # Fit is a coarse grade and whole batches import in the same second, so
+      # without a unique tie-break the order is undefined among them and a row
+      # could sit on two pages or on neither. `id` is a UUIDv7, so it breaks
+      # the tie in the order they arrived.
+      asc: p.id
+    )
+    |> limit(^per_page)
+    |> offset(^((page - 1) * per_page))
+    |> Repo.all()
+  end
+
+  @doc "How many are due a call, which is not how many one page shows."
+  def queue_size(project_id, opts \\ []),
+    do: project_id |> queue_query(opts) |> Repo.aggregate(:count)
+
+  @doc "The last page of the queue, never below 1."
+  def queue_page_count(project_id, opts \\ []) do
+    project_id
+    |> queue_size(opts)
+    |> Kernel./(@per_page)
+    |> Float.ceil()
+    |> trunc()
+    |> max(1)
+  end
+
+  # Who is due a call, with no order and no page: shared so the count on the
+  # badge and the rows on the page can never disagree about who qualifies.
+  defp queue_query(project_id, opts) do
     now = DateTime.utc_now()
 
     Prospect
@@ -73,13 +114,6 @@ defmodule ColdForge.Calling do
     |> where([p], not is_nil(p.phone) and p.phone != "")
     |> where([p], is_nil(p.next_call_at) or p.next_call_at <= ^now)
     |> Outreach.filter_by_trade(project_id, opts[:trade])
-    |> order_by([p],
-      asc_nulls_first: p.next_call_at,
-      asc: fragment(@fit_rank, p.custom_fields),
-      asc: p.inserted_at
-    )
-    |> limit(^limit)
-    |> Repo.all()
   end
 
   @doc "Everyone with a call scheduled for later, so the day ahead is visible."
