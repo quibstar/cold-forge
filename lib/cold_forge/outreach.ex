@@ -115,18 +115,57 @@ defmodule ColdForge.Outreach do
 
   ## Prospects
 
+  @per_page 50
+
+  @doc "How many prospects a page holds."
+  def per_page, do: @per_page
+
   @doc """
-  Prospects for a project, newest first, with optional `:search`, `:status`
-  and `:trade` filters from the index page.
+  One page of a project's prospects, newest first, with optional `:search`,
+  `:status` and `:trade` filters from the index page.
+
+  Paged rather than whole because sourcing fills this table: a crawl of two
+  trades across two towns added 55 organisations in a few minutes, and a list
+  that renders every row stops being usable long before it stops working.
+  `:page` is 1-based and clamped, so a stale page number from a filter change
+  lands on something rather than on nothing.
   """
   def list_prospects(project_id, opts \\ []) do
+    page = opts |> Keyword.get(:page, 1) |> max(1)
+
+    project_id
+    |> prospects_query(opts)
+    # Tie-broken by id, which is a UUIDv7 and so time-ordered. Without it the
+    # order is undefined among rows sharing a timestamp — and an import writes
+    # a hundred of those in the same second, which would let a row appear on
+    # two pages or on neither.
+    |> order_by([p], desc: p.inserted_at, desc: p.id)
+    |> limit(^@per_page)
+    |> offset(^((page - 1) * @per_page))
+    |> Repo.all()
+  end
+
+  @doc "How many prospects match, ignoring the page."
+  def count_prospects(project_id, opts \\ []) do
+    project_id |> prospects_query(opts) |> Repo.aggregate(:count)
+  end
+
+  @doc "The last page number for these filters, never below 1."
+  def page_count(project_id, opts \\ []) do
+    project_id
+    |> count_prospects(opts)
+    |> Kernel./(@per_page)
+    |> Float.ceil()
+    |> trunc()
+    |> max(1)
+  end
+
+  defp prospects_query(project_id, opts) do
     Prospect
     |> where([p], p.project_id == ^project_id)
     |> filter_by_status(opts[:status])
     |> filter_by_search(opts[:search])
     |> filter_by_trade(project_id, opts[:trade])
-    |> order_by([p], desc: p.inserted_at)
-    |> Repo.all()
   end
 
   defp filter_by_status(query, status) when status in [nil, "", "all"], do: query

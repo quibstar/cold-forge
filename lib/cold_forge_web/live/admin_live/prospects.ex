@@ -21,7 +21,8 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
      |> assign(:project_id, project_id)
      |> assign(:search, "")
      |> assign(:status, "all")
-     |> assign(:trade, "")}
+     |> assign(:trade, "")
+     |> assign(:page, 1)}
   end
 
   @impl true
@@ -68,14 +69,24 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
   end
 
   defp load_prospects(socket) do
-    prospects =
-      Outreach.list_prospects(socket.assigns.project_id,
-        search: socket.assigns.search,
-        status: socket.assigns.status,
-        trade: socket.assigns.trade
-      )
+    project_id = socket.assigns.project_id
+
+    filters = [
+      search: socket.assigns.search,
+      status: socket.assigns.status,
+      trade: socket.assigns.trade
+    ]
+
+    # Clamp first: changing a filter while on page 4 would otherwise land on an
+    # empty table and look like the filter matched nothing.
+    pages = Outreach.page_count(project_id, filters)
+    page = socket.assigns.page |> min(pages) |> max(1)
+    prospects = Outreach.list_prospects(project_id, Keyword.put(filters, :page, page))
 
     socket
+    |> assign(:page, page)
+    |> assign(:pages, pages)
+    |> assign(:total, Outreach.count_prospects(project_id, filters))
     |> assign(:prospects, prospects)
     |> assign(:trades, Outreach.list_trades(socket.assigns.project_id))
     |> assign(:counts, Outreach.count_prospects_by_status(socket.assigns.project_id))
@@ -85,8 +96,19 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
   def handle_event("filter", %{"search" => search, "status" => status} = params, socket) do
     {:noreply,
      socket
-     |> assign(search: search, status: status, trade: Map.get(params, "trade", ""))
+     |> assign(search: search, status: status, trade: Map.get(params, "trade", ""), page: 1)
      |> load_prospects()}
+  end
+
+  def handle_event("page", %{"to" => to}, socket) do
+    page =
+      case to do
+        "next" -> socket.assigns.page + 1
+        "prev" -> socket.assigns.page - 1
+        n -> String.to_integer(n)
+      end
+
+    {:noreply, socket |> assign(:page, page) |> load_prospects()}
   end
 
   def handle_event("validate", %{"prospect" => params}, socket) do
@@ -278,6 +300,39 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <%!-- Only when there is more than one page. A pager under a list of six
+            rows is furniture. --%>
+      <div
+        :if={@pages > 1}
+        class="flex items-center justify-between gap-3 px-4 py-3 border-t border-base-300"
+      >
+        <p class="text-xs text-base-content/60">
+          {(@page - 1) * Outreach.per_page() + 1}–{min(@page * Outreach.per_page(), @total)} of {@total}
+        </p>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="btn btn-xs btn-ghost"
+            phx-click="page"
+            phx-value-to="prev"
+            disabled={@page <= 1}
+          >
+            Previous
+          </button>
+          <span class="text-xs text-base-content/60">Page {@page} of {@pages}</span>
+          <button
+            type="button"
+            class="btn btn-xs btn-ghost"
+            phx-click="page"
+            phx-value-to="next"
+            disabled={@page >= @pages}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
     """
