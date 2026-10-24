@@ -486,7 +486,32 @@ defmodule ColdForge.Sourcing do
   where it belongs.
   """
   def promote(%Org{} = org, project_id) do
-    if flyer_org?(org), do: {:error, :flyer_source}, else: do_promote(org, project_id)
+    if flyer_org?(org), do: {:error, :flyer_source}, else: promote_or_link(org, project_id)
+  end
+
+  # The one place that decides between making a prospect and pointing at one
+  # that is already there. Both the single Add and "Add all" come through here,
+  # because when they each had their own answer they disagreed: Add inserted a
+  # second prospect for a shop the bulk path would have linked.
+  defp promote_or_link(%Org{} = org, project_id) do
+    case existing_prospect(project_id, org) do
+      nil -> do_promote(org, project_id)
+      prospect -> link_to_prospect(org, prospect)
+    end
+  end
+
+  defp link_to_prospect(%Org{} = org, %Prospect{} = prospect) do
+    org
+    |> Ecto.Changeset.change(%{
+      status: "promoted",
+      prospect_id: prospect.id,
+      promotion: "linked"
+    })
+    |> Repo.update()
+    |> case do
+      {:ok, org} -> {:ok, {prospect, org}}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   # Supply houses and lumber yards found for flyers are not customers. Checked
@@ -563,25 +588,18 @@ defmodule ColdForge.Sourcing do
       source
       |> addable(kind)
       |> Repo.all()
+      # The flyer guard is on this function's head, so it isn't asked again per
+      # row: `promote_or_link` rather than `promote`.
       |> Enum.reduce(%{added: 0, existing: 0, failed: 0}, fn org, acc ->
-        case existing_prospect(source.project_id, org) do
-          nil ->
-            case promote(org, source.project_id) do
-              {:ok, _} -> Map.update!(acc, :added, &(&1 + 1))
-              {:error, _} -> Map.update!(acc, :failed, &(&1 + 1))
-            end
-
-          prospect ->
-            {:ok, _} =
-              org
-              |> Ecto.Changeset.change(%{
-                status: "promoted",
-                prospect_id: prospect.id,
-                promotion: "linked"
-              })
-              |> Repo.update()
-
+        case promote_or_link(org, source.project_id) do
+          {:ok, {_prospect, %Org{promotion: "linked"}}} ->
             Map.update!(acc, :existing, &(&1 + 1))
+
+          {:ok, _} ->
+            Map.update!(acc, :added, &(&1 + 1))
+
+          {:error, _} ->
+            Map.update!(acc, :failed, &(&1 + 1))
         end
       end)
 

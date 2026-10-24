@@ -20,7 +20,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   import ColdForgeWeb.ProjectTabs
 
   alias ColdForge.Sourcing
-  alias ColdForge.Sourcing.{Source, Towns}
+  alias ColdForge.Sourcing.{Org, Source, Towns}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -319,6 +319,17 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     source = socket.assigns.source
 
     case Sourcing.promote(org, source.project_id) do
+      # Saying "added" when nothing was added is the bug this path used to
+      # have, so the two outcomes are worded apart.
+      {:ok, {prospect, %Org{promotion: "linked"}}} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           "#{prospect.company} was already in #{source.project.name}, so this row points at it rather than adding a second."
+         )
+         |> load_results()}
+
       {:ok, {prospect, _org}} ->
         {:noreply,
          socket

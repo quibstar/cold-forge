@@ -11,6 +11,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
   alias ColdForge.Repo
   alias ColdForge.Sourcing
+  alias ColdForge.Outreach.Prospect
   alias ColdForge.Sourcing.{Org, Source}
 
   setup %{conn: conn} do
@@ -478,6 +479,71 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       {:ok, _} = Sourcing.reject(waiting, :no_address_published)
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
       assert has_element?(live, "#run-progress", "Done")
+    end
+
+    test "a single Add links to a prospect already there rather than making a second",
+         %{project: project} do
+      source = source_fixture(project)
+      existing = prospect_fixture(project, email: "office@summitroofing.test")
+      org = org_fixture(source) |> with_address()
+
+      before = Repo.aggregate(Prospect, :count)
+
+      assert {:ok, {prospect, org}} = Sourcing.promote(org, project.id)
+
+      # The bulk path would have linked this one. The single Add used to insert.
+      assert Repo.aggregate(Prospect, :count) == before
+      assert prospect.id == existing.id
+      assert org.prospect_id == existing.id
+      assert org.promotion == "linked"
+    end
+
+    test "a single Add matches on the digits, not the punctuation", %{project: project} do
+      source = source_fixture(project)
+      existing = prospect_fixture(project, phone: "(616) 555-0100", email: nil)
+
+      org =
+        org_fixture(source, %{
+          name: "Summit Roofing — Holland",
+          website: nil,
+          phone: "616-555-0100"
+        })
+
+      before = Repo.aggregate(Prospect, :count)
+
+      assert {:ok, {prospect, org}} = Sourcing.promote(org, project.id)
+
+      assert Repo.aggregate(Prospect, :count) == before
+      assert prospect.id == existing.id
+      assert org.promotion == "linked"
+    end
+
+    test "a single Add still creates one when nothing matches", %{project: project} do
+      source = source_fixture(project)
+      org = org_fixture(source) |> with_address()
+
+      before = Repo.aggregate(Prospect, :count)
+
+      assert {:ok, {_prospect, org}} = Sourcing.promote(org, project.id)
+
+      assert Repo.aggregate(Prospect, :count) == before + 1
+      assert org.promotion == "created"
+    end
+
+    test "the flash says which of the two happened", %{conn: conn, project: project} do
+      source = source_fixture(project)
+      prospect_fixture(project, email: "office@summitroofing.test")
+      org = org_fixture(source) |> with_address()
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      html =
+        live
+        |> element("button[phx-click='promote'][phx-value-org_id='#{org.id}']")
+        |> render_click()
+
+      assert html =~ "was already in ExteriorPro"
+      refute html =~ "added to ExteriorPro"
     end
 
     test "Added says how many prospects the project gained, not just how many rows",
