@@ -50,3 +50,7 @@ npm-debug.log
 # beside it never is.
 /deploy/.env
 /.env
+
+# macOS, and the "file 2" copies a sync service leaves beside originals.
+.DS_Store
+*[[:space:]]2.exs
