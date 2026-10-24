@@ -31,21 +31,45 @@ defmodule ColdForgeWeb.AdminLive.Calls do
      |> assign(:page_title, socket.assigns.current_project.name)
      |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
      |> assign(:trade, "")
+     |> assign(:page, 1)
      |> load()}
   end
 
   @impl true
   def handle_event("trade", params, socket) do
-    {:noreply, socket |> assign(:trade, Map.get(params, "trade", "")) |> load()}
+    {:noreply,
+     socket
+     |> assign(:trade, Map.get(params, "trade", ""))
+     |> assign(:page, 1)
+     |> load()}
+  end
+
+  @impl true
+  def handle_event("page", %{"to" => to}, socket) do
+    page =
+      case to do
+        "next" -> socket.assigns.page + 1
+        "prev" -> socket.assigns.page - 1
+        n -> String.to_integer(n)
+      end
+
+    {:noreply, socket |> assign(:page, page) |> load()}
   end
 
   defp load(socket) do
     project_id = socket.assigns.project_id
     trade = socket.assigns.trade
+    pages = Calling.queue_page_count(project_id, trade: trade)
+    # Clamped, so a stale page number left over from a filter change can't show
+    # an empty list with rows still waiting.
+    page = socket.assigns.page |> min(pages) |> max(1)
 
     socket
+    |> assign(:page, page)
+    |> assign(:pages, pages)
+    |> assign(:queue_total, Calling.queue_size(project_id, trade: trade))
     |> assign(:trades, Outreach.list_trades(project_id))
-    |> assign(:queue, Calling.queue(project_id, trade: trade))
+    |> assign(:queue, Calling.queue(project_id, page: page, trade: trade))
     |> assign(:scheduled, Calling.scheduled(project_id, limit: 10, trade: trade))
     |> assign(:recent, Calling.recent_calls(project_id, 10))
     |> assign(:stats, Calling.stats(project_id))
@@ -90,7 +114,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body">
             <h2 class="card-title text-base">
-              Call now <span class="badge badge-sm badge-ghost">{length(@queue)}</span>
+              Call now <span class="badge badge-sm badge-ghost">{@queue_total}</span>
             </h2>
 
             <p :if={@queue == []} class="text-sm text-base-content/50">
@@ -127,6 +151,39 @@ defmodule ColdForgeWeb.AdminLive.Calls do
                 </.link>
               </li>
             </ul>
+
+            <%!-- Only when there is more than one page. A pager under a list of
+                  six rows is furniture. --%>
+            <div
+              :if={@pages > 1}
+              class="flex items-center justify-between gap-3 pt-3 border-t border-base-200"
+            >
+              <p class="text-xs text-base-content/60">
+                {(@page - 1) * Calling.per_page() + 1}–{min(@page * Calling.per_page(), @queue_total)} of {@queue_total}
+              </p>
+
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-xs btn-ghost"
+                  phx-click="page"
+                  phx-value-to="prev"
+                  disabled={@page <= 1}
+                >
+                  Previous
+                </button>
+                <span class="text-xs text-base-content/60">Page {@page} of {@pages}</span>
+                <button
+                  type="button"
+                  class="btn btn-xs btn-ghost"
+                  phx-click="page"
+                  phx-value-to="next"
+                  disabled={@page >= @pages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

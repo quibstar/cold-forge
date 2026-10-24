@@ -11,6 +11,7 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
 
   alias ColdForge.Repo
   alias ColdForge.Sourcing
+  alias ColdForge.Outreach.Prospect
   alias ColdForge.Sourcing.{Org, Source}
 
   setup %{conn: conn} do
@@ -478,6 +479,131 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       {:ok, _} = Sourcing.reject(waiting, :no_address_published)
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
       assert has_element?(live, "#run-progress", "Done")
+    end
+
+    test "a single Add links to a prospect already there rather than making a second",
+         %{project: project} do
+      source = source_fixture(project)
+      existing = prospect_fixture(project, email: "office@summitroofing.test")
+      org = org_fixture(source) |> with_address()
+
+      before = Repo.aggregate(Prospect, :count)
+
+      assert {:ok, {prospect, org}} = Sourcing.promote(org, project.id)
+
+      # The bulk path would have linked this one. The single Add used to insert.
+      assert Repo.aggregate(Prospect, :count) == before
+      assert prospect.id == existing.id
+      assert org.prospect_id == existing.id
+      assert org.promotion == "linked"
+    end
+
+    test "a single Add matches on the digits, not the punctuation", %{project: project} do
+      source = source_fixture(project)
+      existing = prospect_fixture(project, phone: "(616) 555-0100", email: nil)
+
+      org =
+        org_fixture(source, %{
+          name: "Summit Roofing — Holland",
+          website: nil,
+          phone: "616-555-0100"
+        })
+
+      before = Repo.aggregate(Prospect, :count)
+
+      assert {:ok, {prospect, org}} = Sourcing.promote(org, project.id)
+
+      assert Repo.aggregate(Prospect, :count) == before
+      assert prospect.id == existing.id
+      assert org.promotion == "linked"
+    end
+
+    test "a single Add still creates one when nothing matches", %{project: project} do
+      source = source_fixture(project)
+      org = org_fixture(source) |> with_address()
+
+      before = Repo.aggregate(Prospect, :count)
+
+      assert {:ok, {_prospect, org}} = Sourcing.promote(org, project.id)
+
+      assert Repo.aggregate(Prospect, :count) == before + 1
+      assert org.promotion == "created"
+    end
+
+    test "the flash says which of the two happened", %{conn: conn, project: project} do
+      source = source_fixture(project)
+      prospect_fixture(project, email: "office@summitroofing.test")
+      org = org_fixture(source) |> with_address()
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      html =
+        live
+        |> element("button[phx-click='promote'][phx-value-org_id='#{org.id}']")
+        |> render_click()
+
+      assert html =~ "was already in ExteriorPro"
+      refute html =~ "added to ExteriorPro"
+    end
+
+    test "Added says how many prospects the project gained, not just how many rows",
+         %{conn: conn, project: project} do
+      source = source_fixture(project)
+
+      # Places lists a company once per location, so the same shop arrives
+      # twice with one phone number between them.
+      org_fixture(source, %{
+        name: "Summit Roofing — Grandville",
+        website: nil,
+        phone: "616-555-0100"
+      })
+
+      org_fixture(source, %{
+        name: "Summit Roofing — Holland",
+        website: nil,
+        phone: "(616) 555-0100"
+      })
+
+      {:ok, %{added: 1, existing: 1}} = Sourcing.promote_all(source, :calls)
+
+      breakdown = Sourcing.promotion_breakdown(source)
+
+      assert breakdown.total == 2
+      assert breakdown.prospects == 1
+      assert breakdown.created == 1
+      assert breakdown.linked == 1
+      assert breakdown.unrecorded == 0
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+
+      html = live |> element("button[phx-value-status='added']") |> render_click()
+
+      assert html =~ "2 places added, and the project gained 1 prospect."
+      assert html =~ "1 place shared a prospect with another row here."
+      assert html =~ "rather than making a new one"
+    end
+
+    test "a row promoted before it was recorded isn't guessed at",
+         %{conn: conn, project: project} do
+      source = source_fixture(project)
+      org = org_fixture(source) |> with_address()
+      {:ok, {prospect, org}} = Sourcing.promote(org, project.id)
+
+      # As rows promoted before the column existed look.
+      org |> Ecto.Changeset.change(%{promotion: nil}) |> Repo.update!()
+
+      breakdown = Sourcing.promotion_breakdown(source)
+      assert breakdown.unrecorded == 1
+      assert breakdown.created == 0
+      assert breakdown.prospects == 1
+      assert prospect.id
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      html = live |> element("button[phx-value-status='added']") |> render_click()
+
+      assert html =~ "1 place added, and the project gained 1 prospect."
+      # HEEx escapes the apostrophe in "isn't", so match either side of it.
+      assert html =~ "recorded for rows promoted this long ago"
     end
 
     test "a search for flyer locations offers no way to add them as prospects",

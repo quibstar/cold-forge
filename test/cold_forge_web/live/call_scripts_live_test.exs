@@ -246,6 +246,33 @@ defmodule ColdForgeWeb.CallScriptsLiveTest do
       assert Enum.take(ids, 3) == [ctx.prospect.id, medium.id, low.id]
     end
 
+    test "the badge counts everyone due, not the rows on the page", ctx do
+      for n <- 1..60,
+          do: prospect_fixture(ctx.project, phone: "(616) 555-02#{n}", email: nil)
+
+      {:ok, view, html} = live(ctx.conn, queue_path(ctx.project))
+
+      # 61 with the one from setup. Before this the badge read 50 whatever the
+      # real number was, because it counted the list it had been handed.
+      assert html =~ "61"
+      assert html =~ "1–50 of 61"
+      assert html =~ "Page 1 of 2"
+
+      rows = fn -> view |> render() |> then(&Regex.scan(~r/id="queue-/, &1)) |> length() end
+      assert rows.() == 50
+
+      view |> element("button[phx-value-to='next']") |> render_click()
+
+      assert render(view) =~ "51–61 of 61"
+      assert rows.() == 11
+    end
+
+    test "no pager under a list that fits on one page", ctx do
+      {:ok, _view, html} = live(ctx.conn, queue_path(ctx.project))
+
+      refute html =~ "Page 1 of"
+    end
+
     test "a placeholder where the number should be is marked", ctx do
       prospect_fixture(ctx.project, phone: "— look up —", email: nil, company: "Ace Roofing")
 

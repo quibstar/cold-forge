@@ -337,6 +337,31 @@ defmodule ColdForge.Sourcing do
     end)
   end
 
+  @doc """
+  What a source's "Added" number is actually made of.
+
+  Added counts organisations, and organisations are not prospects: Places lists
+  a company once per location, so a shop with three branches is three rows that
+  promote onto one prospect. `prospects` is how many rows the project gained,
+  counted distinctly, and is exact however old the rows are.
+
+  `created` and `linked` say which happened, and are only recorded for rows
+  promoted since the column existed — `unrecorded` is the rest. Which org of a
+  group created the shared prospect isn't recoverable after the fact, so those
+  are left uncounted rather than guessed at.
+  """
+  def promotion_breakdown(%Source{} = source) do
+    promoted = where(Org, [o], o.source_id == ^source.id and o.status == "promoted")
+
+    %{
+      total: Repo.aggregate(promoted, :count),
+      prospects: Repo.one(from o in promoted, select: count(o.prospect_id, :distinct)),
+      created: promoted |> where([o], o.promotion == "created") |> Repo.aggregate(:count),
+      linked: promoted |> where([o], o.promotion == "linked") |> Repo.aggregate(:count),
+      unrecorded: promoted |> where([o], is_nil(o.promotion)) |> Repo.aggregate(:count)
+    }
+  end
+
   defp phone_shaped(query),
     do:
       where(
@@ -461,7 +486,32 @@ defmodule ColdForge.Sourcing do
   where it belongs.
   """
   def promote(%Org{} = org, project_id) do
-    if flyer_org?(org), do: {:error, :flyer_source}, else: do_promote(org, project_id)
+    if flyer_org?(org), do: {:error, :flyer_source}, else: promote_or_link(org, project_id)
+  end
+
+  # The one place that decides between making a prospect and pointing at one
+  # that is already there. Both the single Add and "Add all" come through here,
+  # because when they each had their own answer they disagreed: Add inserted a
+  # second prospect for a shop the bulk path would have linked.
+  defp promote_or_link(%Org{} = org, project_id) do
+    case existing_prospect(project_id, org) do
+      nil -> do_promote(org, project_id)
+      prospect -> link_to_prospect(org, prospect)
+    end
+  end
+
+  defp link_to_prospect(%Org{} = org, %Prospect{} = prospect) do
+    org
+    |> Ecto.Changeset.change(%{
+      status: "promoted",
+      prospect_id: prospect.id,
+      promotion: "linked"
+    })
+    |> Repo.update()
+    |> case do
+      {:ok, org} -> {:ok, {prospect, org}}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   # Supply houses and lumber yards found for flyers are not customers. Checked
@@ -487,7 +537,11 @@ defmodule ColdForge.Sourcing do
       with {:ok, prospect} <- Outreach.create_prospect(attrs),
            {:ok, org} <-
              org
-             |> Ecto.Changeset.change(%{status: "promoted", prospect_id: prospect.id})
+             |> Ecto.Changeset.change(%{
+               status: "promoted",
+               prospect_id: prospect.id,
+               promotion: "created"
+             })
              |> Repo.update() do
         {prospect, org}
       else
@@ -534,21 +588,18 @@ defmodule ColdForge.Sourcing do
       source
       |> addable(kind)
       |> Repo.all()
+      # The flyer guard is on this function's head, so it isn't asked again per
+      # row: `promote_or_link` rather than `promote`.
       |> Enum.reduce(%{added: 0, existing: 0, failed: 0}, fn org, acc ->
-        case existing_prospect(source.project_id, org) do
-          nil ->
-            case promote(org, source.project_id) do
-              {:ok, _} -> Map.update!(acc, :added, &(&1 + 1))
-              {:error, _} -> Map.update!(acc, :failed, &(&1 + 1))
-            end
-
-          prospect ->
-            {:ok, _} =
-              org
-              |> Ecto.Changeset.change(%{status: "promoted", prospect_id: prospect.id})
-              |> Repo.update()
-
+        case promote_or_link(org, source.project_id) do
+          {:ok, {_prospect, %Org{promotion: "linked"}}} ->
             Map.update!(acc, :existing, &(&1 + 1))
+
+          {:ok, _} ->
+            Map.update!(acc, :added, &(&1 + 1))
+
+          {:error, _} ->
+            Map.update!(acc, :failed, &(&1 + 1))
         end
       end)
 

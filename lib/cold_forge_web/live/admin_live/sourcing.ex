@@ -20,7 +20,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   import ColdForgeWeb.ProjectTabs
 
   alias ColdForge.Sourcing
-  alias ColdForge.Sourcing.{Source, Towns}
+  alias ColdForge.Sourcing.{Org, Source, Towns}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -98,6 +98,12 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     )
     |> assign(:counts, Sourcing.counts_by_view(source))
     |> assign(:addable, Sourcing.addable_counts(source))
+    # Only the Added tab shows it, and it is five counts, so it isn't paid for
+    # on the tabs that don't.
+    |> assign(
+      :promotions,
+      if(socket.assigns.status == "added", do: Sourcing.promotion_breakdown(source))
+    )
     |> assign(:progress, Sourcing.progress(source))
     |> schedule_refresh()
   end
@@ -313,6 +319,17 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     source = socket.assigns.source
 
     case Sourcing.promote(org, source.project_id) do
+      # Saying "added" when nothing was added is the bug this path used to
+      # have, so the two outcomes are worded apart.
+      {:ok, {prospect, %Org{promotion: "linked"}}} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           "#{prospect.company} was already in #{source.project.name}, so this row points at it rather than adding a second."
+         )
+         |> load_results()}
+
       {:ok, {prospect, _org}} ->
         {:noreply,
          socket
@@ -626,6 +643,12 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
       </button>
     </div>
 
+    <%!-- Added counts places, and the list grew by prospects, which are not the
+          same number. Said here because the tab badge can only carry one. --%>
+    <p :if={@promotions && @promotions.total > 0} class="text-sm text-base-content/70 mb-3">
+      {promotion_summary(@promotions)}
+    </p>
+
     <%!-- Each tab's own bulk add: the places with an address go to the drip,
           the ones with no website (but a phone) go to the call list. --%>
     <div
@@ -789,6 +812,25 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   defp no_address_note(%{reject_reason: "no_address_published"}), do: "no email on their website"
   defp no_address_note(%{reject_reason: nil}), do: "—"
   defp no_address_note(%{reject_reason: reason}), do: humanize(reason)
+
+  # The gap between the two is what surprises people: Places lists a company
+  # once per location, so a shop with three branches is three places here and
+  # one prospect in the project.
+  defp promotion_summary(%{total: total, prospects: prospects} = p) do
+    collapsed = total - prospects
+
+    [
+      "#{count(total, "place", "places")} added, and the project gained #{count(prospects, "prospect", "prospects")}.",
+      collapsed > 0 &&
+        "#{count(collapsed, "place", "places")} shared a prospect with another row here.",
+      p.linked > 0 &&
+        "#{count(p.linked, "place", "places")} linked to a prospect that was already in the project rather than making a new one.",
+      p.unrecorded > 0 && p.linked == 0 && p.created == 0 &&
+        "Which of them were already in the project isn't recorded for rows promoted this long ago."
+    ]
+    |> Enum.reject(&(&1 in [nil, false]))
+    |> Enum.join(" ")
+  end
 
   defp label_for("email"), do: "Email"
   defp label_for("phone"), do: "Phone only"

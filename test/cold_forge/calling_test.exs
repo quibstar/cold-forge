@@ -36,6 +36,42 @@ defmodule ColdForge.CallingTest do
       refute called.id in Enum.map(queue, & &1.id)
     end
 
+    test "pages, and says how many are waiting rather than how many fit on a page",
+         ctx do
+      for n <- 1..55, do: callable(ctx.project, first_name: "Shop #{n}")
+
+      # The badge used to count the rows on screen, so a list of any length
+      # read as 50.
+      assert Calling.queue_size(ctx.project.id) == 55
+      assert Calling.queue_page_count(ctx.project.id) == 2
+
+      first = Calling.queue(ctx.project.id, page: 1)
+      second = Calling.queue(ctx.project.id, page: 2)
+
+      assert length(first) == 50
+      assert length(second) == 5
+
+      # Nobody on two pages, and nobody skipped: the whole list is reachable.
+      ids = Enum.map(first ++ second, & &1.id)
+      assert length(Enum.uniq(ids)) == 55
+    end
+
+    test "a page past the end is clamped, not an error", ctx do
+      callable(ctx.project, first_name: "Only One")
+
+      assert Calling.queue_page_count(ctx.project.id) == 1
+      assert Calling.queue(ctx.project.id, page: 9) == []
+      assert Calling.queue(ctx.project.id, page: 0) |> length() == 1
+    end
+
+    test "the count honours the same filters as the rows", ctx do
+      callable(ctx.project, first_name: "Callable")
+      callable(ctx.project, first_name: "Replied", status: "replied")
+
+      assert Calling.queue_size(ctx.project.id) == 1
+      assert length(Calling.queue(ctx.project.id)) == 1
+    end
+
     test "offers phone-only prospects, who can never be emailed", ctx do
       {:ok, prospect} =
         Outreach.create_prospect(%{project_id: ctx.project.id, phone: "616-396-5512"})
