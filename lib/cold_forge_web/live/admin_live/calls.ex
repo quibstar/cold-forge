@@ -154,36 +154,14 @@ defmodule ColdForgeWeb.AdminLive.Calls do
 
             <%!-- Only when there is more than one page. A pager under a list of
                   six rows is furniture. --%>
-            <div
+            <.pagination
               :if={@pages > 1}
-              class="flex items-center justify-between gap-3 pt-3 border-t border-base-200"
-            >
-              <p class="text-xs text-base-content/60">
-                {(@page - 1) * Calling.per_page() + 1}–{min(@page * Calling.per_page(), @queue_total)} of {@queue_total}
-              </p>
-
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="btn btn-xs btn-ghost"
-                  phx-click="page"
-                  phx-value-to="prev"
-                  disabled={@page <= 1}
-                >
-                  Previous
-                </button>
-                <span class="text-xs text-base-content/60">Page {@page} of {@pages}</span>
-                <button
-                  type="button"
-                  class="btn btn-xs btn-ghost"
-                  phx-click="page"
-                  phx-value-to="next"
-                  disabled={@page >= @pages}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+              page={@page}
+              pages={@pages}
+              total={@queue_total}
+              per_page={Calling.per_page()}
+              class="pt-3 border-t border-base-200"
+            />
           </div>
         </div>
 

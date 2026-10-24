@@ -304,36 +304,14 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
       <%!-- Only when there is more than one page. A pager under a list of six
             rows is furniture. --%>
-      <div
+      <.pagination
         :if={@pages > 1}
-        class="flex items-center justify-between gap-3 px-4 py-3 border-t border-base-300"
-      >
-        <p class="text-xs text-base-content/60">
-          {(@page - 1) * Outreach.per_page() + 1}–{min(@page * Outreach.per_page(), @total)} of {@total}
-        </p>
-
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="btn btn-xs btn-ghost"
-            phx-click="page"
-            phx-value-to="prev"
-            disabled={@page <= 1}
-          >
-            Previous
-          </button>
-          <span class="text-xs text-base-content/60">Page {@page} of {@pages}</span>
-          <button
-            type="button"
-            class="btn btn-xs btn-ghost"
-            phx-click="page"
-            phx-value-to="next"
-            disabled={@page >= @pages}
-          >
-            Next
-          </button>
-        </div>
-      </div>
+        page={@page}
+        pages={@pages}
+        total={@total}
+        per_page={Outreach.per_page()}
+        class="px-4 py-3 border-t border-base-300"
+      />
     </div>
     """
   end
