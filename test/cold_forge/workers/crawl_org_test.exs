@@ -13,7 +13,10 @@ defmodule ColdForge.Workers.CrawlOrgTest do
       segment: "roofing",
       provider: "places",
       source_ref: "place-#{System.unique_integer([:positive])}",
-      website: "https://summitroofing.test"
+      website: "https://summitroofing.test",
+      # Places nearly always returns a number, and every scenario below ends
+      # "goes to the call list" — which it cannot do without one.
+      phone: "(616) 555-0101"
     }
 
     %Org{}
@@ -80,6 +83,16 @@ defmodule ColdForge.Workers.CrawlOrgTest do
 
     test "is settled on the last try instead of left checking for ever" do
       assert :ok = perform_job(CrawlOrg, %{org_id: Ecto.UUID.generate()}, attempt: 3)
+    end
+
+    test "with no number to call, it goes to Need a number instead" do
+      {:ok, org} = Sourcing.record_unreachable(org_fixture(%{phone: nil}))
+
+      # The Phone only tab used to show these. The Add all button filtered them
+      # out, so the tab offered rows the button would not add — which is how
+      # forty of them sat there looking actionable.
+      assert Sourcing.view_of(org) == "no_number"
+      refute org in Sourcing.list_orgs(source_id: org.source_id, view: "phone")
     end
 
     test "goes to the call list" do

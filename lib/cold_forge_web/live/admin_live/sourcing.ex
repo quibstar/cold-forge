@@ -792,6 +792,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   defp label_for("email"), do: "Email"
   defp label_for("phone"), do: "Phone only"
+  defp label_for("no_number"), do: "Need a number"
   defp label_for("checking"), do: "Checking website"
   defp label_for("left_off"), do: "Left off"
   defp label_for("added"), do: "Added"

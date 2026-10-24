@@ -283,7 +283,7 @@ defmodule ColdForge.Sourcing do
   # than by the crawler's internal status. "Rejected" used to be one tab, and
   # it was almost entirely shops whose website simply didn't list an email —
   # call-list material, filed under a name that said they'd been thrown out.
-  @views ~w(email phone checking left_off added)
+  @views ~w(email phone no_number checking left_off added)
 
   @doc "The review tabs, in order."
   def views, do: @views
@@ -291,14 +291,25 @@ defmodule ColdForge.Sourcing do
   defp maybe_view(query, nil), do: query
   defp maybe_view(query, "email"), do: where(query, [o], o.status == "fetched")
 
+  # A phone tab has to mean "you can phone these". It used to mean "no email
+  # address was found", which is a different set: the IRS file and the licence
+  # registries hand over organisations with no website AND no number, and those
+  # sat here looking callable. The Add all button already required a number, so
+  # the tab offered forty rows and the button added none of them.
   defp maybe_view(query, "phone"),
     do:
-      where(
-        query,
-        [o],
-        o.status == "needs_website" or
-          (o.status == "rejected" and o.reject_reason in ^@phone_reasons)
-      )
+      query
+      |> phone_shaped()
+      |> where([o], not is_nil(o.phone) and o.phone != "")
+
+  # The ones with nothing to call and nothing to write to. Not a failure and not
+  # a bin: somebody has to find the number, and that is real work that should be
+  # countable rather than hidden.
+  defp maybe_view(query, "no_number"),
+    do:
+      query
+      |> phone_shaped()
+      |> where([o], is_nil(o.phone) or o.phone == "")
 
   defp maybe_view(query, "checking"), do: where(query, [o], o.status == "discovered")
 
@@ -326,9 +337,24 @@ defmodule ColdForge.Sourcing do
     end)
   end
 
+  defp phone_shaped(query),
+    do:
+      where(
+        query,
+        [o],
+        o.status == "needs_website" or
+          (o.status == "rejected" and o.reject_reason in ^@phone_reasons)
+      )
+
   @doc "Which review tab an organisation is in."
   def view_of(%Org{status: "fetched"}), do: "email"
+  def view_of(%Org{status: "needs_website", phone: p}) when p in [nil, ""], do: "no_number"
   def view_of(%Org{status: "needs_website"}), do: "phone"
+
+  def view_of(%Org{status: "rejected", reject_reason: r, phone: p})
+      when r in @phone_reasons and p in [nil, ""],
+      do: "no_number"
+
   def view_of(%Org{status: "rejected", reject_reason: r}) when r in @phone_reasons, do: "phone"
   def view_of(%Org{status: "rejected"}), do: "left_off"
   def view_of(%Org{status: "discovered"}), do: "checking"
@@ -535,13 +561,13 @@ defmodule ColdForge.Sourcing do
     |> where([o], not o.no_solicitation and not is_nil(o.email) and o.email != "")
   end
 
-  # Exactly the Phone only tab, so the button's count matches the tab's.
+  # Exactly the Phone only tab, which now requires a number, so the count on
+  # the button and the count on the tab cannot drift apart again.
   defp addable(%Source{id: source_id}, :calls) do
     Org
     |> where([o], o.source_id == ^source_id)
     |> maybe_view("phone")
     |> where([o], not o.no_solicitation)
-    |> where([o], not is_nil(o.phone) and o.phone != "")
   end
 
   # Matched on whichever the place has: its email, or its phone's digits, so
