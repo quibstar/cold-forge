@@ -26,6 +26,46 @@ defmodule ColdForge.Inbox do
   alias ColdForge.Repo
 
   @doc """
+  Sends a copy of an inbound email to the project's inbox, later.
+
+  `project_id` is the project it belongs to: the matched prospect's, or for mail
+  from a stranger, the project whose from address it was sent to. Automated mail
+  is not forwarded — an out-of-office is noise in an inbox.
+  """
+  def forward_later(params, project_id, prospect_id \\ nil) do
+    if automated?(params) do
+      :ok
+    else
+      %{
+        project_id: project_id,
+        prospect_id: prospect_id,
+        from: params[:from],
+        subject: params[:subject],
+        body: params[:body]
+      }
+      |> ColdForge.Workers.ForwardReply.new()
+      |> Oban.insert()
+
+      :ok
+    end
+  end
+
+  @doc "The project a stranger's mail was addressed to, by its from address."
+  def project_for_recipients(recipients) do
+    addresses = recipients |> List.wrap() |> Enum.map(&normalize/1) |> Enum.reject(&is_nil/1)
+
+    if addresses == [] do
+      nil
+    else
+      Repo.one(
+        from p in ColdForge.Outreach.Project,
+          where: fragment("lower(?)", p.from_email) in ^addresses,
+          limit: 1
+      )
+    end
+  end
+
+  @doc """
   Records an inbound email.
 
   Takes what every inbound provider gives you, however it spells it:

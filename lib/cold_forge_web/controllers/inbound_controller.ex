@@ -62,11 +62,20 @@ defmodule ColdForgeWeb.InboundController do
         json(conn, %{status: "duplicate"})
 
       {:ok, reply} ->
+        prospect = ColdForge.Repo.get!(ColdForge.Outreach.Prospect, reply.prospect_id)
+        :ok = Inbox.forward_later(email, prospect.project_id, prospect.id)
         json(conn, %{status: "recorded", matched_by: reply.matched_by})
 
       {:error, :no_match} ->
         # Mail from somebody we have never written to. Routine at a public
-        # address, and a 200 keeps the provider from retrying it forever.
+        # address, and a 200 keeps the provider from retrying it forever. Still
+        # forwarded when it was sent to a project's address: a person writing
+        # to it is a person, whether or not they are on a list.
+        case Inbox.project_for_recipients(email.to) do
+          nil -> :ok
+          project -> :ok = Inbox.forward_later(email, project.id)
+        end
+
         json(conn, %{status: "ignored"})
 
       {:error, reason} ->
@@ -98,8 +107,9 @@ defmodule ColdForgeWeb.InboundController do
           params["body-plain"],
           params["TextBody"],
           params["stripped-text"],
-          params["content"]
+          readable(params["content"])
         ]),
+      to: params["to"] || params["To"] || mail["destination"],
       in_reply_to:
         first_present([
           params["in_reply_to"],
@@ -136,6 +146,14 @@ defmodule ColdForgeWeb.InboundController do
 
   defp header(mail, name) do
     mail |> headers_map() |> Map.get(name)
+  end
+
+  # SES sends the whole raw message under "content"; keep only what a person
+  # wrote.
+  defp readable(content) do
+    if ColdForge.Inbox.Mime.raw_message?(content),
+      do: ColdForge.Inbox.Mime.text_body(content),
+      else: content
   end
 
   defp first_present(values) do

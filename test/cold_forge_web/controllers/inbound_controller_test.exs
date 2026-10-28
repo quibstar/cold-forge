@@ -153,4 +153,81 @@ defmodule ColdForgeWeb.InboundControllerTest do
       assert Repo.reload(ctx.enrollment).status == "active"
     end
   end
+
+  describe "forwarding a copy to a real inbox" do
+    alias ColdForge.Workers.ForwardReply
+
+    @raw """
+    Return-Path: <sam@riveraroofing.com>
+    From: Sam Rivera <sam@riveraroofing.com>
+    Subject: Re: Quick question
+    MIME-Version: 1.0
+    Content-Type: multipart/alternative; boundary="b1"
+
+    --b1
+    Content-Type: text/plain; charset="UTF-8"
+
+    Yes, send me the demo link.
+
+    --b1
+    Content-Type: text/html; charset="UTF-8"
+
+    <p>Yes, send me the demo link.</p>
+    --b1--
+    """
+
+    test "a reply is stored readable and queued to forward", ctx do
+      conn =
+        post(ctx.conn, ~p"/inbound/#{@token}", %{
+          "mail" => %{
+            "source" => "sam@riveraroofing.com",
+            "messageId" => "ses-fwd-1",
+            "destination" => [ctx.project.from_email],
+            "commonHeaders" => %{"subject" => "Re: Quick question"},
+            "headers" => [
+              %{"name" => "In-Reply-To", "value" => "<#{ctx.message.rfc_message_id}>"}
+            ]
+          },
+          "content" => String.replace(@raw, "\n", "\r\n")
+        })
+
+      assert %{"matched_by" => "exact"} = json_response(conn, 200)
+      assert [reply] = Inbox.list_replies(ctx.project.id)
+      assert reply.body == "Yes, send me the demo link."
+
+      assert_enqueued(
+        worker: ForwardReply,
+        args: %{project_id: ctx.project.id, prospect_id: ctx.prospect.id}
+      )
+    end
+
+    test "mail from a stranger to a project's address is still forwarded", ctx do
+      post(ctx.conn, ~p"/inbound/#{@token}", %{
+        "from" => "newperson@elsewhere.com",
+        "to" => ctx.project.from_email,
+        "subject" => "Saw your email"
+      })
+
+      assert_enqueued(worker: ForwardReply, args: %{project_id: ctx.project.id, prospect_id: nil})
+    end
+
+    test "mail to an address no project sends from is not", ctx do
+      post(ctx.conn, ~p"/inbound/#{@token}", %{
+        "from" => "newperson@elsewhere.com",
+        "to" => "somebody@nowhere.test"
+      })
+
+      refute_enqueued(worker: ForwardReply)
+    end
+
+    test "an out-of-office is not forwarded", ctx do
+      post(ctx.conn, ~p"/inbound/#{@token}", %{
+        "from" => "sam@riveraroofing.com",
+        "subject" => "Automatic reply: Quick question",
+        "In-Reply-To" => "<#{ctx.message.rfc_message_id}>"
+      })
+
+      refute_enqueued(worker: ForwardReply)
+    end
+  end
 end
