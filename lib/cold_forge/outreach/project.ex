@@ -12,6 +12,9 @@ defmodule ColdForge.Outreach.Project do
     field :from_name, :string
     field :from_email, :string
     field :reply_to, :string
+    # Where the app sends a copy of each reply it receives. See
+    # `ColdForge.Workers.ForwardReply`.
+    field :forward_replies_to, :string
     # The callback number left in voicemails; see `ColdForge.Calling.Scripts`.
     field :phone, :string
     field :landing_url, :string
@@ -46,6 +49,7 @@ defmodule ColdForge.Outreach.Project do
       :from_name,
       :from_email,
       :reply_to,
+      :forward_replies_to,
       :phone,
       :landing_url,
       :postal_address,
@@ -64,6 +68,9 @@ defmodule ColdForge.Outreach.Project do
       message: "may only contain lowercase letters, numbers and dashes"
     )
     |> validate_format(:from_email, ~r/^[^@,;\s]+@[^@,;\s]+\.[^@,;\s]+$/,
+      message: "must be a valid email"
+    )
+    |> validate_format(:forward_replies_to, ~r/^[^@,;\s]+@[^@,;\s]+\.[^@,;\s]+$/,
       message: "must be a valid email"
     )
     |> validate_url(:landing_url)

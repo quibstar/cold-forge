@@ -242,6 +242,16 @@ defmodule ColdForgeWeb.AdminLive.Projects do
             />
             <.input field={@form[:phone]} label="Callback number" placeholder="(616) 555-0142" />
           </div>
+          <.input
+            field={@form[:forward_replies_to]}
+            label="Forward replies to (optional)"
+            placeholder="kris@affordablestartup.com"
+          />
+          <p class="text-xs text-base-content/50 -mt-2">
+            Replies to the from address come back here, stop that person's drip,
+            and a copy goes to this inbox. Leave Reply-to blank, or replies go
+            straight there and the drip never hears about them.
+          </p>
           <p class="text-xs text-base-content/50 -mt-2">
             Said twice in every voicemail script. Without it the scripts can't be
             filled in — a voicemail with no number to ring back is a wasted call.
