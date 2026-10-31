@@ -30,6 +30,19 @@ defmodule ColdForge.Sending.Window do
     advance(local, campaign, 0)
   end
 
+  @doc """
+  Whether the campaign may send at `now`. The scheduler asks this every scan,
+  because a send time placed inside the window can still be overdue later: a
+  backlog held back by the daily cap would otherwise go out at 2am or on a
+  Saturday the moment the cap freed up.
+  """
+  def open?(%Campaign{} = campaign, %Project{} = project, %DateTime{} = now) do
+    case next_open_slot(campaign, project, now) do
+      nil -> false
+      slot -> DateTime.compare(slot, DateTime.truncate(now, :second)) != :gt
+    end
+  end
+
   # 14 days of lookahead is far more than any window can need — a campaign that
   # sends on at least one weekday always resolves within seven. The bound just
   # stops a misconfigured `send_days` from looping forever.

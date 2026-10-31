@@ -196,6 +196,21 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
                 <.input type="number" field={@form[:daily_cap]} label="Max per day" min="1" />
               </div>
 
+              <div class="grid gap-4 sm:grid-cols-3">
+                <.input
+                  type="number"
+                  field={@form[:ramp_per_day]}
+                  label="Grow by, each day sent"
+                  min="0"
+                />
+                <.input
+                  type="number"
+                  field={@form[:max_daily_cap]}
+                  label="Grow up to (per day)"
+                  min="1"
+                />
+              </div>
+
               <fieldset>
                 <legend class="text-sm font-medium mb-2">Send on</legend>
                 <div class="flex flex-wrap gap-3">

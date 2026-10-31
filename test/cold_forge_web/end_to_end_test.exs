@@ -159,7 +159,16 @@ defmodule ColdForgeWeb.EndToEndTest do
     assert :ok = perform_job(CampaignScheduler, %{})
     refute_enqueued(worker: SendMessage)
 
+    # Then that day comes: the sends are due and the window is open.
     make_due(campaign.id)
+
+    {:ok, _} =
+      Outreach.update_campaign(Outreach.get_campaign!(campaign.id), %{
+        send_window_start: 0,
+        send_window_end: 24,
+        send_days: [1, 2, 3, 4, 5, 6, 7]
+      })
+
     assert :ok = perform_job(CampaignScheduler, %{})
     assert length(all_enqueued(worker: SendMessage)) == 3
 
@@ -282,7 +291,16 @@ defmodule ColdForgeWeb.EndToEndTest do
 
     ## 12. Only Lena is left running, and only she gets the follow-up.
 
+    # Then that day comes: the sends are due and the window is open.
     make_due(campaign.id)
+
+    {:ok, _} =
+      Outreach.update_campaign(Outreach.get_campaign!(campaign.id), %{
+        send_window_start: 0,
+        send_window_end: 24,
+        send_days: [1, 2, 3, 4, 5, 6, 7]
+      })
+
     assert :ok = perform_job(CampaignScheduler, %{})
     assert [job] = all_enqueued(worker: SendMessage)
     assert job.args["enrollment_id"] == marcus_enrollment(campaign.id, lena.id).id
