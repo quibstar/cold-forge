@@ -13,7 +13,15 @@ defmodule ColdForge.Workers.CampaignSchedulerTest do
 
   setup do
     project = project_fixture()
-    campaign = campaign_fixture(project)
+    # Open around the clock, so "due" tests pass whenever the suite runs. The
+    # window itself is tested on its own below.
+    campaign =
+      campaign_fixture(project, %{
+        send_window_start: 0,
+        send_window_end: 24,
+        send_days: [1, 2, 3, 4, 5, 6, 7]
+      })
+
     step_fixture(campaign)
     {:ok, campaign} = Outreach.activate_campaign(Outreach.get_campaign!(campaign.id))
     %{project: project, campaign: Outreach.get_campaign!(campaign.id)}
@@ -64,6 +72,16 @@ defmodule ColdForge.Workers.CampaignSchedulerTest do
 
     {:ok, campaign} = Outreach.update_campaign(campaign, %{send_days: [day]})
     Outreach.get_campaign!(campaign.id)
+  end
+
+  test "holds an overdue enrollment while the window is closed", ctx do
+    prospect = prospect_fixture(ctx.project)
+    {:ok, enrollment} = Outreach.enroll_prospect(ctx.campaign, prospect)
+    make_due(enrollment)
+    sending_only_on_a_future_day(ctx.campaign, ctx.project)
+
+    assert :ok = perform_job(CampaignScheduler, %{})
+    refute_enqueued(worker: SendMessage)
   end
 
   test "ignores a paused campaign", ctx do

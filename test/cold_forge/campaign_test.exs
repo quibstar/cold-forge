@@ -85,7 +85,15 @@ defmodule ColdForge.CampaignTest do
     end
 
     test "the daily cap paces a big list instead of sending it at once", ctx do
-      {:ok, campaign} = Outreach.update_campaign(ctx.campaign, %{daily_cap: 2})
+      # Open around the clock, so only the cap is under test.
+      {:ok, campaign} =
+        Outreach.update_campaign(ctx.campaign, %{
+          daily_cap: 2,
+          send_window_start: 0,
+          send_window_end: 24,
+          send_days: [1, 2, 3, 4, 5, 6, 7]
+        })
+
       campaign = Outreach.get_campaign!(campaign.id)
 
       ids = for _ <- 1..5, do: prospect_fixture(ctx.project).id

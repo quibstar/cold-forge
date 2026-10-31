@@ -14,13 +14,14 @@ defmodule ColdForge.Workers.CampaignScheduler do
 
   alias ColdForge.Outreach.{Enrollment, Message, Campaign}
   alias ColdForge.Repo
+  alias ColdForge.Sending.Window
   alias ColdForge.Workers.SendMessage
 
   @impl Oban.Worker
   def perform(_job) do
     now = DateTime.utc_now()
 
-    for campaign <- active_campaigns() do
+    for campaign <- active_campaigns(), Window.open?(campaign, campaign.project, now) do
       remaining = remaining_today(campaign)
 
       if remaining > 0 do
