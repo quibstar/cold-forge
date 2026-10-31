@@ -415,7 +415,11 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
             <h2 class="card-title text-base">Sending</h2>
             <p class="text-sm text-base-content/60">
               {@campaign.send_window_start}:00–{@campaign.send_window_end}:00,
-              up to {@campaign.daily_cap} a day, in {@current_project.timezone}.
+              up to {ColdForge.Workers.CampaignScheduler.cap_today(@campaign)} a day, in {@current_project.timezone}.
+            </p>
+            <p :if={@campaign.ramp_per_day > 0} class="text-xs text-base-content/50">
+              Started at {@campaign.daily_cap}, growing {@campaign.ramp_per_day} for each day it sends,
+              up to {@campaign.max_daily_cap}. Drops back to {@campaign.daily_cap} while bounces are over 5%.
             </p>
 
             <div :if={@campaign.merge_defaults not in [nil, %{}]} class="mt-2">

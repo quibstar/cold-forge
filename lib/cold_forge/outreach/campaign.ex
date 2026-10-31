@@ -29,6 +29,10 @@ defmodule ColdForge.Outreach.Campaign do
     field :send_window_end, :integer, default: 17
     field :send_days, {:array, :integer}, default: [1, 2, 3, 4, 5]
     field :daily_cap, :integer, default: 50
+    # Warm-up: the cap grows by this much for every day the campaign has
+    # already sent on, up to `max_daily_cap`. Zero keeps it flat.
+    field :ramp_per_day, :integer, default: 0
+    field :max_daily_cap, :integer
 
     belongs_to :project, ColdForge.Outreach.Project
     has_many :steps, ColdForge.Outreach.CampaignStep, preload_order: [asc: :position]
@@ -53,16 +57,38 @@ defmodule ColdForge.Outreach.Campaign do
       :send_window_start,
       :send_window_end,
       :send_days,
-      :daily_cap
+      :daily_cap,
+      :ramp_per_day,
+      :max_daily_cap
     ])
     |> validate_required([:project_id, :name])
     |> validate_inclusion(:status, @statuses)
     |> validate_number(:send_window_start, greater_than_or_equal_to: 0, less_than_or_equal_to: 23)
     |> validate_number(:send_window_end, greater_than_or_equal_to: 1, less_than_or_equal_to: 24)
     |> validate_number(:daily_cap, greater_than: 0)
+    |> validate_number(:ramp_per_day, greater_than_or_equal_to: 0)
+    |> validate_ramp_ceiling()
     |> validate_window()
     |> validate_send_days()
     |> foreign_key_constraint(:project_id)
+  end
+
+  defp validate_ramp_ceiling(changeset) do
+    start = get_field(changeset, :daily_cap)
+    ceiling = get_field(changeset, :max_daily_cap)
+
+    ramp = get_field(changeset, :ramp_per_day) || 0
+
+    cond do
+      ramp > 0 and is_nil(ceiling) ->
+        add_error(changeset, :max_daily_cap, "is needed when the cap grows")
+
+      is_integer(start) and is_integer(ceiling) and ceiling < start ->
+        add_error(changeset, :max_daily_cap, "can't be below the starting cap")
+
+      true ->
+        changeset
+    end
   end
 
   defp validate_window(changeset) do

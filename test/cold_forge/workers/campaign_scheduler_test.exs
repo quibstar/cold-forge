@@ -114,4 +114,86 @@ defmodule ColdForge.Workers.CampaignSchedulerTest do
     {:ok, campaign} = Outreach.update_campaign(ctx.campaign, %{daily_cap: 5})
     assert CampaignScheduler.remaining_today(campaign) == 5
   end
+
+  describe "growing the daily cap" do
+    setup ctx do
+      {:ok, campaign} =
+        Outreach.update_campaign(ctx.campaign, %{
+          daily_cap: 10,
+          ramp_per_day: 3,
+          max_daily_cap: 20
+        })
+
+      %{campaign: Outreach.get_campaign!(campaign.id)}
+    end
+
+    # A message "sent" `days_ago`, to a fresh prospect, for counting sending days.
+    defp sent(ctx, days_ago, opts \\ []) do
+      prospect = prospect_fixture(ctx.project)
+      {:ok, enrollment} = Outreach.enroll_prospect(ctx.campaign, prospect)
+
+      if opts[:bounced] do
+        prospect
+        |> Ecto.Changeset.change(bounced_at: DateTime.utc_now() |> DateTime.truncate(:second))
+        |> Repo.update!()
+      end
+
+      Repo.insert!(%ColdForge.Outreach.Message{
+        project_id: ctx.project.id,
+        prospect_id: prospect.id,
+        enrollment_id: enrollment.id,
+        subject: "hi",
+        body: "hi",
+        status: "sent",
+        open_token: "t#{System.unique_integer([:positive])}",
+        sent_at: DateTime.utc_now() |> DateTime.add(-days_ago, :day) |> DateTime.truncate(:second)
+      })
+    end
+
+    test "starts at the daily cap", ctx do
+      assert CampaignScheduler.cap_today(ctx.campaign) == 10
+    end
+
+    test "grows for each earlier day it sent on, not calendar days", ctx do
+      sent(ctx, 5)
+      sent(ctx, 5)
+      sent(ctx, 2)
+
+      assert CampaignScheduler.cap_today(ctx.campaign) == 16
+    end
+
+    test "stops at the ceiling", ctx do
+      for day <- 1..6, do: sent(ctx, day)
+
+      assert CampaignScheduler.cap_today(ctx.campaign) == 20
+    end
+
+    test "drops back to the start while bounces are over 5%", ctx do
+      for _ <- 1..18, do: sent(ctx, 1)
+      for _ <- 1..2, do: sent(ctx, 2, bounced: true)
+
+      assert CampaignScheduler.cap_today(ctx.campaign) == 10
+    end
+
+    test "needs a ceiling to grow", ctx do
+      assert {:error, changeset} =
+               Outreach.update_campaign(ctx.campaign, %{max_daily_cap: nil})
+
+      assert "is needed when the cap grows" in errors_on(changeset).max_daily_cap
+    end
+  end
+
+  test "sends follow-ups before a backlog of first emails", ctx do
+    {:ok, campaign} = Outreach.update_campaign(ctx.campaign, %{daily_cap: 1})
+    campaign = Outreach.get_campaign!(campaign.id)
+
+    {:ok, backlog} = Outreach.enroll_prospect(campaign, prospect_fixture(ctx.project))
+    make_due(backlog)
+    {:ok, follow_up} = Outreach.enroll_prospect(campaign, prospect_fixture(ctx.project))
+    follow_up |> make_due() |> Ecto.Changeset.change(current_position: 1) |> Repo.update!()
+
+    assert :ok = perform_job(CampaignScheduler, %{})
+    assert [job] = all_enqueued(worker: SendMessage)
+    assert job.args["enrollment_id"] == follow_up.id
+  end
 end
