@@ -366,6 +366,24 @@ defmodule ColdForgeWeb.UserAuthTest do
       refute get_session(halted_conn, :user_return_to)
     end
 
+    test "keeps only the path when the query is too long for the session cookie", %{conn: conn} do
+      ids = Enum.map_join(1..100, ",", fn _ -> Ecto.UUID.generate() end)
+
+      halted_conn =
+        %{conn | path_info: ["foo"], query_string: "ids=" <> ids}
+        |> fetch_flash()
+        |> UserAuth.require_authenticated_user([])
+
+      assert halted_conn.halted
+      assert get_session(halted_conn, :user_return_to) == "/foo"
+    end
+
+    test "a signed-out visit to a very long link still lands on the log-in page" do
+      ids = Enum.map_join(1..100, ",", fn _ -> Ecto.UUID.generate() end)
+      conn = get(build_conn(), "/admin/p/#{Ecto.UUID.generate()}/postcards/export?ids=#{ids}")
+      assert redirected_to(conn) == ~p"/users/log-in"
+    end
+
     test "does not redirect if user is authenticated", %{conn: conn, user: user} do
       conn =
         conn

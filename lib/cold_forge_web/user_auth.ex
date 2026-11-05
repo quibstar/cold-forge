@@ -281,8 +281,16 @@ defmodule ColdForgeWeb.UserAuth do
     end
   end
 
+  # The session lives in a 4 KB cookie, so a long link — a print page carrying a
+  # hundred card ids — would overflow it and crash the redirect. Past this
+  # length only the path is kept: the person lands on the right page and opens
+  # the link again, now signed in.
+  @max_return_to 1_000
+
   defp maybe_store_return_to(%{method: "GET"} = conn) do
-    put_session(conn, :user_return_to, current_path(conn))
+    path = current_path(conn)
+    path = if byte_size(path) > @max_return_to, do: current_path(conn, %{}), else: path
+    put_session(conn, :user_return_to, path)
   end
 
   defp maybe_store_return_to(conn), do: conn
