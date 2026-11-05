@@ -51,6 +51,7 @@ defmodule ColdForgeWeb.FlyerController do
     |> put_view(html: ColdForgeWeb.FlyerHTML)
     |> render(:print,
       layout: false,
+      brand: ColdForgeWeb.FlyerHTML.brand(project),
       content: content,
       sheets: sheets,
       steps: Content.steps(content),

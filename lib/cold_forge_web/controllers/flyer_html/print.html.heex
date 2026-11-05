@@ -16,6 +16,10 @@
     />
     <%!-- A standalone page with its own stylesheet: it's printed, not browsed,
     and the app's layout and CSS would only fight the Letter sheet. --%>
+    <%!-- The project's colours, ahead of the stylesheet that uses them. --%>
+    <style>
+      <%= Phoenix.HTML.raw(brand_css(@brand)) %>
+    </style>
     <style>
       /* Letter, edge to edge. The design sits a quarter inch in from every
          edge, so an office printer — which can't reach the last few
@@ -23,18 +27,17 @@
       @page { size: letter portrait; margin: 0; }
 
       :root {
-        /* The brand kit's colours. Deep teal for anything printed on white:
-           primary teal washes out on toner. Light teal only on the dark band,
-           where the kit says to use it. */
         --ink: #0F172A;
-        --teal: #0F766E;
-        --teal-bright: #14B8A6;
-        --teal-light: #5EEAD4;
         --muted: #475569;
         --on-dark: #CBD5E1;
       }
 
       * { box-sizing: border-box; }
+
+      /* A brand drawn as a mark image beside its name. */
+      .lockup.brand-lockup { display: inline-flex; align-items: center; gap: 0.1in; }
+      .brand-lockup img { height: 100%; width: auto; display: block; }
+      .brand-lockup span { font-size: 24pt; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
 
       body {
         margin: 0;
@@ -69,7 +72,7 @@
         padding: 0.24in 0.35in 0.2in;
       }
       .lockup { height: 0.5in; width: auto; display: block; }
-      .contact-url { font-size: 15pt; font-weight: 700; color: var(--teal); }
+      .contact-url { font-size: 15pt; font-weight: 700; color: var(--accent-text); }
 
       /* The photo and the pitch side by side: a person in the shirt, in front
          of the kind of house they work on, next to what she's holding it for. */
@@ -95,7 +98,7 @@
         margin: 0;
         font-size: 12.5pt;
         font-weight: 600;
-        color: var(--teal);
+        color: var(--accent-text);
       }
       h1 {
         margin: 0.08in 0 0;
@@ -108,7 +111,7 @@
         letter-spacing: 0.005em;
       }
       /* The turn in the sentence — what it isn't — in teal. */
-      h1 .turn { color: var(--teal); }
+      h1 .turn { color: var(--accent-text); }
 
       .lede {
         margin: 0.14in 0 0;
@@ -158,8 +161,8 @@
       /* The trades, as a band: the one line that tells a roofer from across
          the room that this is for them. */
       .band {
-        background: var(--teal);
-        color: #fff;
+        background: var(--band-bg);
+        color: var(--band-fg);
         text-align: center;
         padding: 0.16in 0.3in;
         font-size: 14pt;
@@ -196,7 +199,7 @@
         font-variation-settings: "wdth" 85;
         line-height: 1.02;
       }
-      .scan-url { margin: 0.1in 0 0; font-size: 20pt; font-weight: 700; color: var(--teal-light); }
+      .scan-url { margin: 0.1in 0 0; font-size: 20pt; font-weight: 700; color: var(--accent-on-dark); }
       .scan-terms { margin: 0.08in 0 0; font-size: 13pt; color: var(--on-dark); }
 
       .foot {
@@ -255,15 +258,16 @@
     <section :for={sheet <- @sheets} class="sheet" id={"flyer-#{sheet.placement.code}"}>
       <div class="page">
         <header class="head">
-          <.lockup class="lockup" />
+          <.brand_lockup brand={@brand} class="lockup" />
           <div class="contact-url">{@display_url}</div>
         </header>
 
         <div class="hero">
           <img
             class="photo"
-            src={~p"/images/flyers/exteriorpro-avatar.webp"}
-            alt="An ExteriorPro rep with a tablet outside a finished home"
+            src={@brand.photo}
+            alt={@brand.photo_alt}
+            style={"object-position: #{@brand.photo_position}"}
           />
 
           <div class="pitch">
@@ -292,7 +296,7 @@
             <ul :if={@highlights != []} class="highlights">
               <li :for={highlight <- @highlights}>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="#5EEAD4" d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
+                  <path style="fill: var(--accent-on-dark)" d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
                 </svg>
                 {highlight}
               </li>
