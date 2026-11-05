@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Postcards · Cold Forge</title>
+    <%!-- The flyer's faces, for the same reason they're loaded there: this page
+    is printed, not browsed. --%>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=IBM+Plex+Mono:wght@500&display=block"
+    />
+    <style>
+      /* A 6×9 card, landscape, edge to edge. Everything that matters sits a
+         quarter inch in, so a mailing service's trim can't cut it. */
+      @page { size: 9in 6in; margin: 0; }
+
+      :root {
+        --ink: #0F172A;
+        --teal: #0F766E;
+        --teal-light: #5EEAD4;
+        --muted: #475569;
+        --rule: #E2E8F0;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Instrument Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .side {
+        width: 9in;
+        height: 6in;
+        overflow: hidden;
+        background: #fff;
+        page-break-after: always;
+        position: relative;
+      }
+      .side:last-child { page-break-after: auto; }
+
+      /* Front: the flyer's photo and pitch, cut down to what reads at arm's
+         length on a kitchen table. */
+      .front { display: grid; grid-template-columns: 3.4in 1fr; }
+      .photo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 18%;
+        display: block;
+      }
+      .pitch { display: flex; flex-direction: column; min-width: 0; }
+      .pitch-body { flex: 1; padding: 0.32in 0.4in 0.2in 0.38in; display: flex; flex-direction: column; }
+      .lockup { height: 0.38in; width: auto; display: block; align-self: flex-start; }
+      .eyebrow { margin: 0.3in 0 0; font-size: 11pt; font-weight: 600; color: var(--teal); }
+      h1 {
+        margin: 0.06in 0 0;
+        font-size: 40pt;
+        font-stretch: 75%;
+        font-variation-settings: "wdth" 75;
+        font-weight: 700;
+        line-height: 0.95;
+        text-transform: uppercase;
+      }
+      h1 .turn { color: var(--teal); }
+      .lede { margin: 0.16in 0 0; font-size: 11.5pt; line-height: 1.45; color: var(--muted); }
+      .highlights {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.08in;
+        margin: auto 0 0;
+        padding: 0.2in 0 0;
+        list-style: none;
+      }
+      .highlights li {
+        display: flex;
+        align-items: center;
+        gap: 0.07in;
+        padding: 0.06in 0.13in 0.06in 0.09in;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 10.5pt;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .highlights svg { width: 0.15in; height: 0.15in; flex: none; }
+      .band {
+        background: var(--teal);
+        color: #fff;
+        text-align: center;
+        padding: 0.14in 0.3in 0.16in;
+        font-size: 11.5pt;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      /* Back: a note and the QR on the left; the right half is the post
+         office's — postage top right, the address below, and the bottom
+         5/8 inch left clear for the barcode they spray on. */
+      .back { display: grid; grid-template-columns: 4.4in 1fr; }
+      .note {
+        padding: 0.3in 0.3in 0.3in 0.35in;
+        border-right: 1px solid var(--rule);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .return { margin: 0; font-size: 7.5pt; line-height: 1.3; color: var(--muted); }
+      .for { margin: 0.18in 0 0; font-size: 9.5pt; font-weight: 600; color: var(--teal); }
+      .note-lead { margin: 0.05in 0 0; font-size: 13pt; font-weight: 700; line-height: 1.2; }
+      .note-body { margin: 0.08in 0 0; font-size: 9.5pt; line-height: 1.4; color: var(--muted); }
+      .scan {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.16in;
+        padding-top: 0.12in;
+      }
+      .qr { width: 1.1in; height: 1.1in; display: block; flex: none; }
+      .scan-lead { margin: 0; font-size: 13pt; font-weight: 700; }
+      .scan-url { margin: 0.03in 0 0; font-size: 11pt; font-weight: 700; color: var(--teal); }
+      .scan-terms { margin: 0.03in 0 0; font-size: 8.5pt; color: var(--muted); }
+      .code {
+        position: absolute;
+        left: 0.35in;
+        bottom: 0.1in;
+        font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+        font-size: 6pt;
+        color: #94A3B8;
+      }
+
+      .mail { position: relative; padding: 0.3in 0.3in 0.625in 0.45in; }
+      .postage {
+        position: absolute;
+        top: 0.3in;
+        right: 0.3in;
+        width: 0.85in;
+        height: 1in;
+        border: 1px dashed #CBD5E1;
+        display: grid;
+        place-items: center;
+        font-size: 6.5pt;
+        letter-spacing: 0.08em;
+        color: #94A3B8;
+        text-align: center;
+      }
+      .to {
+        position: absolute;
+        left: 0.45in;
+        right: 0.3in;
+        top: 2.35in;
+        font-size: 11pt;
+        line-height: 1.35;
+      }
+      .to p { margin: 0; }
+
+      .how {
+        padding: 24px;
+        font-family: -apple-system, system-ui, sans-serif;
+        font-size: 14px;
+        color: #374151;
+        background: #f3f4f6;
+      }
+      .how kbd { background: #fff; border: 1px solid #d1d5db; border-radius: 4px; padding: 1px 5px; }
+      .label {
+        width: 9in;
+        margin: 24px auto -16px;
+        font: 600 12px -apple-system, system-ui, sans-serif;
+        color: #6b7280;
+      }
+      @media screen {
+        body { background: #e5e7eb; }
+        .side { margin: 24px auto; box-shadow: 0 1px 6px rgb(15 23 42 / 0.18); }
+      }
+      @media print { .how, .label { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="how">
+      <%= cond do %>
+        <% @cards == [] -> %>
+          <strong>No postcards selected.</strong> Go back and tick the cards to print.
+        <% @preview? -> %>
+          <strong>Preview.</strong>
+          This is how it prints, front then back. To print, <kbd>⌘P</kbd>
+          at <b>100% scale</b>
+          with <b>headers and footers off</b>.
+        <% @side == "front" -> %>
+          <strong>The front.</strong>
+          It's the same on every card, so a mailing service needs it once. <kbd>⌘P</kbd>
+          → Save as PDF, at <b>100% scale</b>
+          with <b>headers and footers off</b>.
+        <% true -> %>
+          <strong>{length(@cards)} {if length(@cards) == 1, do: "postcard", else: "postcards"} ready.</strong>
+          <kbd>⌘P</kbd>
+          → Save as PDF, at <b>100% scale</b>
+          with <b>headers and footers off</b>. Each card is two 6×9 pages, front then back.
+      <% end %>
+    </div>
+
+    <%!-- One front when that's all that's asked for: it doesn't change per card. --%>
+    <%= for {item, i} <- Enum.with_index(@cards), @side != "front" or i == 0 do %>
+      <div :if={@side != "back"} class="label">
+        {if @side == "front", do: "Front", else: "#{item.card.name} · front"}
+      </div>
+      <section :if={@side != "back"} class="side front" id={"front-#{item.card.code}"}>
+        <img
+          class="photo"
+          src={~p"/images/flyers/exteriorpro-avatar.webp"}
+          alt="An ExteriorPro rep with a tablet outside a finished home"
+        />
+        <div class="pitch">
+          <div class="pitch-body">
+            <.lockup class="lockup" />
+            <p class="eyebrow">
+              {ColdForge.Flyers.Content.eyebrow(
+                @content,
+                if(@side == "front", do: nil, else: item.card.trade)
+              )}
+            </p>
+            <h1>
+              <%= for {line, j} <- Enum.with_index(ColdForge.Flyers.Content.headline_lines(@content)) do %>
+                <span class={j > 0 && "turn"}>{line}</span><br :if={j == 0} />
+              <% end %>
+            </h1>
+            <p :if={@content.lede not in [nil, ""]} class="lede">{@content.lede}</p>
+            <ul :if={@highlights != []} class="highlights">
+              <li :for={highlight <- @highlights}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#5EEAD4" d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
+                </svg>
+                {highlight}
+              </li>
+            </ul>
+          </div>
+          <div :if={@content.closing not in [nil, ""]} class="band">{@content.closing}</div>
+        </div>
+      </section>
+
+      <div :if={@side != "front"} class="label">{item.card.name} · back</div>
+      <section :if={@side != "front"} class="side back" id={"back-#{item.card.code}"}>
+        <div class="note">
+          <p class="return">
+            <%= for line <- return_lines(@project.postal_address) do %>
+              {line}<br />
+            <% end %>
+          </p>
+          <p class="for">For the crew at {item.card.name}</p>
+          <%= for {para, k} <- Enum.with_index(item.note) do %>
+            <p class={if k == 0, do: "note-lead", else: "note-body"}>{para}</p>
+          <% end %>
+          <div class="scan">
+            {Phoenix.HTML.raw(item.qr)}
+            <div>
+              <p class="scan-lead">Scan to see it</p>
+              <p class="scan-url">{@display_url}</p>
+              <p :if={@content.terms not in [nil, ""]} class="scan-terms">{@content.terms}</p>
+            </div>
+          </div>
+        </div>
+        <div class="mail">
+          <div class="postage">POSTAGE</div>
+          <div class="to">
+            <p>{item.card.name}</p>
+            <p>{item.card.street}</p>
+            <p>{city_line(item.card)}</p>
+          </div>
+        </div>
+        <span class="code">{item.card.code}</span>
+      </section>
+    <% end %>
+  </body>
+</html>
