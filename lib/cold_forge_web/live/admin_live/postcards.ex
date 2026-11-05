@@ -245,6 +245,15 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
                 Print {count(MapSet.size(@tick_ids), "card", "cards")}
               </.link>
               <.link
+                id="print-overlay"
+                href={~p"/admin/p/#{@project_id}/postcards/print?#{[ids: @ticked, mode: "overlay"]}"}
+                target="_blank"
+                class="btn btn-sm"
+                title="Only the greeting, QR and address, to print onto cards from a print shop"
+              >
+                <.icon name="hero-qr-code" class="size-4" /> Addresses &amp; QR only
+              </.link>
+              <.link
                 id="export-cards"
                 href={~p"/admin/p/#{@project_id}/postcards/export?#{[ids: @ticked]}"}
                 class="btn btn-sm"
@@ -364,6 +373,15 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
             >front once</.link>
             and the backs per card — or print both from <b>Print</b>
             and upload the PDF.
+          </p>
+          <p :if={@content.headline} class="text-xs opacity-60" id="print-shop-help">
+            Printing them in bulk? Send a print shop <.link
+              id="print-shop-card"
+              href={~p"/admin/p/#{@project_id}/postcards/print?#{[mode: "shop"]}"}
+              target="_blank"
+              class="link"
+            >one card with the greeting, QR and address left blank</.link>, then tick the cards
+            and run the printed ones through your printer with <b>Addresses &amp; QR only</b>.
           </p>
         </div>
       </div>

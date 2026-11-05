@@ -369,6 +369,18 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
               <.icon name="hero-printer" class="size-4" />
               Print {count(MapSet.size(@print_ids), "flyer", "flyers")}
             </.link>
+            <.link
+              :if={MapSet.size(@print_ids) > 0 and @content.headline}
+              id="print-flyer-qr"
+              href={
+                ~p"/admin/p/#{@project_id}/flyers/print?#{[ids: Enum.join(@print_ids, ","), mode: "overlay"]}"
+              }
+              target="_blank"
+              class="btn btn-sm"
+              title="Only each place's QR code, to print onto flyers from a print shop"
+            >
+              <.icon name="hero-qr-code" class="size-4" /> QR codes only
+            </.link>
           </div>
 
           <p :if={@placements == []} class="text-sm opacity-60">
@@ -448,6 +460,20 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
               </tbody>
             </table>
           </div>
+
+          <p
+            :if={@placements != [] and @content.headline}
+            class="text-xs opacity-60"
+            id="print-shop-help"
+          >
+            Printing a big run? Send a print shop <.link
+              id="print-shop-flyer"
+              href={~p"/admin/p/#{@project_id}/flyers/print?#{[mode: "shop"]}"}
+              target="_blank"
+              class="link"
+            >the flyer with an empty QR square</.link>, then tick the places and run the printed
+            flyers through your printer with <b>QR codes only</b>.
+          </p>
 
           <%!-- Ticks are kept across pages, so a print run can span several. --%>
           <div :if={@pages > 1} id="placements-pages">

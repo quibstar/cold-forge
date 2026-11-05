@@ -27,30 +27,57 @@ defmodule ColdForgeWeb.PostcardController do
   @doc """
   6×9 cards, front then back for each. `side=front` prints the one front a
   mailing service needs; `side=back` just the addressed backs.
+
+  Printing in bulk is two passes, and `mode` picks the pass:
+
+    * `mode=shop` — one card for a print shop to run in quantity, the same for
+      everyone: the QR, the greeting and the address left blank. Needs no ids.
+    * `mode=overlay` — for each ticked card, only what the shop left blank, in
+      exactly those places, to run through your own printer onto the printed
+      cards.
+
+  Both draw the same back — with the note's `{{company}}` made generic, since
+  the shop prints one note for all — and hide the other pass's parts, so the
+  two line up.
   """
   def print(conn, %{"project_id" => project_id} = params) do
     project = Outreach.get_project!(project_id)
     content = Flyers.content(project)
-    side = if params["side"] in ["front", "back"], do: params["side"], else: "both"
+    brand = ColdForgeWeb.FlyerHTML.brand(project)
+    mode = if params["mode"] in ["shop", "overlay"], do: params["mode"], else: "full"
+
+    side =
+      cond do
+        mode == "overlay" -> "back"
+        params["side"] in ["front", "back"] -> params["side"]
+        true -> "both"
+      end
+
+    note_for = fn name ->
+      if mode == "full",
+        do: Content.postcard_paragraphs(content, name),
+        else: Content.postcard_paragraphs(content, brand.recipient)
+    end
 
     cards =
-      project.id
-      |> Postcards.get_postcards(ids(params))
-      |> Enum.map(fn card ->
-        %{
-          card: card,
-          qr: Postcards.qr_svg(card),
-          note: Content.postcard_paragraphs(content, card.name)
-        }
-      end)
+      if mode == "shop" do
+        [%{card: blank_card(), qr: "", note: note_for.(nil)}]
+      else
+        project.id
+        |> Postcards.get_postcards(ids(params))
+        |> Enum.map(fn card ->
+          %{card: card, qr: Postcards.qr_svg(card), note: note_for.(card.name)}
+        end)
+      end
 
     conn
     |> put_root_layout(false)
     |> put_view(html: ColdForgeWeb.PostcardHTML)
     |> render(:print,
       layout: false,
-      brand: ColdForgeWeb.FlyerHTML.brand(project),
+      brand: brand,
       project: project,
+      mode: mode,
       content: content,
       cards: cards,
       side: side,
@@ -71,6 +98,17 @@ defmodule ColdForgeWeb.PostcardController do
     |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
     |> send_resp(200, Postcards.to_csv(cards))
   end
+
+  # The shop's card: nothing on it belongs to anyone.
+  defp blank_card,
+    do: %ColdForge.Postcards.Postcard{
+      name: "",
+      street: "",
+      city: "",
+      region: "",
+      postal_code: "",
+      code: ""
+    }
 
   defp ids(params), do: params |> Map.get("ids", "") |> String.split(",", trim: true)
 end
