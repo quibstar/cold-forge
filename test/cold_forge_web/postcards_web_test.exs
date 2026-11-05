@@ -184,5 +184,38 @@ defmodule ColdForgeWeb.PostcardsWebTest do
 
       assert Flyers.content(Repo.reload(project)).postcard_note == "Hi {{company}}"
     end
+
+    test "pages a long list, keeping ticks across pages", %{conn: conn, project: project} do
+      for n <- 1..60 do
+        Repo.insert!(%ColdForge.Postcards.Postcard{
+          project_id: project.id,
+          code: "card-#{n}",
+          name: "Roofer #{n}",
+          street: "#{n} Main St",
+          city: "Grand Rapids",
+          region: "MI",
+          postal_code: "49503"
+        })
+      end
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/postcards")
+
+      rows = fn ->
+        live |> render() |> LazyHTML.from_document() |> LazyHTML.query("#postcards tbody tr")
+      end
+
+      assert has_element?(live, "#postcards-pages")
+      assert Enum.count(rows.()) == 50
+
+      first = rows.() |> Enum.at(0) |> LazyHTML.attribute("id") |> hd()
+      live |> element("##{first} input[type=checkbox]") |> render_click()
+
+      live |> element("#postcards-pages button[aria-label='Page 2']") |> render_click()
+      assert Enum.count(rows.()) == 10
+      refute has_element?(live, "##{first}")
+
+      live |> element("#tick-page") |> render_click()
+      assert has_element?(live, "#print-cards", "Print 11 cards")
+    end
   end
 end

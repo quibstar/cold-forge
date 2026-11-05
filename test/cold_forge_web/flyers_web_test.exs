@@ -175,5 +175,47 @@ defmodule ColdForgeWeb.FlyersWebTest do
 
       refute has_element?(live, "button[phx-click='delete_place']")
     end
+
+    test "pages a long list, keeping ticks across pages", %{conn: conn, project: project} do
+      # 60 places with the one from setup: a full first page and a short second.
+      for n <- 1..59 do
+        {:ok, _} =
+          Flyers.create_placement(project, %{venue_name: "Supply #{n}", address: "Town #{n}, MI"})
+      end
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/flyers")
+
+      assert has_element?(live, "#placements-pages")
+
+      assert live
+             |> render()
+             |> LazyHTML.from_document()
+             |> LazyHTML.query("#placements tbody tr")
+             |> Enum.count() == 50
+
+      first =
+        live
+        |> render()
+        |> LazyHTML.from_document()
+        |> LazyHTML.query("#placements tbody tr")
+        |> Enum.at(0)
+        |> LazyHTML.attribute("id")
+        |> hd()
+
+      live |> element("##{first} input[type=checkbox]") |> render_click()
+
+      live |> element("#placements-pages button[aria-label='Page 2']") |> render_click()
+
+      assert live
+             |> render()
+             |> LazyHTML.from_document()
+             |> LazyHTML.query("#placements tbody tr")
+             |> Enum.count() == 10
+
+      refute has_element?(live, "##{first}")
+
+      live |> element("#tick-page") |> render_click()
+      assert has_element?(live, "#print-flyers", "Print 11 flyers")
+    end
   end
 end

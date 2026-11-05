@@ -19,6 +19,7 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
   alias ColdForge.Postcards.Postcard
 
   @shown 60
+  @per_page 50
 
   @impl true
   def mount(%{"project_id" => project_id}, _session, socket) do
@@ -28,6 +29,7 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
      |> assign(:page_title, "Postcards")
      |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
      |> assign(:tick_ids, MapSet.new())
+     |> assign(:page, 1)
      |> assign(:filters, %{trade: "all", reach: "phone", city: "", limit: ""})
      |> assign(:trades, Outreach.list_trades(project_id))
      |> load()}
@@ -45,8 +47,16 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
     |> assign(:content, content)
     |> assign(:note_form, note_form(content))
     |> assign(:cards, Postcards.list_postcards(project.id))
+    |> clamp_page()
     |> load_matches()
   end
+
+  # After a delete the last page can empty out; land on the one before it.
+  defp clamp_page(socket) do
+    assign(socket, :page, socket.assigns.page |> min(pages(socket.assigns.cards)) |> max(1))
+  end
+
+  defp pages(cards), do: max(1, ceil(length(cards) / @per_page))
 
   defp load_matches(socket) do
     assign(
@@ -93,12 +103,28 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
 
   ## Events — the cards
 
+  def handle_event("page", %{"to" => to}, socket) do
+    page =
+      case to do
+        "next" -> socket.assigns.page + 1
+        "prev" -> socket.assigns.page - 1
+        n -> String.to_integer(n)
+      end
+
+    {:noreply, socket |> assign(:page, page) |> clamp_page()}
+  end
+
   def handle_event("toggle", %{"id" => id}, socket),
     do: {:noreply, update(socket, :tick_ids, &toggle(&1, id))}
 
   def handle_event("tick_planned", _params, socket) do
     ids = for c <- socket.assigns.cards, c.status == "planned", into: MapSet.new(), do: c.id
     {:noreply, assign(socket, :tick_ids, ids)}
+  end
+
+  def handle_event("tick_page", _params, socket) do
+    ids = socket.assigns.cards |> page_of(socket.assigns.page) |> Enum.map(& &1.id)
+    {:noreply, update(socket, :tick_ids, &MapSet.union(&1, MapSet.new(ids)))}
   end
 
   def handle_event("tick_none", _params, socket),
@@ -155,6 +181,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
       |> assign(:shown, Enum.take(assigns.matches, @shown))
       |> assign(:to_add, to_add(assigns.matches, assigns.filters.limit))
       |> assign(:ticked, Enum.join(assigns.tick_ids, ","))
+      |> assign(:page_cards, page_of(assigns.cards, assigns.page))
+      |> assign(:pages, pages(assigns.cards))
+      |> assign(:per_page, @per_page)
 
     ~H"""
     <.project_tabs project={@current_project} current_path={@current_path} />
@@ -180,12 +209,22 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
               </span>
             </h2>
             <button
+              :if={@pages > 1}
+              type="button"
+              id="tick-page"
+              class="btn btn-xs btn-ghost"
+              phx-click="tick_page"
+            >
+              Tick this page
+            </button>
+            <button
               :if={Enum.any?(@cards, &(&1.status == "planned"))}
               type="button"
+              id="tick-planned"
               class="btn btn-xs btn-ghost"
               phx-click="tick_planned"
             >
-              Tick unmailed
+              Tick all unmailed
             </button>
             <button
               :if={MapSet.size(@tick_ids) > 0}
@@ -241,7 +280,7 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={c <- @cards} id={"card-#{c.id}"}>
+                <tr :for={c <- @page_cards} id={"card-#{c.id}"}>
                   <td>
                     <input
                       type="checkbox"
@@ -307,6 +346,11 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <%!-- Ticks are kept across pages, so a batch can span several. --%>
+          <div :if={@pages > 1} id="postcards-pages">
+            <.pagination page={@page} pages={@pages} total={length(@cards)} per_page={@per_page} />
           </div>
 
           <p :if={@cards != [] and @content.headline} class="text-xs opacity-60">
@@ -435,6 +479,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
     </div>
     """
   end
+
+  defp page_of(cards, page),
+    do: cards |> Enum.drop((page - 1) * @per_page) |> Enum.take(@per_page)
 
   defp to_add(matches, limit) do
     case Integer.parse(limit || "") do
