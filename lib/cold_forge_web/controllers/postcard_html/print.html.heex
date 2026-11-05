@@ -120,7 +120,19 @@
         min-width: 0;
       }
       .return { margin: 0; font-size: 7.5pt; line-height: 1.3; color: var(--muted); }
-      .for { margin: 0.18in 0 0; font-size: 9.5pt; font-weight: 600; color: var(--accent-text); }
+      /* One line, always the same height: the print shop's card leaves it
+         blank, and the note under it mustn't move up into the gap. */
+      .for {
+        margin: 0.18in 0 0;
+        font-size: 9.5pt;
+        font-weight: 600;
+        line-height: 1.3;
+        height: 1.3em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--accent-text);
+      }
       .note-lead { margin: 0.05in 0 0; font-size: 13pt; font-weight: 700; line-height: 1.2; }
       .note-body { margin: 0.08in 0 0; font-size: 9.5pt; line-height: 1.4; color: var(--muted); }
       .scan {
@@ -130,7 +142,8 @@
         gap: 0.16in;
         padding-top: 0.12in;
       }
-      .qr { width: 1.1in; height: 1.1in; display: block; flex: none; }
+      .qr-slot { width: 1.1in; height: 1.1in; display: block; flex: none; }
+      .qr { width: 1.1in; height: 1.1in; display: block; }
       .scan-lead { margin: 0; font-size: 13pt; font-weight: 700; }
       .scan-url { margin: 0.03in 0 0; font-size: 10pt; font-weight: 700; color: var(--accent-text); white-space: nowrap; }
       .scan-terms { margin: 0.03in 0 0; font-size: 8.5pt; color: var(--muted); }
@@ -187,13 +200,35 @@
         .side { margin: 24px auto; box-shadow: 0 1px 6px rgb(15 23 42 / 0.18); }
       }
       @media print { .how, .label { display: none; } }
+
+      /* Printing in bulk. The shop's card leaves out what belongs to one
+         recipient; the overlay prints only that, onto the shop's cards. Both
+         keep the full layout and hide the rest, so the two passes line up. */
+      .mode-shop .per-card { visibility: hidden; }
+      .mode-overlay .side * { visibility: hidden; }
+      .mode-overlay .per-card,
+      .mode-overlay .per-card * { visibility: visible; }
     </style>
   </head>
-  <body>
+  <body class={"mode-#{@mode}"}>
     <div class="how">
       <%= cond do %>
         <% @cards == [] -> %>
           <strong>No postcards selected.</strong> Go back and tick the cards to print.
+        <% @mode == "shop" -> %>
+          <strong>For a print shop.</strong>
+          The same card for everyone, with the greeting, QR and address left blank. <kbd>⌘P</kbd>
+          → Save as PDF, at <b>100% scale</b>
+          with <b>headers and footers off</b>, and send the shop the two pages.
+          Ask for a <b>matte or uncoated back</b>
+          (gloss smears in a home printer) on stock your printer can feed, about <b>100–110 lb cover</b>.
+        <% @mode == "overlay" -> %>
+          <strong>{length(@cards)} {if length(@cards) == 1, do: "card", else: "cards"}: greeting, QR and address only.</strong>
+          Put the shop's cards in your printer's manual tray, back side up, and print at
+          <b>100% scale</b>
+          on a <b>9 × 6 in</b>
+          page with <b>headers and footers off</b>.
+          Try one on plain paper first and hold it against a card to check it lines up.
         <% @preview? -> %>
           <strong>Preview.</strong>
           This is how it prints, front then back. To print, <kbd>⌘P</kbd>
@@ -215,7 +250,9 @@
     <%!-- One front when that's all that's asked for: it doesn't change per card. --%>
     <%= for {item, i} <- Enum.with_index(@cards), @side != "front" or i == 0 do %>
       <div :if={@side != "back"} class="label">
-        {if @side == "front", do: "Front", else: "#{item.card.name} · front"}
+        {if @side == "front" or @mode == "shop",
+          do: "Front",
+          else: "#{item.card.name} · front"}
       </div>
       <section :if={@side != "back"} class="side front" id={"front-#{item.card.code}"}>
         <img
@@ -230,7 +267,7 @@
             <p class="eyebrow">
               {ColdForge.Flyers.Content.eyebrow(
                 @content,
-                if(@side == "front", do: nil, else: item.card.trade)
+                if(@side == "front" or @mode == "shop", do: nil, else: item.card.trade)
               )}
             </p>
             <h1>
@@ -252,7 +289,9 @@
         </div>
       </section>
 
-      <div :if={@side != "front"} class="label">{item.card.name} · back</div>
+      <div :if={@side != "front"} class="label">
+        {if @mode == "shop", do: "Back", else: "#{item.card.name} · back"}
+      </div>
       <section :if={@side != "front"} class="side back" id={"back-#{item.card.code}"}>
         <div class="note">
           <p class="return">
@@ -260,12 +299,12 @@
               {line}<br />
             <% end %>
           </p>
-          <p class="for">{@brand.back_greeting} {item.card.name}</p>
+          <p class="for per-card">{@brand.back_greeting} {item.card.name}</p>
           <%= for {para, k} <- Enum.with_index(item.note) do %>
             <p class={if k == 0, do: "note-lead", else: "note-body"}>{para}</p>
           <% end %>
           <div class="scan">
-            {Phoenix.HTML.raw(item.qr)}
+            <span class="qr-slot per-card">{Phoenix.HTML.raw(item.qr)}</span>
             <div>
               <p class="scan-lead">Scan to see it</p>
               <p class="scan-url">{@display_url}</p>
@@ -275,13 +314,13 @@
         </div>
         <div class="mail">
           <div class="postage">POSTAGE</div>
-          <div class="to">
+          <div class="to per-card">
             <p>{item.card.name}</p>
             <p>{item.card.street}</p>
             <p>{city_line(item.card)}</p>
           </div>
         </div>
-        <span class="code">{item.card.code}</span>
+        <span class="code per-card">{item.card.code}</span>
       </section>
     <% end %>
   </body>

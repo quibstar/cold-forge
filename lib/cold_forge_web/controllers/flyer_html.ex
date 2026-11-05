@@ -59,6 +59,8 @@ defmodule ColdForgeWeb.FlyerHTML do
       photo_alt: "An ExteriorPro rep with a tablet outside a finished home",
       photo_position: "50% 18%",
       back_greeting: "For the crew at",
+      # Who `{{company}}` becomes on a card printed the same for everyone.
+      recipient: "your company",
       # Deep teal for anything printed on white: primary teal washes out on
       # toner. Light teal only on the dark band, where the kit says to use it.
       colors: %{
@@ -76,6 +78,7 @@ defmodule ColdForgeWeb.FlyerHTML do
       photo_alt: "A woman reading on the sofa with her Shiba Inu",
       photo_position: "40% 50%",
       back_greeting: "For everyone at",
+      recipient: "your rescue",
       # Furizzma's yellow is a fill, never text on white — it disappears.
       # Text takes the dark amber; the yellow carries ink on top of it.
       colors: %{

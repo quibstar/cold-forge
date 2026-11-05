@@ -137,6 +137,67 @@ defmodule ColdForgeWeb.PostcardsWebTest do
     assert response(conn, 200) =~ "Herbert Roofing,12 Main St,Grand Rapids,MI,49503"
   end
 
+  describe "printing in bulk" do
+    setup %{conn: conn, project: project} do
+      {:ok, project} =
+        Flyers.update_content(project, %{
+          "postcard_note" => "A free place for {{company}}.\n\nMore."
+        })
+
+      %{conn: log_in_user(conn, user_fixture()), project: project, card: add_all(project)}
+    end
+
+    test "the print shop's card is the same for everyone, blanks and all", %{
+      conn: conn,
+      project: project,
+      card: card
+    } do
+      html =
+        conn
+        |> get(~p"/admin/p/#{project.id}/postcards/print?#{[mode: "shop"]}")
+        |> html_response(200)
+
+      assert html =~ ~s(class="mode-shop")
+      assert html =~ "For a print shop."
+      # One front and one back, with no recipient on either.
+      assert length(Regex.scan(~r/class="side front"/, html)) == 1
+      assert length(Regex.scan(~r/class="side back"/, html)) == 1
+      refute html =~ ~s(<svg class="qr")
+      refute html =~ card.name
+      refute html =~ card.street
+      # The note's company is made generic: one note is printed for all.
+      assert html =~ "A free place for your company."
+    end
+
+    test "the overlay is each card's greeting, QR and address, in the same layout", %{
+      conn: conn,
+      project: project,
+      card: card
+    } do
+      html =
+        conn
+        |> get(~p"/admin/p/#{project.id}/postcards/print?#{[ids: card.id, mode: "overlay"]}")
+        |> html_response(200)
+
+      assert html =~ ~s(class="mode-overlay")
+      # Backs only, one per card.
+      refute html =~ ~s(class="side front")
+      assert length(Regex.scan(~r/class="side back"/, html)) == 1
+      assert length(Regex.scan(~r/<svg class="qr"/, html)) == 1
+      assert html =~ card.street
+      # The same generic note as the shop's card, so the two line up.
+      assert html =~ "A free place for your company."
+    end
+
+    test "the tab links both passes", %{conn: conn, project: project, card: card} do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/postcards")
+
+      assert has_element?(live, "#print-shop-card[href*='mode=shop']")
+      live |> element("#card-#{card.id} input[type=checkbox]") |> render_click()
+      assert has_element?(live, "#print-overlay[href*='mode=overlay'][href*='#{card.id}']")
+    end
+  end
+
   test "printing needs a login", %{conn: conn, project: project} do
     assert redirected_to(get(conn, ~p"/admin/p/#{project.id}/postcards/print")) ==
              ~p"/users/log-in"

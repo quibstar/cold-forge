@@ -87,6 +87,40 @@ defmodule ColdForgeWeb.FlyersWebTest do
       assert html =~ ~s(id="flyer-#{placement.code}")
     end
 
+    test "for a print shop, one sheet with the QR square empty", %{
+      conn: conn,
+      project: project,
+      placement: placement
+    } do
+      html =
+        conn
+        |> log_in_user(user_fixture())
+        |> get(~p"/admin/p/#{project.id}/flyers/print?#{[mode: "shop"]}")
+        |> html_response(200)
+
+      assert html =~ ~s(class="mode-shop")
+      assert length(Regex.scan(~r/class="sheet"/, html)) == 1
+      assert html =~ ~s(class="qr-slot per-card")
+      refute html =~ ~s(<svg class="qr")
+      refute html =~ placement.code
+    end
+
+    test "QR codes only, one per ticked place, in the same layout", %{
+      conn: conn,
+      project: project,
+      placement: placement
+    } do
+      html =
+        conn
+        |> log_in_user(user_fixture())
+        |> get(~p"/admin/p/#{project.id}/flyers/print?#{[ids: placement.id, mode: "overlay"]}")
+        |> html_response(200)
+
+      assert html =~ ~s(class="mode-overlay")
+      assert length(Regex.scan(~r/<svg class="qr"/, html)) == 1
+      assert html =~ ~s(id="flyer-#{placement.code}")
+    end
+
     test "needs a login", %{conn: conn, project: project} do
       conn = get(conn, ~p"/admin/p/#{project.id}/flyers/print")
       assert redirected_to(conn) == ~p"/users/log-in"
@@ -216,6 +250,8 @@ defmodule ColdForgeWeb.FlyersWebTest do
 
       live |> element("#tick-page") |> render_click()
       assert has_element?(live, "#print-flyers", "Print 11 flyers")
+      assert has_element?(live, "#print-flyer-qr[href*='mode=overlay']")
+      assert has_element?(live, "#print-shop-flyer[href*='mode=shop']")
     end
   end
 end

@@ -190,7 +190,7 @@
         border-radius: 0.14in;
         padding: 0.12in;
       }
-      .qr { width: 1.75in; height: 1.75in; display: block; }
+      .qr-slot, .qr { width: 1.75in; height: 1.75in; display: block; }
       .scan-lead {
         margin: 0;
         font-size: 30pt;
@@ -235,13 +235,31 @@
         .sheet { margin: 24px auto; box-shadow: 0 1px 6px rgb(15 23 42 / 0.18); }
       }
       @media print { .how { display: none; } }
+
+      /* Printing in bulk. The shop's sheet leaves the QR square empty; the
+         overlay prints only the QR and code, onto the shop's sheets. Both keep
+         the full layout and hide the rest, so the two passes line up. */
+      .mode-shop .per-card { visibility: hidden; }
+      .mode-overlay .sheet * { visibility: hidden; }
+      .mode-overlay .per-card,
+      .mode-overlay .per-card * { visibility: visible; }
     </style>
   </head>
-  <body>
+  <body class={"mode-#{@mode}"}>
     <div class="how">
       <%= cond do %>
         <% @sheets == [] -> %>
           <strong>No flyers selected.</strong> Go back and tick the places to print for.
+        <% @mode == "shop" -> %>
+          <strong>For a print shop.</strong>
+          The same flyer for every place, with the QR square left empty. <kbd>⌘P</kbd>
+          → Save as PDF, at <b>100% scale</b>
+          with <b>headers and footers off</b>, and send the shop the page.
+        <% @mode == "overlay" -> %>
+          <strong>{length(@sheets)} {if length(@sheets) == 1, do: "flyer", else: "flyers"}: QR code only.</strong>
+          Put the shop's flyers in your printer, printed side up, and print at <b>100% scale</b>
+          with <b>headers and footers off</b>.
+          Try one on plain paper first and hold it against a flyer to check it lines up.
         <% @preview? -> %>
           <strong>Preview.</strong>
           This is exactly how it prints, QR code and all. To print it, <kbd>⌘P</kbd>
@@ -308,7 +326,9 @@
 
         <div class="offer">
           <div class="offer-row">
-            <div class="qr-card">{Phoenix.HTML.raw(sheet.qr)}</div>
+            <div class="qr-card">
+              <span class="qr-slot per-card">{Phoenix.HTML.raw(sheet.qr)}</span>
+            </div>
             <div>
               <p class="scan-lead">Point your camera here</p>
               <p class="scan-url">{@display_url}</p>
@@ -318,7 +338,7 @@
 
           <p class="foot">
             <span>{@content.footer}</span>
-            <span class="code">{sheet.placement.code}</span>
+            <span class="code per-card">{sheet.placement.code}</span>
           </p>
         </div>
       </div>
