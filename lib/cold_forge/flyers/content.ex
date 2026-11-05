@@ -27,9 +27,22 @@ defmodule ColdForge.Flyers.Content do
     field :closing, :string
     field :terms, :string
     field :footer, :string
+    # The back of a mailed postcard: a short note, blank lines between
+    # paragraphs, the first one printed bold. `{{company}}` is the recipient.
+    field :postcard_note, :string
   end
 
-  @fields ~w(url eyebrow trade_eyebrow headline lede steps highlights closing terms footer)a
+  @fields ~w(url eyebrow trade_eyebrow headline lede steps highlights closing terms footer postcard_note)a
+
+  @default_postcard_note """
+  Does your CRM app still work on a roof with no signal?
+
+  The ExteriorPro mobile app works offline, and it's simple enough that the whole crew actually uses it. One flat price, month to month, cancel anytime. No add-ons.
+
+  We built it only for exterior work: the lead, the estimate, the work order and the invoice.
+
+  — Kris and the ExteriorPro team
+  """
 
   def changeset(content, attrs) do
     content
@@ -94,6 +107,23 @@ defmodule ColdForge.Flyers.Content do
   end
 
   def highlights(_content), do: []
+
+  @doc """
+  The postcard note as paragraphs, with `{{company}}` filled in. Falls back to
+  a default so a first print isn't blank.
+  """
+  def postcard_paragraphs(%__MODULE__{postcard_note: note}, company) do
+    note = if is_binary(note) and String.trim(note) != "", do: note, else: @default_postcard_note
+
+    note
+    |> String.replace("{{company}}", company || "your company")
+    |> String.split(~r/\R\s*\R/, trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  @doc "What the note says before anyone edits it."
+  def default_postcard_note, do: @default_postcard_note
 
   @doc "The headline's lines, so a deliberate line break survives printing."
   def headline_lines(%__MODULE__{headline: headline}) when is_binary(headline),
