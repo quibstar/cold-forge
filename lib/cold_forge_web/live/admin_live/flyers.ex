@@ -17,6 +17,8 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
   alias ColdForge.{Flyers, Outreach, Sourcing}
   alias ColdForge.Flyers.{Content, Placement}
 
+  @per_page 50
+
   @impl true
   def mount(%{"project_id" => project_id}, _session, socket) do
     {:ok,
@@ -34,6 +36,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
     socket
     |> assign(:page_title, socket.assigns.current_project.name)
     |> assign(:print_ids, MapSet.new())
+    |> assign(:page, 1)
     |> assign(:pick_org_ids, MapSet.new())
     |> assign(:candidate_source_id, nil)
     |> assign(:new_place, to_form(Flyers.change_placement(%Placement{}), as: :place))
@@ -60,6 +63,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
     |> assign(:content, Flyers.content(project))
     |> assign(:content_form, to_form(Flyers.change_content(project), as: :flyer))
     |> assign(:placements, Flyers.list_placements(project.id))
+    |> clamp_page()
     # Only flyer-location searches: a prospect search is the contractors you're
     # selling to, and none of them belongs on the flyer list.
     |> assign(
@@ -74,9 +78,36 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
     )
   end
 
+  # A list can shrink under the page you're on; land on its last page.
+  defp clamp_page(socket) do
+    page = socket.assigns[:page] || 1
+    assign(socket, :page, page |> min(pages(socket.assigns.placements)) |> max(1))
+  end
+
+  defp pages(placements), do: max(1, ceil(length(placements) / @per_page))
+
+  defp page_of(placements, page),
+    do: placements |> Enum.drop((page - 1) * @per_page) |> Enum.take(@per_page)
+
   ## Events — places
 
   @impl true
+  def handle_event("page", %{"to" => to}, socket) do
+    page =
+      case to do
+        "next" -> socket.assigns.page + 1
+        "prev" -> socket.assigns.page - 1
+        n -> String.to_integer(n)
+      end
+
+    {:noreply, socket |> assign(:page, page) |> clamp_page()}
+  end
+
+  def handle_event("tick_page", _params, socket) do
+    ids = socket.assigns.placements |> page_of(socket.assigns.page) |> Enum.map(& &1.id)
+    {:noreply, update(socket, :print_ids, &MapSet.union(&1, MapSet.new(ids)))}
+  end
+
   def handle_event("toggle_print", %{"id" => id}, socket),
     do: {:noreply, update(socket, :print_ids, &toggle(&1, id))}
 
@@ -277,6 +308,12 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
   end
 
   def render(assigns) do
+    assigns =
+      assigns
+      |> assign(:page_placements, page_of(assigns.placements, assigns.page))
+      |> assign(:pages, pages(assigns.placements))
+      |> assign(:per_page, @per_page)
+
     ~H"""
     <.project_tabs project={@current_project} current_path={@current_path} />
 
@@ -297,8 +334,18 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
           <div class="flex flex-wrap items-center gap-2 sticky top-0 z-10 -mx-2 px-2 py-2 bg-base-100">
             <h2 class="card-title text-base flex-1">Where flyers go</h2>
             <button
+              :if={@pages > 1}
+              type="button"
+              id="tick-page"
+              class="btn btn-xs btn-ghost"
+              phx-click="tick_page"
+            >
+              Tick this page
+            </button>
+            <button
               :if={@placements != []}
               type="button"
+              id="tick-all"
               class="btn btn-xs btn-ghost"
               phx-click="print_all"
             >
@@ -340,7 +387,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={p <- @placements} id={"placement-#{p.id}"}>
+                <tr :for={p <- @page_placements} id={"placement-#{p.id}"}>
                   <td>
                     <input
                       type="checkbox"
@@ -400,6 +447,16 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <%!-- Ticks are kept across pages, so a print run can span several. --%>
+          <div :if={@pages > 1} id="placements-pages">
+            <.pagination
+              page={@page}
+              pages={@pages}
+              total={length(@placements)}
+              per_page={@per_page}
+            />
           </div>
         </div>
       </div>
