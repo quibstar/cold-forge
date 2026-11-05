@@ -235,8 +235,26 @@ defmodule ColdForge.Outreach do
 
   def get_prospect_by_unsubscribe_token(_), do: nil
 
+  @doc """
+  Creates a prospect, unless the company is on the project's do-not-contact
+  list — then it's a changeset error on `:company`, so a form shows it and an
+  import or a search's Add counts it as failed.
+  """
   def create_prospect(attrs) do
-    %Prospect{} |> Prospect.changeset(attrs) |> Repo.insert()
+    changeset = Prospect.changeset(%Prospect{}, attrs)
+    project_id = Ecto.Changeset.get_field(changeset, :project_id)
+
+    case ColdForge.DoNotContact.match(project_id, Ecto.Changeset.apply_changes(changeset)) do
+      nil ->
+        Repo.insert(changeset)
+
+      entry ->
+        changeset
+        |> Ecto.Changeset.add_error(:company, "is on the do-not-contact list (%{name})",
+          name: entry.name
+        )
+        |> Ecto.Changeset.apply_action(:insert)
+    end
   end
 
   def update_prospect(%Prospect{} = prospect, attrs) do
@@ -613,6 +631,9 @@ defmodule ColdForge.Outreach do
 
       suppressed?(prospect.email) ->
         {:error, :suppressed}
+
+      ColdForge.DoNotContact.match(prospect.project_id, prospect) ->
+        {:error, :do_not_contact}
 
       campaign.steps == [] ->
         {:error, :no_steps}

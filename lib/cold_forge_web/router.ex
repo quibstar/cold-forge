@@ -146,6 +146,7 @@ defmodule ColdForgeWeb.Router do
       live "/p/:project_id/prospects", AdminLive.Prospects, :index
       live "/p/:project_id/prospects/new", AdminLive.Prospects, :new
       live "/p/:project_id/prospects/import", AdminLive.Import, :new
+      live "/p/:project_id/prospects/do-not-contact", AdminLive.DoNotContact, :index
       live "/p/:project_id/prospects/:id/edit", AdminLive.Prospects, :edit
 
       live "/p/:project_id/flyers", AdminLive.Flyers, :index

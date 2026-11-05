@@ -222,6 +222,13 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
       <div class="flex gap-2">
         <.link
+          id="do-not-contact-link"
+          navigate={~p"/admin/p/#{@project_id}/prospects/do-not-contact"}
+          class="btn btn-sm btn-ghost"
+        >
+          <.icon name="hero-no-symbol" class="size-4" /> Do not contact
+        </.link>
+        <.link
           navigate={~p"/admin/p/#{@project_id}/prospects/import"}
           class="btn btn-sm"
         >

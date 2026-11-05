@@ -94,6 +94,17 @@ defmodule ColdForge.Postcards do
     # two prospects. One card per company address either way.
     |> Enum.uniq_by(fn {p, _o} -> p.id end)
     |> Enum.uniq_by(fn {p, o} -> {normalize(p.company || o.name), normalize(o.street)} end)
+    |> reject_do_not_contact(project_id)
+  end
+
+  defp reject_do_not_contact(pairs, project_id) do
+    case ColdForge.DoNotContact.list(project_id) do
+      [] ->
+        pairs
+
+      entries ->
+        Enum.reject(pairs, fn {p, _o} -> ColdForge.DoNotContact.match_entries(entries, p) end)
+    end
   end
 
   defp filter_reach(query, "phone"), do: where(query, [p], is_nil(p.email) or p.email == "")
