@@ -52,17 +52,96 @@ defmodule ColdForgeWeb.FlyerHTML do
     """
   end
 
-  @doc "A teal disc with a white tick: one per step."
+  @brands %{
+    "exteriorpro" => %{
+      logo: :exteriorpro,
+      photo: "/images/flyers/exteriorpro-avatar.webp",
+      photo_alt: "An ExteriorPro rep with a tablet outside a finished home",
+      photo_position: "50% 18%",
+      back_greeting: "For the crew at",
+      # Deep teal for anything printed on white: primary teal washes out on
+      # toner. Light teal only on the dark band, where the kit says to use it.
+      colors: %{
+        accent_text: "#0F766E",
+        band_bg: "#0F766E",
+        band_fg: "#FFFFFF",
+        accent_on_dark: "#5EEAD4",
+        check_bg: "#0F766E",
+        check_fg: "#FFFFFF"
+      }
+    },
+    "furizzma" => %{
+      logo: {"/images/flyers/furizzma-logo.png", "Furizzma"},
+      photo: "/images/flyers/furizzma-photo.webp",
+      photo_alt: "A woman reading on the sofa with her Shiba Inu",
+      photo_position: "40% 50%",
+      back_greeting: "For everyone at",
+      # Furizzma's yellow is a fill, never text on white — it disappears.
+      # Text takes the dark amber; the yellow carries ink on top of it.
+      colors: %{
+        accent_text: "#A16207",
+        band_bg: "#EAB308",
+        band_fg: "#0F172A",
+        accent_on_dark: "#FACC15",
+        check_bg: "#EAB308",
+        check_fg: "#0F172A"
+      }
+    }
+  }
+
+  @doc """
+  How a project's printed pieces look: its logo, the photo, the greeting on a
+  postcard's back, and its colours as CSS custom properties. A project with no
+  brand of its own prints as ExteriorPro, which is where the design came from.
+  """
+  def brand(%{slug: slug}), do: Map.get(@brands, slug, @brands["exteriorpro"])
+  def brand(_project), do: @brands["exteriorpro"]
+
+  @doc "The brand's colours as a `:root` rule, for a print page's stylesheet."
+  def brand_css(%{colors: colors}) do
+    vars =
+      Enum.map_join(colors, " ", fn {name, value} ->
+        "--#{name |> to_string() |> String.replace("_", "-")}: #{value};"
+      end)
+
+    ":root { #{vars} }"
+  end
+
+  @doc """
+  The brand's logo: ExteriorPro's drawn lockup, or a mark image beside the
+  name set in the page's face.
+  """
+  attr :brand, :map, required: true
+  attr :class, :string, default: nil
+
+  def brand_lockup(%{brand: %{logo: :exteriorpro}} = assigns) do
+    ~H"""
+    <.lockup class={@class} />
+    """
+  end
+
+  def brand_lockup(%{brand: %{logo: {src, name}}} = assigns) do
+    assigns = assign(assigns, src: src, name: name)
+
+    ~H"""
+    <span class={["brand-lockup", @class]} role="img" aria-label={@name}>
+      <img src={@src} alt="" />
+      <span>{@name}</span>
+    </span>
+    """
+  end
+
+  @doc "A disc in the brand's colour with a tick: one per step."
   attr :class, :string, default: nil
 
   def check(assigns) do
     ~H"""
     <svg class={@class} viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="12" fill="#0F766E" />
+      <circle cx="12" cy="12" r="12" style="fill: var(--check-bg, #0F766E)" />
       <path
         d="M6.8 12.4l3.4 3.4 7-7.2"
         fill="none"
-        stroke="#fff"
+        style="stroke: var(--check-fg, #fff)"
         stroke-width="2.6"
         stroke-linecap="round"
         stroke-linejoin="round"

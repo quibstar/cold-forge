@@ -49,6 +49,7 @@ defmodule ColdForgeWeb.PostcardController do
     |> put_view(html: ColdForgeWeb.PostcardHTML)
     |> render(:print,
       layout: false,
+      brand: ColdForgeWeb.FlyerHTML.brand(project),
       project: project,
       content: content,
       cards: cards,

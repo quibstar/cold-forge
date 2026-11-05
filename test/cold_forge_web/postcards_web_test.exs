@@ -95,6 +95,23 @@ defmodule ColdForgeWeb.PostcardsWebTest do
     refute html =~ "admin-drawer"
   end
 
+  test "prints in the project's own brand", %{conn: conn, project: project} do
+    card = add_all(project)
+    {:ok, project} = ColdForge.Outreach.update_project(project, %{slug: "furizzma"})
+
+    html =
+      conn
+      |> log_in_user(user_fixture())
+      |> get(~p"/admin/p/#{project.id}/postcards/print?#{[ids: card.id]}")
+      |> html_response(200)
+
+    assert html =~ "/images/flyers/furizzma-photo.webp"
+    assert html =~ "/images/flyers/furizzma-logo.png"
+    assert html =~ "For everyone at Herbert Roofing"
+    assert html =~ "--band-bg: #EAB308"
+    refute html =~ "exteriorpro-avatar"
+  end
+
   test "the front alone, once", %{conn: conn, project: project} do
     card = add_all(project)
 

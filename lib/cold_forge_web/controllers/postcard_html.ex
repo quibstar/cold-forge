@@ -2,7 +2,7 @@ defmodule ColdForgeWeb.PostcardHTML do
   @moduledoc "The printable 6×9 postcard: the flyer's design, cut down to a card."
   use ColdForgeWeb, :html
 
-  import ColdForgeWeb.FlyerHTML, only: [lockup: 1]
+  import ColdForgeWeb.FlyerHTML, only: [brand_lockup: 1, brand_css: 1]
 
   alias ColdForge.Postcards.Postcard
 
