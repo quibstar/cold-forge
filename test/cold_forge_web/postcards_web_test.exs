@@ -198,6 +198,12 @@ defmodule ColdForgeWeb.PostcardsWebTest do
     end
   end
 
+  test "a company on the do-not-contact list isn't offered a card", %{project: project} do
+    assert [_] = Postcards.candidates(project.id)
+    {:ok, _} = ColdForge.DoNotContact.add(project.id, %{"name" => "Herbert Roofing"})
+    assert Postcards.candidates(project.id) == []
+  end
+
   test "printing needs a login", %{conn: conn, project: project} do
     assert redirected_to(get(conn, ~p"/admin/p/#{project.id}/postcards/print")) ==
              ~p"/users/log-in"
