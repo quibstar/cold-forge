@@ -383,6 +383,17 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
             >one card with the greeting, QR and address left blank</.link>, then tick the cards
             and run the printed ones through your printer with <b>Addresses &amp; QR only</b>.
           </p>
+          <p :if={@content.headline} class="text-xs opacity-60" id="stannp-help">
+            Mailing through Stannp? Upload
+            <.link
+              id="stannp-card"
+              href={~p"/admin/p/#{@project_id}/postcards/print?#{[mode: "stannp"]}"}
+              target="_blank"
+              class="link"
+            >the front and back in Stannp's size</.link>
+            as your design, and the ticked cards' <b>Mailing list</b>
+            as your data. Stannp prints each address, and each QR from the QR URL column.
+          </p>
         </div>
       </div>
 
