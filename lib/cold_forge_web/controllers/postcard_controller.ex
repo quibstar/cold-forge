@@ -35,6 +35,11 @@ defmodule ColdForgeWeb.PostcardController do
     * `mode=overlay` — for each ticked card, only what the shop left blank, in
       exactly those places, to run through your own printer onto the printed
       cards.
+    * `mode=stannp` — the artwork Stannp's print-and-mail service takes: one
+      front and one back at 9.24 × 6.24 in (Stannp's 0.12 in bleed on every
+      side). The back leaves Stannp's address box and the QR square empty;
+      Stannp prints each recipient's address there, and a QR from the mailing
+      list's QR URL column. Needs no ids.
 
   Both draw the same back — with the note's `{{company}}` made generic, since
   the shop prints one note for all — and hide the other pass's parts, so the
@@ -44,7 +49,9 @@ defmodule ColdForgeWeb.PostcardController do
     project = Outreach.get_project!(project_id)
     content = Flyers.content(project)
     brand = ColdForgeWeb.FlyerHTML.brand(project)
-    mode = if params["mode"] in ["shop", "overlay"], do: params["mode"], else: "full"
+
+    mode =
+      if params["mode"] in ["shop", "overlay", "stannp"], do: params["mode"], else: "full"
 
     side =
       cond do
@@ -60,7 +67,7 @@ defmodule ColdForgeWeb.PostcardController do
     end
 
     cards =
-      if mode == "shop" do
+      if mode in ["shop", "stannp"] do
         [%{card: blank_card(), qr: "", note: note_for.(nil)}]
       else
         project.id

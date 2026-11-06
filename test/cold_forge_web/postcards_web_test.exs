@@ -189,6 +189,28 @@ defmodule ColdForgeWeb.PostcardsWebTest do
       assert html =~ "A free place for your company."
     end
 
+    test "Stannp's artwork has the bleed and leaves the address and QR to Stannp", %{
+      conn: conn,
+      project: project,
+      card: card
+    } do
+      html =
+        conn
+        |> get(~p"/admin/p/#{project.id}/postcards/print?#{[mode: "stannp"]}")
+        |> html_response(200)
+
+      assert html =~ ~s(class="mode-stannp")
+      assert html =~ "size: 9.24in 6.24in"
+      assert length(Regex.scan(~r/class="side front"/, html)) == 1
+      assert length(Regex.scan(~r/class="side back"/, html)) == 1
+      refute html =~ ~s(<svg class="qr")
+      refute html =~ card.street
+      assert html =~ "A free place for your company."
+
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/postcards")
+      assert has_element?(live, "#stannp-card[href*='mode=stannp']")
+    end
+
     test "the tab links both passes", %{conn: conn, project: project, card: card} do
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/postcards")
 

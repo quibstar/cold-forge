@@ -15,6 +15,12 @@
     <style>
       <%= Phoenix.HTML.raw(brand_css(@brand)) %>
     </style>
+    <%!-- Stannp wants its bleed in the file: 0.12 in past the trim on every
+    side. Everything that reaches the edge reaches into it; everything else
+    moves in by the same amount, so the card trims exactly as it does now. --%>
+    <style :if={@mode == "stannp"}>
+      @page { size: 9.24in 6.24in; margin: 0; }
+    </style>
     <style>
       /* A 6×9 card, landscape, edge to edge. Everything that matters sits a
          quarter inch in, so a mailing service's trim can't cut it. */
@@ -208,6 +214,21 @@
       .mode-overlay .side * { visibility: hidden; }
       .mode-overlay .per-card,
       .mode-overlay .per-card * { visibility: visible; }
+
+      /* Stannp: the card plus its bleed. The address box — the bottom-right
+         4.13 × 2.93 in of the bled sheet — and the QR square are left empty;
+         Stannp prints the address and a per-recipient QR there. */
+      .mode-stannp .side { width: 9.24in; height: 6.24in; }
+      .mode-stannp .front { grid-template-columns: 3.52in 1fr; }
+      .mode-stannp .pitch-body { padding: 0.44in 0.52in 0.2in 0.38in; }
+      .mode-stannp .band { padding-bottom: 0.28in; }
+      .mode-stannp .back { grid-template-columns: 4.52in 1fr; }
+      .mode-stannp .note { padding: 0.42in 0.3in 0.42in 0.47in; }
+      .mode-stannp .for { display: none; }
+      .mode-stannp .return { margin-bottom: 0.18in; }
+      .mode-stannp .per-card,
+      .mode-stannp .mail { visibility: hidden; }
+      .mode-stannp .label { width: 9.24in; }
     </style>
   </head>
   <body class={"mode-#{@mode}"}>
@@ -222,6 +243,14 @@
           with <b>headers and footers off</b>, and send the shop the two pages.
           Ask for a <b>matte or uncoated back</b>
           (gloss smears in a home printer) on stock your printer can feed, about <b>100–110 lb cover</b>.
+        <% @mode == "stannp" -> %>
+          <strong>For Stannp.</strong>
+          One front and one back at 9.24 × 6.24 in, with Stannp's bleed. <kbd>⌘P</kbd>
+          → Save as PDF, at <b>100% scale</b>
+          with <b>headers and footers off</b>.
+          The address box (bottom right) and the square beside "Scan to see it" are left
+          empty: Stannp prints the address there, and the QR from the mailing list's <b>QR URL</b>
+          column.
         <% @mode == "overlay" -> %>
           <strong>{length(@cards)} {if length(@cards) == 1, do: "card", else: "cards"}: greeting, QR and address only.</strong>
           Put the shop's cards in your printer's manual tray, back side up, and print at
@@ -250,7 +279,7 @@
     <%!-- One front when that's all that's asked for: it doesn't change per card. --%>
     <%= for {item, i} <- Enum.with_index(@cards), @side != "front" or i == 0 do %>
       <div :if={@side != "back"} class="label">
-        {if @side == "front" or @mode == "shop",
+        {if @side == "front" or @mode in ["shop", "stannp"],
           do: "Front",
           else: "#{item.card.name} · front"}
       </div>
@@ -267,7 +296,10 @@
             <p class="eyebrow">
               {ColdForge.Flyers.Content.eyebrow(
                 @content,
-                if(@side == "front" or @mode == "shop", do: nil, else: item.card.trade)
+                if(@side == "front" or @mode in ["shop", "stannp"],
+                  do: nil,
+                  else: item.card.trade
+                )
               )}
             </p>
             <h1>
@@ -290,7 +322,7 @@
       </section>
 
       <div :if={@side != "front"} class="label">
-        {if @mode == "shop", do: "Back", else: "#{item.card.name} · back"}
+        {if @mode in ["shop", "stannp"], do: "Back", else: "#{item.card.name} · back"}
       </div>
       <section :if={@side != "front"} class="side back" id={"back-#{item.card.code}"}>
         <div class="note">
