@@ -195,6 +195,22 @@
         background: #f3f4f6;
       }
       .how kbd { background: #fff; border: 1px solid #d1d5db; border-radius: 4px; padding: 1px 5px; }
+      .how-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+      .how-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #111827;
+        font: 600 14px -apple-system, system-ui, sans-serif;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .how-btn:hover { background: #f9fafb; }
+      .how-btn.primary { background: #111827; border-color: #111827; color: #fff; }
+      .how-btn.primary:hover { background: #1f2937; }
       .label {
         width: 9in;
         margin: 24px auto -16px;
@@ -244,13 +260,35 @@
           Ask for a <b>matte or uncoated back</b>
           (gloss smears in a home printer) on stock your printer can feed, about <b>100–110 lb cover</b>.
         <% @mode == "stannp" -> %>
-          <strong>For Stannp.</strong>
-          One front and one back at 9.24 × 6.24 in, with Stannp's bleed. <kbd>⌘P</kbd>
-          → Save as PDF, at <b>100% scale</b>
-          with <b>headers and footers off</b>.
+          <strong>For Stannp: preview.</strong>
+          Below is the front and back exactly as Stannp gets them, at 9.24 × 6.24 in with their bleed.
           The address box (bottom right) and the square beside "Scan to see it" are left
-          empty: Stannp prints the address there, and the QR from the mailing list's <b>QR URL</b>
+          empty: Stannp prints each address there, and each QR from the mailing list's
+          <b>QR URL</b>
           column.
+          <div class="how-actions">
+            <%!-- Static page, no LiveView: the one bit of script it needs. --%>
+            <button type="button" class="how-btn primary" id="save-pdf" onclick="window.print()">
+              Save card as PDF
+            </button>
+            <a
+              :if={@list_count > 0}
+              class="how-btn"
+              id="download-list"
+              href={~p"/admin/p/#{@project.id}/postcards/export?#{[ids: @list_ids]}"}
+            >
+              Download mailing list ({@list_count} {if @list_count == 1,
+                do: "card",
+                else: "cards"})
+            </a>
+          </div>
+          <p :if={@list_count == 0} style="margin: 10px 0 0">
+            To get a mailing list too, tick cards on the Postcards tab and use <b>Stannp</b>
+            there.
+          </p>
+          <p style="margin: 10px 0 0; font-size: 13px; color: #6b7280">
+            In the save dialog: Destination <b>Save as PDF</b>, scale <b>100%</b>, <b>headers and footers off</b>.
+          </p>
         <% @mode == "overlay" -> %>
           <strong>{length(@cards)} {if length(@cards) == 1, do: "card", else: "cards"}: greeting, QR and address only.</strong>
           Put the shop's cards in your printer's manual tray, back side up, and print at

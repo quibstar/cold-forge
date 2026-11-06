@@ -90,6 +90,10 @@ defmodule ColdForgeWeb.PostcardController do
       side: side,
       highlights: Content.highlights(content),
       preview?: params["preview"] in ["1", "true"],
+      # The ticked cards, for Stannp's page to offer their mailing list beside
+      # the artwork: the artwork is the same for all of them, the list isn't.
+      list_ids: if(mode == "stannp", do: Enum.join(ids(params), ","), else: ""),
+      list_count: if(mode == "stannp", do: length(ids(params)), else: 0),
       display_url: Content.display_url(content)
     )
   end
