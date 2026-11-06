@@ -254,6 +254,15 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
                 <.icon name="hero-qr-code" class="size-4" /> Addresses &amp; QR only
               </.link>
               <.link
+                id="stannp-kit"
+                href={~p"/admin/p/#{@project_id}/postcards/print?#{[ids: @ticked, mode: "stannp"]}"}
+                target="_blank"
+                class="btn btn-sm"
+                title="Preview the card for Stannp, then save it as a PDF and download these cards' mailing list"
+              >
+                <.icon name="hero-paper-airplane" class="size-4" /> Stannp
+              </.link>
+              <.link
                 id="export-cards"
                 href={~p"/admin/p/#{@project_id}/postcards/export?#{[ids: @ticked]}"}
                 class="btn btn-sm"
@@ -384,15 +393,13 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
             and run the printed ones through your printer with <b>Addresses &amp; QR only</b>.
           </p>
           <p :if={@content.headline} class="text-xs opacity-60" id="stannp-help">
-            Mailing through Stannp? Upload
-            <.link
+            Mailing through Stannp? Tick the cards and press <b>Stannp</b>: it previews <.link
               id="stannp-card"
               href={~p"/admin/p/#{@project_id}/postcards/print?#{[mode: "stannp"]}"}
               target="_blank"
               class="link"
-            >the front and back in Stannp's size</.link>
-            as your design, and the ticked cards' <b>Mailing list</b>
-            as your data. Stannp prints each address, and each QR from the QR URL column.
+            >the front and back in Stannp's size</.link>, with buttons to save it as a PDF and to
+            download those cards' mailing list.
           </p>
         </div>
       </div>

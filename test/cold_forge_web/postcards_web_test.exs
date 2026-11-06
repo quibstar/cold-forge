@@ -211,6 +211,27 @@ defmodule ColdForgeWeb.PostcardsWebTest do
       assert has_element?(live, "#stannp-card[href*='mode=stannp']")
     end
 
+    test "the Stannp button previews the card with save and mailing-list buttons", %{
+      conn: conn,
+      project: project,
+      card: card
+    } do
+      {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/postcards")
+      live |> element("#card-#{card.id} input[type=checkbox]") |> render_click()
+      assert has_element?(live, "#stannp-kit[href*='mode=stannp'][href*='#{card.id}']")
+
+      html =
+        conn
+        |> get(~p"/admin/p/#{project.id}/postcards/print?#{[ids: card.id, mode: "stannp"]}")
+        |> html_response(200)
+
+      assert html =~ ~s(id="save-pdf")
+      assert html =~ ~r/id="download-list"[^>]*export\?ids=#{card.id}/s
+      assert html =~ "Download mailing list (1 card)"
+      # Still the shared artwork: no recipient on it.
+      refute html =~ card.street
+    end
+
     test "the tab links both passes", %{conn: conn, project: project, card: card} do
       {:ok, live, _html} = live(conn, ~p"/admin/p/#{project.id}/postcards")
 
