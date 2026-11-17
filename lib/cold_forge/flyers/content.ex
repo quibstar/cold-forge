@@ -122,6 +122,18 @@ defmodule ColdForge.Flyers.Content do
     |> Enum.reject(&(&1 == ""))
   end
 
+  @doc """
+  Splits a note paragraph into its first sentence and the rest, so the back of
+  the card can bold the opener. A one-sentence paragraph (the sign-off, say)
+  comes back as `{"", paragraph}`: bolding all of it would read as a heading.
+  """
+  def lead_sentence(paragraph) when is_binary(paragraph) do
+    case Regex.split(~r/(?<=[.!?])["”’)]*\K\s+/u, paragraph, parts: 2) do
+      [first, rest] when rest != "" -> {first, rest}
+      _ -> {"", paragraph}
+    end
+  end
+
   @doc "What the note says before anyone edits it."
   def default_postcard_note, do: @default_postcard_note
 
