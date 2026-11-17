@@ -183,4 +183,12 @@ defmodule ColdForge.PostcardsTest do
            ) ==
              ["Hi Herbert Roofing", "More"]
   end
+
+  test "a note paragraph splits into its first sentence and the rest" do
+    assert Content.lead_sentence("The crew won't use it. It's simple enough.") ==
+             {"The crew won't use it.", "It's simple enough."}
+
+    assert Content.lead_sentence("Why per user? One price.") == {"Why per user?", "One price."}
+    assert Content.lead_sentence("— The ExteriorPro team") == {"", "— The ExteriorPro team"}
+  end
 end

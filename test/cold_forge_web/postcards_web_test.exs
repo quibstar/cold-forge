@@ -211,6 +211,25 @@ defmodule ColdForgeWeb.PostcardsWebTest do
       assert has_element?(live, "#stannp-card[href*='mode=stannp']")
     end
 
+    test "each paragraph after the first opens with its first sentence in bold", %{
+      conn: conn,
+      project: project
+    } do
+      {:ok, project} =
+        Flyers.update_content(project, %{
+          "postcard_note" => "Headline.\n\nThe crew won't use it. It's simple.\n\n— The team"
+        })
+
+      html =
+        conn
+        |> get(~p"/admin/p/#{project.id}/postcards/print?#{[mode: "stannp"]}")
+        |> html_response(200)
+
+      assert html =~ ~r{<strong>The crew won&#39;t use it\.</strong>\s+It&#39;s simple\.}
+      refute html =~ "<strong>— The team"
+      refute html =~ "<strong>Headline."
+    end
+
     test "the Stannp button previews the card with save and mailing-list buttons", %{
       conn: conn,
       project: project,

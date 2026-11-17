@@ -141,6 +141,7 @@
       }
       .note-lead { margin: 0.05in 0 0; font-size: 13pt; font-weight: 700; line-height: 1.2; }
       .note-body { margin: 0.08in 0 0; font-size: 9.5pt; line-height: 1.4; color: var(--muted); }
+      .note-body strong { font-weight: 700; color: var(--ink); }
       .scan {
         margin-top: auto;
         display: flex;
@@ -371,7 +372,12 @@
           </p>
           <p class="for per-card">{@brand.back_greeting} {item.card.name}</p>
           <%= for {para, k} <- Enum.with_index(item.note) do %>
-            <p class={if k == 0, do: "note-lead", else: "note-body"}>{para}</p>
+            <p :if={k == 0} class="note-lead">{para}</p>
+            <p :if={k > 0} class="note-body">
+              <% {lead, rest} = ColdForge.Flyers.Content.lead_sentence(para) %>
+              <strong :if={lead != ""}>{lead}</strong>
+              {rest}
+            </p>
           <% end %>
           <div class="scan">
             <span class="qr-slot per-card">{Phoenix.HTML.raw(item.qr)}</span>
