@@ -61,6 +61,7 @@ defmodule ColdForgeWeb.ProjectTabs do
       {"Emails", base <> "/campaigns", "hero-paper-airplane"},
       {"Calls", base <> "/calls", "hero-phone"},
       {"Postcards", base <> "/postcards", "hero-envelope-open"},
+      {"Flyers", base <> "/flyers", "hero-printer"},
       {"Replies", base <> "/replies", "hero-inbox-arrow-down"},
       {"Activity", base <> "/activity", "hero-envelope"}
     ]
@@ -74,4 +75,38 @@ defmodule ColdForgeWeb.ProjectTabs do
     do: current in [root, root <> "/edit"]
 
   defp active?(current, path, _root), do: String.starts_with?(current, path)
+
+  @doc """
+  Says whose flyer or postcard wording a page is editing. Inside a campaign
+  that's the project's until the first save makes it the campaign's own, and a
+  campaign with its own can go back to the project's. Outside a campaign it's
+  the project's default, which campaigns without their own use.
+  """
+  attr :market, :map, default: nil
+  attr :project, :map, required: true
+  attr :what, :string, required: true
+
+  def wording_source(assigns) do
+    ~H"""
+    <p id="wording-source" class="text-xs text-base-content/60 -mt-1">
+      <%= cond do %>
+        <% is_nil(@market) -> %>
+          {@project.name}'s default {@what}. Every campaign without its own uses it.
+        <% ColdForge.Flyers.own_content?(@market) -> %>
+          {@market.name}'s own {@what}.
+          <button
+            type="button"
+            id="reset-wording"
+            phx-click="reset_content"
+            class="link"
+            data-confirm={"Throw away #{@market.name}'s own wording and use #{@project.name}'s again?"}
+          >
+            Use {@project.name}'s instead
+          </button>
+        <% true -> %>
+          Using {@project.name}'s {@what}. Saving here gives {@market.name} its own.
+      <% end %>
+    </p>
+    """
+  end
 end

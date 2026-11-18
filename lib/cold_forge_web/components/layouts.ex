@@ -351,7 +351,8 @@ defmodule ColdForgeWeb.Layouts do
   defp shared_pages do
     [
       {"Surveys", "/surveys", "hero-clipboard-document-list"},
-      {"Flyers", "/flyers", "hero-printer"},
+      # The wording a campaign uses until it has its own.
+      {"Default flyer", "/flyers", "hero-printer"},
       {"Call scripts", "/scripts", "hero-document-text"},
       {"All people", "/prospects", "hero-users"},
       {"All replies", "/replies", "hero-inbox-arrow-down"}

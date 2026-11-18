@@ -89,6 +89,7 @@ defmodule ColdForgeWeb.MarketsLiveTest do
       ctx.base <> "/calls",
       ctx.base <> "/calls/#{ctx.inside.id}",
       ctx.base <> "/postcards",
+      ctx.base <> "/flyers",
       ctx.base <> "/replies",
       ctx.base <> "/activity"
     ]

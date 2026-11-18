@@ -14,7 +14,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
 
   import ColdForgeWeb.ProjectTabs
 
-  alias ColdForge.{Flyers, Outreach, Sourcing}
+  alias ColdForge.{Flyers, Markets, Outreach, Sourcing}
   alias ColdForge.Flyers.{Content, Placement}
 
   @per_page 50
@@ -34,7 +34,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
 
   defp apply_action(socket, :index, _params) do
     socket
-    |> assign(:page_title, socket.assigns.current_project.name)
+    |> assign(:page_title, "Flyers")
     |> assign(:print_ids, MapSet.new())
     |> assign(:page, 1)
     |> assign(:pick_org_ids, MapSet.new())
@@ -48,28 +48,37 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
 
     socket
     |> assign(:page_title, placement.venue_name)
-    |> assign(:breadcrumbs, [{"Flyers", ~p"/admin/p/#{socket.assigns.project_id}/flyers"}])
+    |> assign(:breadcrumbs, [{"Flyers", socket.assigns.base <> "/flyers"}])
     |> assign(:placement, placement)
     |> assign(:place_form, to_form(Flyers.change_placement(placement), as: :place))
   end
 
-  # The project is re-read rather than taken from `current_project`, which was
-  # loaded on mount and doesn't see a flyer saved since.
+  # The project and campaign are re-read rather than taken from the mount-time
+  # assigns, which don't see a flyer saved since.
+  #
+  # Inside a campaign this is the campaign's flyer: its wording (the project's
+  # until it's edited here) and its places. At the project level it's the
+  # default wording new campaigns start from, and places outside any campaign.
   defp load(socket) do
     project = Outreach.get_project!(socket.assigns.project_id)
+    market = socket.assigns.market_id && Markets.get_market!(socket.assigns.market_id)
+    content = Flyers.content(project, market)
 
     socket
     |> assign(:project, project)
-    |> assign(:content, Flyers.content(project))
-    |> assign(:content_form, to_form(Flyers.change_content(project), as: :flyer))
-    |> assign(:placements, Flyers.list_placements(project.id))
+    |> assign(:market, market)
+    |> assign(:content, content)
+    |> assign(:content_form, to_form(Flyers.change_content(content), as: :flyer))
+    |> assign(
+      :placements,
+      Flyers.list_placements(project.id, market_id: socket.assigns.market_id)
+    )
     |> clamp_page()
     # Only flyer-location searches: a prospect search is the contractors you're
     # selling to, and none of them belongs on the flyer list.
     |> assign(
       :sources,
-      project.id
-      |> then(&Sourcing.list_sources(project_id: &1))
+      Sourcing.list_sources(project_id: project.id, market_id: socket.assigns.market_id)
       |> Enum.filter(&ColdForge.Sourcing.Source.flyers?/1)
     )
     |> assign(
@@ -145,7 +154,12 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
     do: {:noreply, assign(socket, :pick_org_ids, MapSet.new(socket.assigns.candidates, & &1.id))}
 
   def handle_event("add_orgs", _params, socket) do
-    added = Flyers.add_orgs(socket.assigns.project, MapSet.to_list(socket.assigns.pick_org_ids))
+    added =
+      Flyers.add_orgs(
+        socket.assigns.project,
+        MapSet.to_list(socket.assigns.pick_org_ids),
+        socket.assigns.market_id
+      )
 
     {:noreply,
      socket
@@ -165,7 +179,9 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
   end
 
   def handle_event("add_place", %{"place" => params}, socket) do
-    case Flyers.create_placement(socket.assigns.project, params) do
+    case Flyers.create_placement(socket.assigns.project, params,
+           market_id: socket.assigns.market_id
+         ) do
       {:ok, placement} ->
         {:noreply,
          socket
@@ -182,7 +198,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
 
   def handle_event("validate_content", %{"flyer" => params}, socket) do
     form =
-      socket.assigns.project
+      socket.assigns.content
       |> Flyers.change_content(params)
       |> Map.put(:action, :validate)
       |> to_form(as: :flyer)
@@ -191,13 +207,25 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
   end
 
   def handle_event("save_content", %{"flyer" => params}, socket) do
-    case Flyers.update_content(socket.assigns.project, params) do
-      {:ok, _project} ->
+    case save_wording(socket, params) do
+      {:ok, _owner} ->
         {:noreply, socket |> put_flash(:info, "Flyer saved.") |> load()}
 
       {:error, %Ecto.Changeset{changes: %{flyer: content_changeset}}} ->
         {:noreply, assign(socket, :content_form, to_form(content_changeset, as: :flyer))}
     end
+  end
+
+  def handle_event("reset_content", _params, socket) do
+    {:ok, _} = Flyers.reset_content(socket.assigns.market)
+
+    {:noreply,
+     socket
+     |> put_flash(
+       :info,
+       "#{socket.assigns.market.name} uses #{socket.assigns.project.name}'s flyer again."
+     )
+     |> load()}
   end
 
   ## Events — one place
@@ -218,7 +246,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
         {:noreply,
          socket
          |> put_flash(:info, "Saved.")
-         |> push_navigate(to: ~p"/admin/p/#{socket.assigns.project_id}/flyers")}
+         |> push_navigate(to: socket.assigns.base <> "/flyers")}
 
       {:error, changeset} ->
         {:noreply, assign(socket, :place_form, to_form(changeset, as: :place))}
@@ -231,7 +259,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
         {:noreply,
          socket
          |> put_flash(:info, "Deleted.")
-         |> push_navigate(to: ~p"/admin/p/#{socket.assigns.project_id}/flyers")}
+         |> push_navigate(to: socket.assigns.base <> "/flyers")}
 
       {:error, :printed} ->
         {:noreply,
@@ -291,7 +319,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
         />
         <div class="flex gap-2">
           <button type="submit" class="btn btn-primary">Save</button>
-          <.link navigate={~p"/admin/p/#{@project_id}/flyers"} class="btn btn-ghost">Cancel</.link>
+          <.link navigate={@base <> "/flyers"} class="btn btn-ghost">Cancel</.link>
           <button
             :if={@placement.status == "planned" and @placement.scans_count == 0}
             type="button"
@@ -362,7 +390,9 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
             <.link
               :if={MapSet.size(@print_ids) > 0 and @content.headline}
               id="print-flyers"
-              href={~p"/admin/p/#{@project_id}/flyers/print?#{[ids: Enum.join(@print_ids, ",")]}"}
+              href={
+                ~p"/admin/p/#{@project_id}/flyers/print?#{[ids: Enum.join(@print_ids, ","), market_id: @market_id]}"
+              }
               target="_blank"
               class="btn btn-sm btn-primary"
             >
@@ -373,7 +403,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
               :if={MapSet.size(@print_ids) > 0 and @content.headline}
               id="print-flyer-qr"
               href={
-                ~p"/admin/p/#{@project_id}/flyers/print?#{[ids: Enum.join(@print_ids, ","), mode: "overlay"]}"
+                ~p"/admin/p/#{@project_id}/flyers/print?#{[ids: Enum.join(@print_ids, ","), mode: "overlay", market_id: @market_id]}"
               }
               target="_blank"
               class="btn btn-sm"
@@ -412,7 +442,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
                   </td>
                   <td>
                     <.link
-                      navigate={~p"/admin/p/#{@project_id}/flyers/#{p.id}/edit"}
+                      navigate={@base <> "/flyers/#{p.id}/edit"}
                       class="font-medium hover:text-primary"
                     >
                       {p.venue_name}
@@ -448,7 +478,9 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
                     <.link
                       :if={@content.headline}
                       id={"preview-#{p.id}"}
-                      href={~p"/admin/p/#{@project_id}/flyers/print?#{[ids: p.id, preview: 1]}"}
+                      href={
+                        ~p"/admin/p/#{@project_id}/flyers/print?#{[ids: p.id, preview: 1, market_id: @market_id]}"
+                      }
                       target="_blank"
                       class="btn btn-xs btn-ghost"
                       title={"Preview the flyer for #{p.venue_name}"}
@@ -468,7 +500,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
           >
             Printing a big run? Send a print shop <.link
               id="print-shop-flyer"
-              href={~p"/admin/p/#{@project_id}/flyers/print?#{[mode: "shop"]}"}
+              href={~p"/admin/p/#{@project_id}/flyers/print?#{[mode: "shop", market_id: @market_id]}"}
               target="_blank"
               class="link"
             >the flyer with an empty QR square</.link>, then tick the places and run the printed
@@ -493,8 +525,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
           <h2 class="card-title text-base">Add places</h2>
 
           <div :if={@sources == []} class="text-sm opacity-60">
-            Run a search on the
-            <.link navigate={~p"/admin/p/#{@project_id}/sourcing"} class="link">Sourcing</.link>
+            Run a search on the <.link navigate={@base <> "/sourcing"} class="link">Sourcing</.link>
             tab for <code>roofing supply, building supply, window distributor</code>, with
             "What these are for" set to <b>Flyer locations</b>, then add what it finds here.
           </div>
@@ -585,6 +616,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
       >
         <div class="card-body gap-2">
           <h2 class="card-title text-base">What the flyer says</h2>
+          <.wording_source market={@market} project={@project} what="flyer" />
           <p class="text-xs opacity-60 -mt-1">
             Keep the headline word for word the same as the page the QR lands on — a scan that
             lands on different words reads as the wrong page.
@@ -663,4 +695,10 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
   defp org_address(org) do
     [org.street, org.city] |> Enum.reject(&(&1 in [nil, ""])) |> Enum.join(", ")
   end
+
+  defp save_wording(%{assigns: %{market: nil, project: project}}, params),
+    do: Flyers.update_content(project, params)
+
+  defp save_wording(%{assigns: %{market: market, project: project}}, params),
+    do: Flyers.update_content(market, project, params)
 end

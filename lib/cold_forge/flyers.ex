@@ -12,6 +12,7 @@ defmodule ColdForge.Flyers do
   alias ColdForge.Flyers.{Content, Placement, Scan}
   alias ColdForge.Outreach.Project
   alias ColdForge.Repo
+  alias ColdForge.Markets.Market
   alias ColdForge.Sourcing.{Org, Source}
 
   ## What the flyer says
@@ -20,8 +21,23 @@ defmodule ColdForge.Flyers do
   def content(%Project{flyer: %Content{} = content}), do: content
   def content(%Project{}), do: %Content{}
 
-  def change_content(%Project{} = project, attrs \\ %{}),
+  @doc """
+  What a campaign's flyers and postcards say: its own wording once it has
+  some, the project's until then. `nil` is the project itself.
+  """
+  def content(%Project{} = _project, %Market{flyer: %Content{} = content}), do: content
+  def content(%Project{} = project, _market), do: content(project)
+
+  @doc "True once a campaign has wording of its own rather than the project's."
+  def own_content?(%Market{flyer: %Content{}}), do: true
+  def own_content?(_market), do: false
+
+  def change_content(project_or_content, attrs \\ %{})
+
+  def change_content(%Project{} = project, attrs),
     do: Content.changeset(content(project), attrs)
+
+  def change_content(%Content{} = content, attrs), do: Content.changeset(content, attrs)
 
   # cast_embed rather than put_embed: the embed updates in place, and a
   # replacement changeset is refused for an embed that already exists.
@@ -32,14 +48,44 @@ defmodule ColdForge.Flyers do
     |> Repo.update()
   end
 
+  @doc """
+  Saves a campaign's wording. The first save starts from what it was showing
+  — the project's wording — so changing one field doesn't blank the rest.
+  """
+  def update_content(%Market{} = market, %Project{} = project, attrs) do
+    current =
+      project
+      |> content(market)
+      |> Map.from_struct()
+      |> Map.new(fn {k, v} -> {to_string(k), v} end)
+
+    market
+    |> Ecto.Changeset.cast(%{"flyer" => Map.merge(current, stringify(attrs))}, [])
+    |> Ecto.Changeset.cast_embed(:flyer, with: &Content.changeset/2, required: true)
+    |> Repo.update()
+  end
+
+  @doc "Drops a campaign's own wording, so it uses the project's again."
+  def reset_content(%Market{} = market),
+    do:
+      market |> Ecto.Changeset.change() |> Ecto.Changeset.put_embed(:flyer, nil) |> Repo.update()
+
+  defp stringify(attrs), do: Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+
   ## Where flyers are put up
 
-  def list_placements(project_id) do
+  def list_placements(project_id, opts \\ []) do
     Placement
     |> where([p], p.project_id == ^project_id)
+    |> in_market(Keyword.get(opts, :market_id, :any))
     |> order_by([p], desc: p.scans_count, asc: p.venue_name)
     |> Repo.all()
   end
+
+  # `:any` is every placement; `nil` is those outside every campaign.
+  defp in_market(query, :any), do: query
+  defp in_market(query, nil), do: where(query, [p], is_nil(p.market_id))
+  defp in_market(query, market_id), do: where(query, [p], p.market_id == ^market_id)
 
   def get_placement!(id), do: Repo.get!(Placement, id)
 
@@ -67,7 +113,11 @@ defmodule ColdForge.Flyers do
       end
 
     # The org link is set here, never cast: it isn't something a form posts.
-    %Placement{project_id: project.id, org_id: Keyword.get(opts, :org_id)}
+    %Placement{
+      project_id: project.id,
+      org_id: Keyword.get(opts, :org_id),
+      market_id: Keyword.get(opts, :market_id)
+    }
     |> Placement.create_changeset(Map.put(attrs, "code", code))
     |> Repo.insert()
   end
@@ -137,7 +187,7 @@ defmodule ColdForge.Flyers do
   Adds the given sourcing results as placements, if they belong to this
   project and aren't placed already. Returns how many were added.
   """
-  def add_orgs(%Project{} = project, org_ids) when is_list(org_ids) do
+  def add_orgs(%Project{} = project, org_ids, market_id \\ nil) when is_list(org_ids) do
     placed = from(p in Placement, where: not is_nil(p.org_id), select: p.org_id)
 
     Org
@@ -147,7 +197,7 @@ defmodule ColdForge.Flyers do
     |> where([o], o.id not in subquery(placed))
     |> Repo.all()
     |> Enum.reduce(0, fn org, added ->
-      case create_placement(project, org_attrs(org), org_id: org.id) do
+      case create_placement(project, org_attrs(org), org_id: org.id, market_id: market_id) do
         {:ok, _placement} -> added + 1
         {:error, _changeset} -> added
       end
@@ -211,7 +261,8 @@ defmodule ColdForge.Flyers do
   on those too.
   """
   def destination_url(%Placement{project: %Project{} = project} = placement) do
-    uri = URI.parse(content(project).url || "")
+    placement = Repo.preload(placement, :market)
+    uri = URI.parse(content(project, placement.market).url || "")
 
     params =
       (uri.query || "")

@@ -28,6 +28,9 @@ defmodule ColdForge.Flyers.Placement do
     field :last_scanned_at, :utc_datetime
 
     belongs_to :project, ColdForge.Outreach.Project
+    # The campaign whose flyer this is: its wording is printed and its landing
+    # page is where a scan goes. Set on creation, never cast.
+    belongs_to :market, ColdForge.Markets.Market
     belongs_to :org, ColdForge.Sourcing.Org
 
     timestamps(type: :utc_datetime)

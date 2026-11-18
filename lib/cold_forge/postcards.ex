@@ -123,7 +123,7 @@ defmodule ColdForge.Postcards do
   Adds a card for each `{prospect, org}` pair. Returns how many were added — a
   pair that gained a card since it was listed is skipped, not an error.
   """
-  def add_cards(%Project{} = project, pairs) when is_list(pairs) do
+  def add_cards(%Project{} = project, pairs, market_id \\ nil) when is_list(pairs) do
     Enum.reduce(pairs, 0, fn {prospect, org}, added ->
       attrs = %{
         code: unique_code(prospect.company || org.name, org.city),
@@ -135,7 +135,7 @@ defmodule ColdForge.Postcards do
         trade: trade(prospect)
       }
 
-      %Postcard{project_id: project.id, prospect_id: prospect.id}
+      %Postcard{project_id: project.id, prospect_id: prospect.id, market_id: market_id}
       |> Postcard.changeset(attrs)
       |> Repo.insert()
       |> case do
@@ -188,7 +188,8 @@ defmodule ColdForge.Postcards do
   and `&via=mail`, keeping any query the URL already had.
   """
   def destination_url(%Postcard{project: %Project{} = project} = card) do
-    uri = URI.parse(Flyers.content(project).url || "")
+    card = Repo.preload(card, :market)
+    uri = URI.parse(Flyers.content(project, card.market).url || "")
 
     params =
       (uri.query || "")
