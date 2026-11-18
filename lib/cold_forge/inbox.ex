@@ -271,7 +271,7 @@ defmodule ColdForge.Inbox do
 
   ## Reading them
 
-  def list_replies(project_id, limit \\ 100) do
+  def list_replies(project_id, limit \\ 100, opts \\ []) do
     from(r in Reply,
       join: p in assoc(r, :prospect),
       where: p.project_id == ^project_id,
@@ -279,6 +279,7 @@ defmodule ColdForge.Inbox do
       limit: ^limit,
       preload: [prospect: p, message: []]
     )
+    |> ColdForge.Markets.within(opts[:market_id], :prospect_id)
     |> Repo.all()
   end
 
@@ -290,12 +291,13 @@ defmodule ColdForge.Inbox do
   end
 
   @doc "How many people have written back on this project."
-  def replied_count(project_id) do
+  def replied_count(project_id, opts \\ []) do
     from(r in Reply,
       join: p in assoc(r, :prospect),
       where: p.project_id == ^project_id and not r.automated,
       select: count(r.prospect_id, :distinct)
     )
+    |> ColdForge.Markets.within(opts[:market_id], :prospect_id)
     |> Repo.one()
   end
 end

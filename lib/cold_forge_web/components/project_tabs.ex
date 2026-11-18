@@ -1,31 +1,42 @@
 defmodule ColdForgeWeb.ProjectTabs do
   @moduledoc """
-  What a project contains: its campaigns, its surveys, its people, and what has
-  actually gone out.
+  The tabs across the top of a project, or of one campaign inside it.
 
-  Rendered at the top of each of those screens so a project reads as one place
-  with three views, rather than three unrelated destinations that happen to
-  share a URL prefix.
+  A project holds campaigns ("Michigan", "Grand Rapids") and what they all
+  share: surveys, the flyer and card design, call scripts. A campaign holds the
+  work — its searches, people, email sequences, calls, postcards, replies and
+  activity. Two rows of tabs, never both at once, so you can always tell which
+  level you're on.
   """
   use ColdForgeWeb, :html
 
   attr :project, :map, required: true
+  attr :market, :map, default: nil
   attr :current_path, :string, default: nil
 
   def project_tabs(assigns) do
     ~H"""
+    <%!-- Which campaign you're in, small: the page title says what you're
+    looking at ("Calls"), this says whose. --%>
+    <p :if={@market} id="market-context" class="text-sm text-base-content/60 mb-2">
+      <.link navigate={~p"/admin/p/#{@project.id}"} class="link link-hover">
+        {@project.name} campaigns
+      </.link>
+      <span class="mx-1">/</span>
+      <span class="font-medium text-base-content">{@market.name}</span>
+    </p>
     <%!-- `tabs-border`, not `tabs-bordered` — the latter is daisyUI 4 syntax and
     silently does nothing on the vendored v5 build, which leaves the active tab
     with no underline at all. --%>
-    <div role="tablist" class="tabs tabs-border mb-6">
+    <div role="tablist" class="tabs tabs-border mb-6 flex-nowrap overflow-x-auto">
       <.link
-        :for={{label, path, icon} <- tabs(@project)}
+        :for={{label, path, icon} <- tabs(@project, @market)}
         role="tab"
         navigate={path}
-        aria-selected={active?(@current_path, path, @project)}
+        aria-selected={active?(@current_path, path, root(@project, @market))}
         class={[
-          "tab gap-2",
-          if(active?(@current_path, path, @project),
+          "tab gap-2 shrink-0",
+          if(active?(@current_path, path, root(@project, @market)),
             do: "tab-active text-primary font-medium",
             else: "text-base-content/60"
           )
@@ -38,32 +49,45 @@ defmodule ColdForgeWeb.ProjectTabs do
     """
   end
 
-  defp tabs(project) do
+  defp root(project, nil), do: ~p"/admin/p/#{project.id}"
+  defp root(project, market), do: ~p"/admin/p/#{project.id}/c/#{market.id}"
+
+  defp tabs(project, nil) do
     [
-      {"Campaigns", ~p"/admin/p/#{project.id}", "hero-paper-airplane"},
+      {"Campaigns", ~p"/admin/p/#{project.id}", "hero-flag"},
       {"Surveys", ~p"/admin/p/#{project.id}/surveys", "hero-clipboard-document-list"},
-      {"Prospects", ~p"/admin/p/#{project.id}/prospects", "hero-users"},
-      {"Sourcing", ~p"/admin/p/#{project.id}/sourcing", "hero-magnifying-glass"},
-      {"Calls", ~p"/admin/p/#{project.id}/calls", "hero-phone"},
       {"Flyers", ~p"/admin/p/#{project.id}/flyers", "hero-printer"},
-      {"Postcards", ~p"/admin/p/#{project.id}/postcards", "hero-envelope-open"},
-      {"Replies", ~p"/admin/p/#{project.id}/replies", "hero-inbox-arrow-down"},
-      {"Activity", ~p"/admin/p/#{project.id}/activity", "hero-envelope"}
+      {"Call scripts", ~p"/admin/p/#{project.id}/scripts", "hero-document-text"},
+      {"All people", ~p"/admin/p/#{project.id}/prospects", "hero-users"},
+      {"All replies", ~p"/admin/p/#{project.id}/replies", "hero-inbox-arrow-down"}
     ]
   end
 
-  # The campaigns tab is the project root, so it would prefix-match the other
-  # two. It stays lit for anything campaign-related instead — including the
-  # per-campaign pages, which live under this tab conceptually.
-  defp active?(nil, _path, _project), do: false
+  defp tabs(project, market) do
+    base = ~p"/admin/p/#{project.id}/c/#{market.id}"
 
-  defp active?(current, path, project) do
-    root = ~p"/admin/p/#{project.id}"
-
-    if path == root do
-      current == root or String.starts_with?(current, root <> "/campaigns")
-    else
-      String.starts_with?(current, path)
-    end
+    [
+      {"Overview", base, "hero-chart-bar"},
+      {"Sourcing", base <> "/sourcing", "hero-magnifying-glass"},
+      {"People", base <> "/prospects", "hero-users"},
+      {"Emails", base <> "/campaigns", "hero-paper-airplane"},
+      {"Calls", base <> "/calls", "hero-phone"},
+      {"Postcards", base <> "/postcards", "hero-envelope-open"},
+      {"Replies", base <> "/replies", "hero-inbox-arrow-down"},
+      {"Activity", base <> "/activity", "hero-envelope"}
+    ]
   end
+
+  # The root tab (the campaigns list, or a campaign's overview) would
+  # prefix-match every other tab, so it only lights for itself. The project's
+  # campaigns tab also stays lit inside the project-level sequence pages, which
+  # are only reached from it.
+  defp active?(nil, _path, _root), do: false
+
+  defp active?(current, path, root) when path == root do
+    current in [root, root <> "/edit", root <> "/c/new"] or
+      (not String.contains?(root, "/c/") and String.starts_with?(current, root <> "/campaigns"))
+  end
+
+  defp active?(current, path, _root), do: String.starts_with?(current, path)
 end

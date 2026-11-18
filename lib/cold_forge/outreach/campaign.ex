@@ -35,6 +35,9 @@ defmodule ColdForge.Outreach.Campaign do
     field :max_daily_cap, :integer
 
     belongs_to :project, ColdForge.Outreach.Project
+    # The campaign (in the screens' sense) this sequence belongs to. Optional:
+    # a sequence outside every campaign still sends.
+    belongs_to :market, ColdForge.Markets.Market
     has_many :steps, ColdForge.Outreach.CampaignStep, preload_order: [asc: :position]
     has_many :enrollments, ColdForge.Outreach.Enrollment
 
@@ -48,6 +51,7 @@ defmodule ColdForge.Outreach.Campaign do
     campaign
     |> cast(ColdForge.MergeFields.parse(attrs, "merge_defaults"), [
       :project_id,
+      :market_id,
       :name,
       :status,
       :branded,
@@ -71,6 +75,7 @@ defmodule ColdForge.Outreach.Campaign do
     |> validate_window()
     |> validate_send_days()
     |> foreign_key_constraint(:project_id)
+    |> foreign_key_constraint(:market_id)
   end
 
   defp validate_ramp_ceiling(changeset) do

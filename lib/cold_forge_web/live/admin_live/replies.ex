@@ -18,15 +18,21 @@ defmodule ColdForgeWeb.AdminLive.Replies do
     {:ok,
      socket
      |> assign(:project_id, project_id)
-     |> assign(:page_title, socket.assigns.current_project.name)
+     |> assign(:page_title, "Replies")
      |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
      |> load()}
   end
 
   defp load(socket) do
     socket
-    |> assign(:replies, Inbox.list_replies(socket.assigns.project_id))
-    |> assign(:people, Inbox.replied_count(socket.assigns.project_id))
+    |> assign(
+      :replies,
+      Inbox.list_replies(socket.assigns.project_id, 100, market_id: socket.assigns.market_id)
+    )
+    |> assign(
+      :people,
+      Inbox.replied_count(socket.assigns.project_id, market_id: socket.assigns.market_id)
+    )
   end
 
   @impl true
@@ -42,7 +48,7 @@ defmodule ColdForgeWeb.AdminLive.Replies do
   @impl true
   def render(assigns) do
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <div :if={@replies == []} class="card bg-base-100 shadow-sm">
       <div class="card-body items-center text-center py-16">
@@ -67,7 +73,7 @@ defmodule ColdForgeWeb.AdminLive.Replies do
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <.link
-                  navigate={~p"/admin/p/#{@project_id}/prospects/#{reply.prospect_id}/edit"}
+                  navigate={@base <> "/prospects/#{reply.prospect_id}/edit"}
                   class="font-medium hover:text-primary"
                 >
                   {Prospect.display_name(reply.prospect)}

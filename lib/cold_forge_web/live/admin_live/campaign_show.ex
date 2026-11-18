@@ -8,6 +8,8 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   """
   use ColdForgeWeb, :live_view
 
+  import ColdForgeWeb.ProjectTabs
+
   import ColdForgeWeb.EmailPreview
 
   alias ColdForge.{Outreach, Sending}
@@ -73,7 +75,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
 
     candidates =
       socket.assigns.project_id
-      |> Outreach.list_prospects()
+      |> Outreach.list_prospects(market_id: socket.assigns.market_id)
       |> Enum.filter(&(Prospect.mailable?(&1) and &1.id not in enrolled))
 
     socket
@@ -84,10 +86,15 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   end
 
   defp project_crumbs(socket) do
-    [
+    crumbs = [
       {"Projects", ~p"/admin/projects"},
       {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}"}
     ]
+
+    case socket.assigns.current_market do
+      nil -> crumbs
+      market -> crumbs ++ [{market.name, socket.assigns.base <> "/campaigns"}]
+    end
   end
 
   defp campaign_crumbs(socket) do
@@ -270,15 +277,21 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
     end
   end
 
-  defp campaign_path(%{project_id: project_id, campaign_id: campaign_id}) do
-    ~p"/admin/p/#{project_id}/campaigns/#{campaign_id}"
-  end
+  # Built on `base`, so a sequence opened inside a campaign stays inside it.
+  defp campaign_path(%{base: base, campaign_id: campaign_id}),
+    do: base <> "/campaigns/#{campaign_id}"
 
   ## Render
 
   @impl true
   def render(%{live_action: :show} = assigns) do
     ~H"""
+    <.project_tabs
+      :if={@current_market}
+      project={@current_project}
+      market={@current_market}
+      current_path={@current_path}
+    />
     <div class="flex flex-wrap items-center gap-3 mb-4">
       <span class={["badge", status_class(@campaign.status)]}>{@campaign.status}</span>
       <span class="text-sm text-base-content/60">
@@ -330,7 +343,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
                   Preview
                 </button>
                 <.link
-                  navigate={~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/emails/#{step.id}"}
+                  navigate={campaign_path(assigns) <> "/emails/#{step.id}"}
                   class="btn btn-xs btn-ghost"
                 >
                   Edit
@@ -357,7 +370,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
         </div>
 
         <.link
-          navigate={~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/emails/new"}
+          navigate={campaign_path(assigns) <> "/emails/new"}
           class="btn btn-outline w-full"
         >
           <.icon name="hero-plus" class="size-4" />
@@ -371,7 +384,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
             <div class="flex items-center justify-between">
               <h2 class="card-title text-base">People</h2>
               <.link
-                navigate={~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/people"}
+                navigate={campaign_path(assigns) <> "/people"}
                 class="btn btn-xs btn-primary"
               >
                 Add

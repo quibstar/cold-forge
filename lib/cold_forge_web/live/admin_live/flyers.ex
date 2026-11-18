@@ -251,7 +251,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
   @impl true
   def render(%{live_action: :edit} = assigns) do
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <.form
       for={@place_form}
@@ -315,7 +315,7 @@ defmodule ColdForgeWeb.AdminLive.Flyers do
       |> assign(:per_page, @per_page)
 
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <div class="grid gap-4">
       <div :if={is_nil(@content.headline)} class="alert alert-info text-sm">

@@ -24,10 +24,14 @@ defmodule ColdForge.Sourcing do
   def list_sources(opts \\ []) do
     Source
     |> maybe_project(Keyword.get(opts, :project_id))
+    |> maybe_market(Keyword.get(opts, :market_id))
     |> order_by([s], asc: s.name)
     |> preload(:project)
     |> Repo.all()
   end
+
+  defp maybe_market(query, nil), do: query
+  defp maybe_market(query, market_id), do: where(query, [s], s.market_id == ^market_id)
 
   defp maybe_project(query, nil), do: query
   defp maybe_project(query, project_id), do: where(query, [s], s.project_id == ^project_id)

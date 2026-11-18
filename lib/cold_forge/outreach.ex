@@ -166,6 +166,7 @@ defmodule ColdForge.Outreach do
     |> filter_by_status(opts[:status])
     |> filter_by_search(opts[:search])
     |> filter_by_trade(project_id, opts[:trade])
+    |> ColdForge.Markets.within(opts[:market_id])
   end
 
   defp filter_by_status(query, status) when status in [nil, "", "all"], do: query
@@ -266,9 +267,10 @@ defmodule ColdForge.Outreach do
   def change_prospect(%Prospect{} = prospect, attrs \\ %{}),
     do: Prospect.changeset(prospect, attrs)
 
-  def count_prospects_by_status(project_id) do
+  def count_prospects_by_status(project_id, opts \\ []) do
     Prospect
     |> where([p], p.project_id == ^project_id)
+    |> ColdForge.Markets.within(opts[:market_id])
     |> group_by([p], p.status)
     |> select([p], {p.status, count(p.id)})
     |> Repo.all()
@@ -464,12 +466,16 @@ defmodule ColdForge.Outreach do
 
   ## Campaigns
 
-  def list_campaigns(project_id) do
+  def list_campaigns(project_id, opts \\ []) do
     Campaign
     |> where([s], s.project_id == ^project_id)
+    |> filter_by_market(opts[:market_id])
     |> order_by([s], desc: s.inserted_at)
     |> Repo.all()
   end
+
+  defp filter_by_market(query, nil), do: query
+  defp filter_by_market(query, market_id), do: where(query, [c], c.market_id == ^market_id)
 
   def get_campaign!(id), do: Campaign |> Repo.get!(id) |> Repo.preload([:steps, :project])
 
@@ -727,9 +733,10 @@ defmodule ColdForge.Outreach do
 
   ## Messages
 
-  def list_messages(project_id, limit \\ 100) do
+  def list_messages(project_id, limit \\ 100, opts \\ []) do
     Message
     |> where([m], m.project_id == ^project_id)
+    |> ColdForge.Markets.within(opts[:market_id], :prospect_id)
     |> order_by([m], desc: m.inserted_at)
     |> limit(^limit)
     |> preload([:prospect, :tracked_links])

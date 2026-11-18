@@ -151,7 +151,7 @@ defmodule ColdForgeWeb.AdminLive.Scripts do
   @impl true
   def render(assigns) do
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <div class="grid gap-4 lg:grid-cols-3">
       <div class="lg:col-span-2 space-y-4">

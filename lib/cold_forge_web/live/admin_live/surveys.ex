@@ -77,7 +77,7 @@ defmodule ColdForgeWeb.AdminLive.Surveys do
   @impl true
   def render(%{live_action: :index} = assigns) do
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <div class="flex justify-end mb-4">
       <.link navigate={~p"/admin/p/#{@project_id}/surveys/new"} class="btn btn-primary btn-sm">

@@ -114,6 +114,7 @@ defmodule ColdForge.Calling do
     |> where([p], not is_nil(p.phone) and p.phone != "")
     |> where([p], is_nil(p.next_call_at) or p.next_call_at <= ^now)
     |> Outreach.filter_by_trade(project_id, opts[:trade])
+    |> ColdForge.Markets.within(opts[:market_id])
   end
 
   @doc "Everyone with a call scheduled for later, so the day ahead is visible."
@@ -124,6 +125,7 @@ defmodule ColdForge.Calling do
     |> where([p], p.project_id == ^project_id)
     |> where([p], not p.do_not_call and not is_nil(p.next_call_at) and p.next_call_at > ^now)
     |> Outreach.filter_by_trade(project_id, opts[:trade])
+    |> ColdForge.Markets.within(opts[:market_id])
     |> order_by([p], asc: p.next_call_at)
     |> limit(^(opts[:limit] || 50))
     |> Repo.all()
@@ -136,7 +138,7 @@ defmodule ColdForge.Calling do
     |> Repo.all()
   end
 
-  def recent_calls(project_id, limit \\ 25) do
+  def recent_calls(project_id, limit \\ 25, opts \\ []) do
     from(c in Call,
       join: p in assoc(c, :prospect),
       where: p.project_id == ^project_id,
@@ -144,6 +146,7 @@ defmodule ColdForge.Calling do
       limit: ^limit,
       preload: [prospect: p]
     )
+    |> ColdForge.Markets.within(opts[:market_id], :prospect_id)
     |> Repo.all()
   end
 
@@ -247,7 +250,7 @@ defmodule ColdForge.Calling do
   end
 
   @doc "Headline numbers for the calling screen."
-  def stats(project_id) do
+  def stats(project_id, opts \\ []) do
     counts =
       from(c in Call,
         join: p in assoc(c, :prospect),
@@ -255,6 +258,7 @@ defmodule ColdForge.Calling do
         group_by: c.outcome,
         select: {c.outcome, count(c.id)}
       )
+      |> ColdForge.Markets.within(opts[:market_id], :prospect_id)
       |> Repo.all()
       |> Map.new()
 
