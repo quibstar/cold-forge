@@ -159,6 +159,8 @@ defmodule ColdForgeWeb.Router do
         live base <> "/calls/:id", AdminLive.CallProspect, :show
 
         live base <> "/postcards", AdminLive.Postcards, :index
+        live base <> "/flyers", AdminLive.Flyers, :index
+        live base <> "/flyers/:id/edit", AdminLive.Flyers, :edit
         live base <> "/replies", AdminLive.Replies, :index
         live base <> "/activity", AdminLive.Messages, :index
         live base <> "/activity/:id", AdminLive.Messages, :show
@@ -166,9 +168,6 @@ defmodule ColdForgeWeb.Router do
 
       live "/p/:project_id/prospects/import", AdminLive.Import, :new
       live "/p/:project_id/prospects/do-not-contact", AdminLive.DoNotContact, :index
-
-      live "/p/:project_id/flyers", AdminLive.Flyers, :index
-      live "/p/:project_id/flyers/:id/edit", AdminLive.Flyers, :edit
 
       live "/p/:project_id/surveys", AdminLive.Surveys, :index
       live "/p/:project_id/surveys/new", AdminLive.Surveys, :new

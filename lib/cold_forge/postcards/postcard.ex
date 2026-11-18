@@ -29,6 +29,9 @@ defmodule ColdForge.Postcards.Postcard do
     field :last_scanned_at, :utc_datetime
 
     belongs_to :project, ColdForge.Outreach.Project
+    # The campaign whose card this is, for its wording and landing page. Set
+    # on creation, never cast.
+    belongs_to :market, ColdForge.Markets.Market
     belongs_to :prospect, ColdForge.Outreach.Prospect
 
     timestamps(type: :utc_datetime)

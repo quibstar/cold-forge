@@ -5,7 +5,7 @@ defmodule ColdForgeWeb.PostcardController do
   """
   use ColdForgeWeb, :controller
 
-  alias ColdForge.{Flyers, Outreach, Postcards}
+  alias ColdForge.{Flyers, Markets, Outreach, Postcards}
   alias ColdForge.Flyers.Content
 
   @doc """
@@ -47,7 +47,9 @@ defmodule ColdForgeWeb.PostcardController do
   """
   def print(conn, %{"project_id" => project_id} = params) do
     project = Outreach.get_project!(project_id)
-    content = Flyers.content(project)
+    # Printed from inside a campaign, the card says what that campaign says.
+    market = Markets.get_project_market(project.id, params["market_id"])
+    content = Flyers.content(project, market)
     brand = ColdForgeWeb.FlyerHTML.brand(project)
 
     mode =

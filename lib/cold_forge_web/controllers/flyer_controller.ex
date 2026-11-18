@@ -5,7 +5,7 @@ defmodule ColdForgeWeb.FlyerController do
   """
   use ColdForgeWeb, :controller
 
-  alias ColdForge.{Flyers, Outreach}
+  alias ColdForge.{Flyers, Markets, Outreach}
   alias ColdForge.Flyers.{Content, Placement}
 
   @doc """
@@ -39,7 +39,9 @@ defmodule ColdForgeWeb.FlyerController do
   def print(conn, %{"project_id" => project_id} = params) do
     project = Outreach.get_project!(project_id)
     ids = params |> Map.get("ids", "") |> String.split(",", trim: true)
-    content = Flyers.content(project)
+    # Printed from inside a campaign, the sheet says what that campaign says.
+    market = Markets.get_project_market(project.id, params["market_id"])
+    content = Flyers.content(project, market)
     mode = if params["mode"] in ["shop", "overlay"], do: params["mode"], else: "full"
 
     sheets =

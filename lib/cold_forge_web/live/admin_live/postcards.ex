@@ -14,7 +14,7 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
 
   import ColdForgeWeb.ProjectTabs
 
-  alias ColdForge.{Flyers, Outreach, Postcards}
+  alias ColdForge.{Flyers, Markets, Outreach, Postcards}
   alias ColdForge.Flyers.Content
   alias ColdForge.Postcards.Postcard
 
@@ -40,10 +40,13 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
 
   defp load(socket) do
     project = Outreach.get_project!(socket.assigns.project_id)
-    content = Flyers.content(project)
+    # Re-read: the mount-time campaign doesn't see wording saved since.
+    market = socket.assigns.market_id && Markets.get_market!(socket.assigns.market_id)
+    content = Flyers.content(project, market)
 
     socket
     |> assign(:project, project)
+    |> assign(:market, market)
     |> assign(:content, content)
     |> assign(:note_form, note_form(content))
     |> assign(:cards, Postcards.list_postcards(project.id, market_id: socket.assigns.market_id))
@@ -96,7 +99,7 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
         _ -> socket.assigns.matches
       end
 
-    added = Postcards.add_cards(socket.assigns.project, pairs)
+    added = Postcards.add_cards(socket.assigns.project, pairs, socket.assigns.market_id)
 
     {:noreply,
      socket
@@ -162,14 +165,28 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
   ## Events — the back of the card
 
   def handle_event("save_note", %{"postcard" => %{"postcard_note" => note}}, socket) do
-    case Flyers.update_content(socket.assigns.project, %{"postcard_note" => note}) do
-      {:ok, _project} ->
+    saved =
+      case socket.assigns.market do
+        nil ->
+          Flyers.update_content(socket.assigns.project, %{"postcard_note" => note})
+
+        market ->
+          Flyers.update_content(market, socket.assigns.project, %{"postcard_note" => note})
+      end
+
+    case saved do
+      {:ok, _owner} ->
         {:noreply, socket |> put_flash(:info, "Note saved.") |> load()}
 
       {:error, _changeset} ->
         {:noreply,
          put_flash(socket, :error, "Write the flyer first — the card uses its landing page.")}
     end
+  end
+
+  def handle_event("reset_content", _params, socket) do
+    {:ok, _} = Flyers.reset_content(socket.assigns.market)
+    {:noreply, socket |> put_flash(:info, "Using the project's card again.") |> load()}
   end
 
   defp toggle(set, id),
@@ -196,7 +213,7 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
         <.icon name="hero-information-circle" class="size-5 shrink-0" />
         <span>
           The postcard's front and landing page come from the flyer.
-          <.link navigate={~p"/admin/p/#{@project_id}/flyers"} class="link">Write the flyer</.link>
+          <.link navigate={@base <> "/flyers"} class="link">Write the flyer</.link>
           first.
         </span>
       </div>
@@ -240,7 +257,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
             <%= if MapSet.size(@tick_ids) > 0 and @content.headline do %>
               <.link
                 id="print-cards"
-                href={~p"/admin/p/#{@project_id}/postcards/print?#{[ids: @ticked]}"}
+                href={
+                  ~p"/admin/p/#{@project_id}/postcards/print?#{[ids: @ticked, market_id: @market_id]}"
+                }
                 target="_blank"
                 class="btn btn-sm btn-primary"
               >
@@ -249,7 +268,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
               </.link>
               <.link
                 id="print-overlay"
-                href={~p"/admin/p/#{@project_id}/postcards/print?#{[ids: @ticked, mode: "overlay"]}"}
+                href={
+                  ~p"/admin/p/#{@project_id}/postcards/print?#{[ids: @ticked, mode: "overlay", market_id: @market_id]}"
+                }
                 target="_blank"
                 class="btn btn-sm"
                 title="Only the greeting, QR and address, to print onto cards from a print shop"
@@ -258,7 +279,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
               </.link>
               <.link
                 id="stannp-kit"
-                href={~p"/admin/p/#{@project_id}/postcards/print?#{[ids: @ticked, mode: "stannp"]}"}
+                href={
+                  ~p"/admin/p/#{@project_id}/postcards/print?#{[ids: @ticked, mode: "stannp", market_id: @market_id]}"
+                }
                 target="_blank"
                 class="btn btn-sm"
                 title="Preview the card for Stannp, then save it as a PDF and download these cards' mailing list"
@@ -267,7 +290,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
               </.link>
               <.link
                 id="export-cards"
-                href={~p"/admin/p/#{@project_id}/postcards/export?#{[ids: @ticked]}"}
+                href={
+                  ~p"/admin/p/#{@project_id}/postcards/export?#{[ids: @ticked, market_id: @market_id]}"
+                }
                 class="btn btn-sm"
                 title="Name, address and QR link per card, for a mailing service"
               >
@@ -345,7 +370,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
                     <.link
                       :if={@content.headline}
                       id={"preview-#{c.id}"}
-                      href={~p"/admin/p/#{@project_id}/postcards/print?#{[ids: c.id, preview: 1]}"}
+                      href={
+                        ~p"/admin/p/#{@project_id}/postcards/print?#{[ids: c.id, preview: 1, market_id: @market_id]}"
+                      }
                       target="_blank"
                       class="btn btn-xs btn-ghost"
                       title={"Preview the card to #{c.name}"}
@@ -378,7 +405,7 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
             A mailing service needs the
             <.link
               href={
-                ~p"/admin/p/#{@project_id}/postcards/print?#{[ids: hd(@cards).id, side: "front"]}"
+                ~p"/admin/p/#{@project_id}/postcards/print?#{[ids: hd(@cards).id, side: "front", market_id: @market_id]}"
               }
               target="_blank"
               class="link"
@@ -389,7 +416,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
           <p :if={@content.headline} class="text-xs opacity-60" id="print-shop-help">
             Printing them in bulk? Send a print shop <.link
               id="print-shop-card"
-              href={~p"/admin/p/#{@project_id}/postcards/print?#{[mode: "shop"]}"}
+              href={
+                ~p"/admin/p/#{@project_id}/postcards/print?#{[mode: "shop", market_id: @market_id]}"
+              }
               target="_blank"
               class="link"
             >one card with the greeting, QR and address left blank</.link>, then tick the cards
@@ -398,7 +427,9 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
           <p :if={@content.headline} class="text-xs opacity-60" id="stannp-help">
             Mailing through Stannp? Tick the cards and press <b>Stannp</b>: it previews <.link
               id="stannp-card"
-              href={~p"/admin/p/#{@project_id}/postcards/print?#{[mode: "stannp"]}"}
+              href={
+                ~p"/admin/p/#{@project_id}/postcards/print?#{[mode: "stannp", market_id: @market_id]}"
+              }
               target="_blank"
               class="link"
             >the front and back in Stannp's size</.link>, with buttons to save it as a PDF and to
@@ -502,6 +533,7 @@ defmodule ColdForgeWeb.AdminLive.Postcards do
       >
         <div class="card-body gap-2">
           <h2 class="card-title text-base">The back of the card</h2>
+          <.wording_source market={@market} project={@project} what="flyer and card" />
           <p class="text-xs opacity-60 -mt-1">
             Printed beside the QR. Blank lines between paragraphs; the first prints bold.
             <code>{"{{company}}"}</code>

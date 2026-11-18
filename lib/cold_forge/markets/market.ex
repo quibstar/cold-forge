@@ -17,6 +17,9 @@ defmodule ColdForge.Markets.Market do
   schema "markets" do
     field :name, :string
     field :notes, :string
+    # This campaign's own flyer and postcard wording. Empty until first
+    # edited, and until then `ColdForge.Flyers.content/2` uses the project's.
+    embeds_one :flyer, ColdForge.Flyers.Content, on_replace: :update
 
     belongs_to :project, ColdForge.Outreach.Project
     has_many :sources, ColdForge.Sourcing.Source

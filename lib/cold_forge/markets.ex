@@ -28,6 +28,15 @@ defmodule ColdForge.Markets do
 
   def get_market!(id), do: Repo.get!(Market, id)
 
+  @doc """
+  The campaign a request names, checked against the project in its URL; `nil`
+  for none. Another project's campaign raises, as a missing one would.
+  """
+  def get_project_market(_project_id, id) when id in [nil, ""], do: nil
+
+  def get_project_market(project_id, id),
+    do: Repo.get_by!(Market, id: id, project_id: project_id)
+
   def create_market(attrs), do: %Market{} |> Market.changeset(attrs) |> Repo.insert()
 
   def update_market(%Market{} = market, attrs),
