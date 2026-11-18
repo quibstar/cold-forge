@@ -19,9 +19,10 @@ defmodule ColdForge.Postcards do
 
   ## Cards
 
-  def list_postcards(project_id) do
+  def list_postcards(project_id, opts \\ []) do
     Postcard
     |> where([c], c.project_id == ^project_id)
+    |> ColdForge.Markets.within(opts[:market_id], :prospect_id)
     |> order_by([c], desc: c.scans_count, asc: c.city, asc: c.name)
     |> Repo.all()
   end
@@ -87,6 +88,7 @@ defmodule ColdForge.Postcards do
     |> Outreach.filter_by_trade(project_id, filters[:trade])
     |> filter_reach(filters[:reach])
     |> filter_city(filters[:city])
+    |> ColdForge.Markets.within(filters[:market_id])
     |> order_by([_p, o], asc: o.city, asc: o.name)
     |> select([p, o], {p, o})
     |> Repo.all()

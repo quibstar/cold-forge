@@ -28,7 +28,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
     {:ok,
      socket
      |> assign(:project_id, project_id)
-     |> assign(:page_title, socket.assigns.current_project.name)
+     |> assign(:page_title, "Calls")
      |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
      |> assign(:trade, "")
      |> assign(:page, 1)
@@ -59,7 +59,9 @@ defmodule ColdForgeWeb.AdminLive.Calls do
   defp load(socket) do
     project_id = socket.assigns.project_id
     trade = socket.assigns.trade
-    pages = Calling.queue_page_count(project_id, trade: trade)
+    market_id = socket.assigns.market_id
+    filters = [trade: trade, market_id: market_id]
+    pages = Calling.queue_page_count(project_id, filters)
     # Clamped, so a stale page number left over from a filter change can't show
     # an empty list with rows still waiting.
     page = socket.assigns.page |> min(pages) |> max(1)
@@ -67,18 +69,18 @@ defmodule ColdForgeWeb.AdminLive.Calls do
     socket
     |> assign(:page, page)
     |> assign(:pages, pages)
-    |> assign(:queue_total, Calling.queue_size(project_id, trade: trade))
+    |> assign(:queue_total, Calling.queue_size(project_id, filters))
     |> assign(:trades, Outreach.list_trades(project_id))
-    |> assign(:queue, Calling.queue(project_id, page: page, trade: trade))
-    |> assign(:scheduled, Calling.scheduled(project_id, limit: 10, trade: trade))
-    |> assign(:recent, Calling.recent_calls(project_id, 10))
-    |> assign(:stats, Calling.stats(project_id))
+    |> assign(:queue, Calling.queue(project_id, [page: page] ++ filters))
+    |> assign(:scheduled, Calling.scheduled(project_id, [limit: 10] ++ filters))
+    |> assign(:recent, Calling.recent_calls(project_id, 10, market_id: market_id))
+    |> assign(:stats, Calling.stats(project_id, market_id: market_id))
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <div :if={@current_project.phone in [nil, ""]} class="alert alert-warning mb-4">
       <.icon name="hero-exclamation-triangle" class="size-5 shrink-0" />
@@ -125,7 +127,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
             <ul id="call-queue" class="divide-y divide-base-200">
               <li :for={p <- @queue} class="py-2">
                 <.link
-                  navigate={~p"/admin/p/#{@project_id}/calls/#{p.id}"}
+                  navigate={@base <> "/calls/#{p.id}"}
                   id={"queue-#{p.id}"}
                   class="block rounded-lg px-2 py-1.5 hover:bg-base-200 transition-colors"
                 >
@@ -171,7 +173,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
             <ul class="space-y-1 text-sm">
               <li :for={p <- @scheduled} class="flex justify-between gap-2">
                 <.link
-                  navigate={~p"/admin/p/#{@project_id}/calls/#{p.id}"}
+                  navigate={@base <> "/calls/#{p.id}"}
                   class="truncate hover:underline"
                 >
                   {Prospect.display_name(p)}
@@ -193,7 +195,7 @@ defmodule ColdForgeWeb.AdminLive.Calls do
             <li :for={c <- @recent} class="text-sm border-b border-base-200 pb-2 last:border-0">
               <div class="flex justify-between gap-2">
                 <.link
-                  navigate={~p"/admin/p/#{@project_id}/calls/#{c.prospect.id}"}
+                  navigate={@base <> "/calls/#{c.prospect.id}"}
                   class="truncate hover:underline"
                 >
                   {Prospect.display_name(c.prospect)}

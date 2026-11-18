@@ -50,6 +50,8 @@ defmodule ColdForge.Sourcing.Source do
     field :purpose, :string, default: "prospects"
 
     belongs_to :project, ColdForge.Outreach.Project
+    # The campaign (in the screens' sense) this search fills. Optional.
+    belongs_to :market, ColdForge.Markets.Market
     has_many :orgs, ColdForge.Sourcing.Org, foreign_key: :source_id
 
     timestamps(type: :utc_datetime)
@@ -89,6 +91,7 @@ defmodule ColdForge.Sourcing.Source do
     |> cast(attrs, [
       :name,
       :project_id,
+      :market_id,
       :provider,
       :segments,
       :segments_text,
@@ -114,6 +117,7 @@ defmodule ColdForge.Sourcing.Source do
     |> validate_states_known()
     |> unique_constraint(:name, message: "there is already a source with that name")
     |> foreign_key_constraint(:project_id)
+    |> foreign_key_constraint(:market_id)
   end
 
   # The textarea is the source of truth when it was edited, so what the

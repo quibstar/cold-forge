@@ -47,7 +47,7 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
      |> assign(:page_subtitle, "Prospect")
      |> assign(:breadcrumbs, [
        {"Projects", ~p"/admin/projects"},
-       {"Calls", ~p"/admin/p/#{project_id}/calls"}
+       {"Calls", socket.assigns.base <> "/calls"}
      ])
      |> assign(:prospect, prospect)
      |> assign(:script_tab, nil)
@@ -160,10 +160,10 @@ defmodule ColdForgeWeb.AdminLive.CallProspect do
   @impl true
   def render(assigns) do
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <div class="space-y-6">
-      <.link navigate={~p"/admin/p/#{@project_id}/calls"} class="text-sm text-primary hover:underline">
+      <.link navigate={@base <> "/calls"} class="text-sm text-primary hover:underline">
         ← Back to the queue
       </.link>
 

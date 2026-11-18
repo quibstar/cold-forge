@@ -126,32 +126,49 @@ defmodule ColdForgeWeb.Router do
       live "/suppressions", AdminLive.Suppressions, :index
       live "/guide", AdminLive.Guide, :index
 
-      # A project is one place with three views. Campaigns is the project root
-      # rather than a `/campaigns` child, because it's what you came for.
-      live "/p/:project_id", AdminLive.Campaigns, :index
+      # A project's front page is its campaigns: Michigan, Grand Rapids, Dog
+      # breeders, Texas. What every campaign shares — surveys, the flyer and
+      # card design, call scripts — stays at the project level.
+      live "/p/:project_id", AdminLive.Markets, :index
+      live "/p/:project_id/c/new", AdminLive.Markets, :new
+      live "/p/:project_id/c/:market_id", AdminLive.MarketShow, :show
+      live "/p/:project_id/c/:market_id/edit", AdminLive.MarketShow, :edit
 
-      # Sourcing lives under the project because that is what it fills. The
-      # project used to be a field on the form; being here means it is simply
-      # where you are.
-      live "/p/:project_id/sourcing", AdminLive.Sourcing, :index
-      live "/p/:project_id/sourcing/new", AdminLive.Sourcing, :new
-      live "/p/:project_id/sourcing/:id", AdminLive.Sourcing, :show
-      live "/p/:project_id/sourcing/:id/edit", AdminLive.Sourcing, :edit
-      live "/p/:project_id/campaigns/new", AdminLive.Campaigns, :new
-      live "/p/:project_id/campaigns/:id", AdminLive.CampaignShow, :show
-      live "/p/:project_id/campaigns/:id/people", AdminLive.CampaignShow, :people
-      live "/p/:project_id/campaigns/:id/emails/new", AdminLive.CampaignShow, :new_email
-      live "/p/:project_id/campaigns/:id/emails/:step_id", AdminLive.CampaignShow, :edit_email
+      # The working screens exist twice: under the project (everyone in it) and
+      # under one campaign (only its people). Same LiveViews and the same
+      # paths after the prefix, so a link built from `@base` lands in whichever
+      # one you are in. See `ColdForgeWeb.AdminLive.Nav`.
+      for base <- ["/p/:project_id", "/p/:project_id/c/:market_id"] do
+        live base <> "/sourcing", AdminLive.Sourcing, :index
+        live base <> "/sourcing/new", AdminLive.Sourcing, :new
+        live base <> "/sourcing/:id", AdminLive.Sourcing, :show
+        live base <> "/sourcing/:id/edit", AdminLive.Sourcing, :edit
 
-      live "/p/:project_id/prospects", AdminLive.Prospects, :index
-      live "/p/:project_id/prospects/new", AdminLive.Prospects, :new
+        live base <> "/campaigns", AdminLive.Campaigns, :index
+        live base <> "/campaigns/new", AdminLive.Campaigns, :new
+        live base <> "/campaigns/:id", AdminLive.CampaignShow, :show
+        live base <> "/campaigns/:id/people", AdminLive.CampaignShow, :people
+        live base <> "/campaigns/:id/emails/new", AdminLive.CampaignShow, :new_email
+        live base <> "/campaigns/:id/emails/:step_id", AdminLive.CampaignShow, :edit_email
+
+        live base <> "/prospects", AdminLive.Prospects, :index
+        live base <> "/prospects/new", AdminLive.Prospects, :new
+        live base <> "/prospects/:id/edit", AdminLive.Prospects, :edit
+
+        live base <> "/calls", AdminLive.Calls, :index
+        live base <> "/calls/:id", AdminLive.CallProspect, :show
+
+        live base <> "/postcards", AdminLive.Postcards, :index
+        live base <> "/replies", AdminLive.Replies, :index
+        live base <> "/activity", AdminLive.Messages, :index
+        live base <> "/activity/:id", AdminLive.Messages, :show
+      end
+
       live "/p/:project_id/prospects/import", AdminLive.Import, :new
       live "/p/:project_id/prospects/do-not-contact", AdminLive.DoNotContact, :index
-      live "/p/:project_id/prospects/:id/edit", AdminLive.Prospects, :edit
 
       live "/p/:project_id/flyers", AdminLive.Flyers, :index
       live "/p/:project_id/flyers/:id/edit", AdminLive.Flyers, :edit
-      live "/p/:project_id/postcards", AdminLive.Postcards, :index
 
       live "/p/:project_id/surveys", AdminLive.Surveys, :index
       live "/p/:project_id/surveys/new", AdminLive.Surveys, :new
@@ -164,13 +181,6 @@ defmodule ColdForgeWeb.Router do
            :edit_question
 
       live "/p/:project_id/scripts", AdminLive.Scripts, :index
-      live "/p/:project_id/calls", AdminLive.Calls, :index
-      live "/p/:project_id/calls/:id", AdminLive.CallProspect, :show
-
-      live "/p/:project_id/replies", AdminLive.Replies, :index
-
-      live "/p/:project_id/activity", AdminLive.Messages, :index
-      live "/p/:project_id/activity/:id", AdminLive.Messages, :show
     end
   end
 

@@ -51,6 +51,8 @@ defmodule ColdForgeWeb.AdminLiveTest do
       ~p"/admin/p/#{ctx.project.id}/prospects/#{ctx.prospect.id}/edit",
       ~p"/admin/p/#{ctx.project.id}/prospects/import",
       ~p"/admin/p/#{ctx.project.id}",
+      ~p"/admin/p/#{ctx.project.id}/c/new",
+      ~p"/admin/p/#{ctx.project.id}/campaigns",
       ~p"/admin/p/#{ctx.project.id}/campaigns/new",
       ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}",
       ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}/people",
@@ -71,12 +73,16 @@ defmodule ColdForgeWeb.AdminLiveTest do
       assert html =~ ~s|href="/admin/p/#{ctx.project.id}"|
     end
 
-    test "a project shows its three tabs", ctx do
+    test "a project's tabs are its campaigns and what they share", ctx do
       {:ok, _view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}")
 
       assert html =~ ~s|href="/admin/p/#{ctx.project.id}"|
+      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/surveys"|
+      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/scripts"|
       assert html =~ ~s|href="/admin/p/#{ctx.project.id}/prospects"|
-      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/activity"|
+      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/replies"|
+      # The working tabs belong to a campaign now, not the project.
+      refute html =~ ~s|href="/admin/p/#{ctx.project.id}/calls"|
     end
 
     test "editing a project has a way back to the list", ctx do

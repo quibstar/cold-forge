@@ -1,8 +1,10 @@
 defmodule ColdForgeWeb.AdminLive.Campaigns do
   @moduledoc """
-  The campaign list for a project, and creating one.
+  Email sequences — a campaign's (or, at the project level, all of them) — and
+  creating one. In code a sequence is still a `Campaign`; on screen that word
+  now means the push it belongs to. See `ColdForge.Markets.Market`.
 
-  There is no campaign *type* to choose. A campaign holds emails: one with no
+  There is no sequence *type* to choose. A sequence holds emails: one with no
   delay is a blast, several with delays is a drip. Making that a decision up
   front bought nothing and cost a whole extra concept.
   """
@@ -10,7 +12,7 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
 
   import ColdForgeWeb.ProjectTabs
 
-  alias ColdForge.Outreach
+  alias ColdForge.{Markets, Outreach}
   alias ColdForge.Outreach.Campaign
   alias ColdForge.Repo
 
@@ -27,11 +29,11 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
   defp apply_action(socket, :index, _params) do
     campaigns =
       socket.assigns.project_id
-      |> Outreach.list_campaigns()
-      |> Repo.preload(:steps)
+      |> Outreach.list_campaigns(market_id: socket.assigns.market_id)
+      |> Repo.preload([:steps, :market])
 
     socket
-    |> assign(:page_title, socket.assigns.current_project.name)
+    |> assign(:page_title, "Emails")
     |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:campaigns, campaigns)
     |> assign(:stats, Map.new(campaigns, &{&1.id, Outreach.campaign_stats(&1.id)}))
@@ -40,12 +42,16 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
 
   defp apply_action(socket, :new, _params) do
     socket
-    |> assign(:page_title, "New campaign")
+    |> assign(:page_title, "New email sequence")
     |> assign(:breadcrumbs, [
       {"Projects", ~p"/admin/projects"},
       {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}"}
     ])
-    |> assign(:form, to_form(Outreach.change_campaign(%Campaign{})))
+    |> assign(:market_options, Markets.options(socket.assigns.project_id))
+    |> assign(
+      :form,
+      to_form(Outreach.change_campaign(%Campaign{market_id: socket.assigns.market_id}))
+    )
   end
 
   @impl true
@@ -61,12 +67,14 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
   def handle_event("save", %{"campaign" => params}, socket) do
     params = Map.put(params, "project_id", socket.assigns.project_id)
 
+    params =
+      if socket.assigns.market_id,
+        do: Map.put(params, "market_id", socket.assigns.market_id),
+        else: params
+
     case Outreach.create_campaign(params) do
       {:ok, campaign} ->
-        {:noreply,
-         push_navigate(socket,
-           to: ~p"/admin/p/#{socket.assigns.project_id}/campaigns/#{campaign.id}"
-         )}
+        {:noreply, push_navigate(socket, to: socket.assigns.base <> "/campaigns/#{campaign.id}")}
 
       {:error, changeset} ->
         {:noreply, assign(socket, :form, to_form(changeset))}
@@ -76,24 +84,24 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
   @impl true
   def render(%{live_action: :index} = assigns) do
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <div class="flex justify-end mb-4">
-      <.link navigate={~p"/admin/p/#{@project_id}/campaigns/new"} class="btn btn-primary btn-sm">
-        <.icon name="hero-plus" class="size-4" /> New campaign
+      <.link navigate={@base <> "/campaigns/new"} class="btn btn-primary btn-sm">
+        <.icon name="hero-plus" class="size-4" /> New email sequence
       </.link>
     </div>
 
     <div :if={@campaigns == []} class="card bg-base-100 shadow-sm">
       <div class="card-body items-center text-center py-16">
         <.icon name="hero-paper-airplane" class="size-10 text-base-content/30" />
-        <h2 class="card-title mt-2">No campaigns yet</h2>
+        <h2 class="card-title mt-2">No emails yet</h2>
         <p class="text-base-content/60 max-w-md">
-          A campaign is a set of emails and the people who get them. Write one
+          A sequence is a set of emails and the people who get them. Write one
           email for a single send, or several with delays for a follow-up
-          campaign.
+          sequence.
         </p>
-        <.link navigate={~p"/admin/p/#{@project_id}/campaigns/new"} class="btn btn-primary mt-4">
+        <.link navigate={@base <> "/campaigns/new"} class="btn btn-primary mt-4">
           Create one
         </.link>
       </div>
@@ -104,7 +112,8 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
         <table class="table">
           <thead>
             <tr>
-              <th>Campaign</th>
+              <th>Sequence</th>
+              <th :if={is_nil(@current_market)}>Campaign</th>
               <th>Status</th>
               <th class="text-right">People</th>
               <th class="text-right">Sent</th>
@@ -116,12 +125,15 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
             <tr :for={c <- @campaigns}>
               <td>
                 <.link
-                  navigate={~p"/admin/p/#{@project_id}/campaigns/#{c.id}"}
+                  navigate={@base <> "/campaigns/#{c.id}"}
                   class="font-medium hover:text-primary"
                 >
                   {c.name}
                 </.link>
                 <div class="text-xs text-base-content/50">{email_count(c)}</div>
+              </td>
+              <td :if={is_nil(@current_market)} class="text-sm text-base-content/70">
+                {if c.market, do: c.market.name, else: "—"}
               </td>
               <td><span class={["badge badge-sm", status_class(c.status)]}>{c.status}</span></td>
               <td class="text-right tabular-nums">{Map.get(@people[c.id], "active", 0)}</td>
@@ -152,8 +164,17 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
           id="campaign-form"
           class="space-y-4"
         >
-          <.input field={@form[:name]} label="Campaign name" placeholder="Roofers — spring 2026" />
+          <.input field={@form[:name]} label="Sequence name" placeholder="Roofers — spring 2026" />
           <p class="text-xs text-base-content/50 -mt-2">Only you see this.</p>
+
+          <.input
+            :if={is_nil(@current_market)}
+            field={@form[:market_id]}
+            type="select"
+            label="Campaign"
+            prompt="Not in a campaign"
+            options={@market_options}
+          />
 
           <%!-- A campaign usually targets one segment, which is what makes the
           copy work — so this is where "everyone here is a roofer" belongs. --%>
@@ -235,11 +256,11 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
           </details>
 
           <div class="flex justify-end gap-2 pt-2">
-            <.link navigate={~p"/admin/p/#{@project_id}"} class="btn btn-ghost">
+            <.link navigate={@base <> "/campaigns"} class="btn btn-ghost">
               Cancel
             </.link>
             <button type="submit" class="btn btn-primary" phx-disable-with="Creating…">
-              Create campaign
+              Create sequence
             </button>
           </div>
         </.form>

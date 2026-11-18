@@ -35,7 +35,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
 
   defp apply_action(socket, :index, _params) do
     socket
-    |> assign(:page_title, socket.assigns.current_project.name)
+    |> assign(:page_title, "People")
     |> assign(:breadcrumbs, [{"Projects", ~p"/admin/projects"}])
     |> assign(:prospect, nil)
   end
@@ -64,7 +64,8 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
   defp prospect_crumbs(socket) do
     [
       {"Projects", ~p"/admin/projects"},
-      {socket.assigns.current_project.name, ~p"/admin/p/#{socket.assigns.project_id}/prospects"}
+      {(socket.assigns.current_market || socket.assigns.current_project).name,
+       socket.assigns.base <> "/prospects"}
     ]
   end
 
@@ -74,7 +75,8 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
     filters = [
       search: socket.assigns.search,
       status: socket.assigns.status,
-      trade: socket.assigns.trade
+      trade: socket.assigns.trade,
+      market_id: socket.assigns.market_id
     ]
 
     # Clamp first: changing a filter while on page 4 would otherwise land on an
@@ -89,7 +91,12 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
     |> assign(:total, Outreach.count_prospects(project_id, filters))
     |> assign(:prospects, prospects)
     |> assign(:trades, Outreach.list_trades(socket.assigns.project_id))
-    |> assign(:counts, Outreach.count_prospects_by_status(socket.assigns.project_id))
+    |> assign(
+      :counts,
+      Outreach.count_prospects_by_status(socket.assigns.project_id,
+        market_id: socket.assigns.market_id
+      )
+    )
   end
 
   @impl true
@@ -163,7 +170,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
         {:noreply,
          socket
          |> put_flash(:info, "Prospect added.")
-         |> push_navigate(to: ~p"/admin/p/#{socket.assigns.project_id}/prospects")}
+         |> push_navigate(to: socket.assigns.base <> "/prospects")}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -176,7 +183,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
         {:noreply,
          socket
          |> put_flash(:info, "Prospect updated.")
-         |> push_navigate(to: ~p"/admin/p/#{socket.assigns.project_id}/prospects")}
+         |> push_navigate(to: socket.assigns.base <> "/prospects")}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -186,7 +193,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
   @impl true
   def render(%{live_action: :index} = assigns) do
     ~H"""
-    <.project_tabs project={@current_project} current_path={@current_path} />
+    <.project_tabs project={@current_project} market={@current_market} current_path={@current_path} />
 
     <div class="flex flex-col sm:flex-row gap-3 sm:items-end justify-between mb-4">
       <form
@@ -228,14 +235,18 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
         >
           <.icon name="hero-no-symbol" class="size-4" /> Do not contact
         </.link>
+        <%!-- A campaign's people come from its searches and sequences, so
+        someone added by hand belongs to the project, not to a campaign. --%>
         <.link
+          :if={is_nil(@current_market)}
           navigate={~p"/admin/p/#{@project_id}/prospects/import"}
           class="btn btn-sm"
         >
           <.icon name="hero-arrow-up-tray" class="size-4" /> Import CSV
         </.link>
         <.link
-          navigate={~p"/admin/p/#{@project_id}/prospects/new"}
+          :if={is_nil(@current_market)}
+          navigate={@base <> "/prospects/new"}
           class="btn btn-primary btn-sm"
         >
           <.icon name="hero-plus" class="size-4" /> Add prospect
@@ -263,7 +274,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
             <tr :for={p <- @prospects}>
               <td>
                 <.link
-                  navigate={~p"/admin/p/#{@project_id}/prospects/#{p.id}/edit"}
+                  navigate={@base <> "/prospects/#{p.id}/edit"}
                   class="font-medium hover:text-primary"
                 >
                   {Prospect.display_name(p)}
@@ -379,7 +390,7 @@ defmodule ColdForgeWeb.AdminLive.Prospects do
             </div>
 
             <div class="flex justify-end gap-2 pt-2">
-              <.link navigate={~p"/admin/p/#{@project_id}/prospects"} class="btn btn-ghost">
+              <.link navigate={@base <> "/prospects"} class="btn btn-ghost">
                 Cancel
               </.link>
               <button type="submit" class="btn btn-primary" phx-disable-with="Saving…">
