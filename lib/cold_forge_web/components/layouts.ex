@@ -60,6 +60,7 @@ defmodule ColdForgeWeb.Layouts do
       |> assign_new(:current_scope, fn -> nil end)
       |> assign_new(:current_path, fn -> nil end)
       |> assign_new(:current_project, fn -> nil end)
+      |> assign_new(:current_project_markets, fn -> [] end)
       |> assign_new(:breadcrumbs, fn -> [] end)
       |> assign_new(:page_title, fn -> nil end)
       |> assign_new(:page_subtitle, fn -> nil end)
@@ -114,6 +115,43 @@ defmodule ColdForgeWeb.Layouts do
             >
               Projects
             </.nav_link>
+
+            <%!-- The project you're in: its campaigns, then what they all share.
+            Here rather than as tabs so the campaigns page shows campaigns, and
+            so the shared pages are a click away from inside any campaign. --%>
+            <div :if={@current_project} id="project-nav" class="pt-3 pb-1 space-y-1">
+              <div class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-base-content/50 truncate">
+                {@current_project.name}
+              </div>
+              <.nav_link
+                navigate={~p"/admin/p/#{@current_project.id}"}
+                icon="hero-flag"
+                active={campaigns_active(@current_path, @current_project)}
+              >
+                Campaigns
+              </.nav_link>
+              <.link
+                :for={m <- @current_project_markets}
+                navigate={~p"/admin/p/#{@current_project.id}/c/#{m.id}"}
+                class={[
+                  "block ml-11 pl-3 py-1 rounded-lg text-sm truncate transition-colors",
+                  if(nav_active(@current_path, "/admin/p/#{@current_project.id}/c/#{m.id}"),
+                    do: "bg-primary/10 text-primary font-medium",
+                    else: "text-base-content/70 hover:bg-base-200 hover:text-base-content"
+                  )
+                ]}
+              >
+                {m.name}
+              </.link>
+              <.nav_link
+                :for={{label, suffix, icon} <- shared_pages()}
+                navigate={"/admin/p/#{@current_project.id}" <> suffix}
+                icon={icon}
+                active={nav_active(@current_path, "/admin/p/#{@current_project.id}" <> suffix)}
+              >
+                {label}
+              </.nav_link>
+            </div>
             <.nav_link
               navigate={~p"/admin/suppressions"}
               icon="hero-no-symbol"
@@ -308,6 +346,26 @@ defmodule ColdForgeWeb.Layouts do
   defp nav_active(current, "/admin"), do: current == "/admin"
   defp nav_active(current, "/admin/projects"), do: String.starts_with?(current, "/admin/projects")
   defp nav_active(current, path), do: String.starts_with?(current, path)
+
+  # What every campaign in a project shares, under the project in the sidebar.
+  defp shared_pages do
+    [
+      {"Surveys", "/surveys", "hero-clipboard-document-list"},
+      {"Flyers", "/flyers", "hero-printer"},
+      {"Call scripts", "/scripts", "hero-document-text"},
+      {"All people", "/prospects", "hero-users"},
+      {"All replies", "/replies", "hero-inbox-arrow-down"}
+    ]
+  end
+
+  # The campaigns list, and the project-level sequence pages only reached from
+  # it. A campaign's own pages light up its name instead.
+  defp campaigns_active(nil, _project), do: false
+
+  defp campaigns_active(current, project) do
+    root = "/admin/p/#{project.id}"
+    current in [root, root <> "/c/new"] or String.starts_with?(current, root <> "/campaigns")
+  end
 
   attr :navigate, :string, required: true
   attr :icon, :string, required: true

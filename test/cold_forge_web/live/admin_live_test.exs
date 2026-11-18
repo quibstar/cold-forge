@@ -73,16 +73,22 @@ defmodule ColdForgeWeb.AdminLiveTest do
       assert html =~ ~s|href="/admin/p/#{ctx.project.id}"|
     end
 
-    test "a project's tabs are its campaigns and what they share", ctx do
-      {:ok, _view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}")
+    test "the sidebar lists a project's campaigns and what they share", ctx do
+      {:ok, _} =
+        ColdForge.Markets.create_market(%{project_id: ctx.project.id, name: "Grand Rapids"})
 
-      assert html =~ ~s|href="/admin/p/#{ctx.project.id}"|
-      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/surveys"|
-      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/scripts"|
-      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/prospects"|
-      assert html =~ ~s|href="/admin/p/#{ctx.project.id}/replies"|
-      # The working tabs belong to a campaign now, not the project.
-      refute html =~ ~s|href="/admin/p/#{ctx.project.id}/calls"|
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}")
+      nav = view |> element("#project-nav") |> render()
+
+      assert nav =~ "Grand Rapids"
+
+      for suffix <- ["", "/surveys", "/flyers", "/scripts", "/prospects", "/replies"] do
+        assert nav =~ ~s|href="/admin/p/#{ctx.project.id}#{suffix}"|,
+               "sidebar is missing #{suffix}"
+      end
+
+      # The campaigns page is campaigns, not a row of tabs above them.
+      refute has_element?(view, "main [role=tablist]")
     end
 
     test "editing a project has a way back to the list", ctx do

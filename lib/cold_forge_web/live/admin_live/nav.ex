@@ -28,7 +28,11 @@ defmodule ColdForgeWeb.AdminLive.Nav do
   # `:project_id` is in the route for every project-scoped page, so the sidebar
   # section follows the URL rather than a stored selection that could go stale.
   defp assign_current_project(socket, %{"project_id" => project_id}) do
-    assign(socket, :current_project, Outreach.get_project!(project_id))
+    socket
+    |> assign(:current_project, Outreach.get_project!(project_id))
+    # Listed under the project in the sidebar. Read on mount, which every
+    # create, rename and delete ends in, so the list can't go stale.
+    |> assign(:current_project_markets, Markets.list_markets(project_id))
   end
 
   defp assign_current_project(socket, _params), do: assign(socket, :current_project, nil)
