@@ -40,7 +40,7 @@ defmodule ColdForge.Sourcing.PermitsTest do
 
       [quick, kanga] = Permits.parse("austin", "roofing", records)
 
-      assert quick.name == "Quick Roofing LLC"
+      assert quick.name == "Quick Roofing"
       assert quick.phone == "(817) 477-0999"
       assert quick.provider == "permits"
       assert quick.source_ref == "austin:quick-roofing"
@@ -104,7 +104,7 @@ defmodule ColdForge.Sourcing.PermitsTest do
       assert rhino.raw["contact_name"] == "Misti White"
       assert rhino.raw["permits"] == 73
       assert rhino.phone == nil
-      assert soukup.name == "Soukup Roofing, LLC"
+      assert soukup.name == "Soukup Roofing"
       assert soukup.raw["contact_name"] == "Joshua Mueller"
     end
 
@@ -114,6 +114,107 @@ defmodule ColdForge.Sourcing.PermitsTest do
       assert sql =~ ~s|FROM "abc-123"|
       assert sql =~ "'2026-08-24'"
       assert sql =~ ~s|"PERMIT TYPE" ILIKE '%roof%'|
+    end
+  end
+
+  describe "names as an email would write them" do
+    test "initials stay, shouting goes, legal endings go" do
+      assert Permits.clean_name("DV ROOFING") == "DV Roofing"
+      assert Permits.clean_name("IRC ROOFING & CONSTRUCTION, LLC") == "IRC Roofing & Construction"
+      assert Permits.clean_name("BLDT CONTRACTING LLC") == "BLDT Contracting"
+      assert Permits.clean_name("TOP ROOFING CO.") == "Top Roofing"
+      assert Permits.clean_name("DIAMOND BAR CUSTOM BUILDERS") == "Diamond Bar Custom Builders"
+
+      assert Permits.clean_name("Jolly Roofing and Contracting Co LLC") ==
+               "Jolly Roofing and Contracting"
+
+      # "Company" stays: without it this reads as a person.
+      assert Permits.clean_name("Gary Werner Company") == "Gary Werner Company"
+    end
+
+    test "the trading name when both are given, and the city's notes removed" do
+      assert Permits.clean_name("GDM LLC dba Big Tex Construction") == "Big Tex Construction"
+
+      assert Permits.clean_name("CG&S Construction, Inc. dba: CG&S Design-Build") ==
+               "CG&S Design-Build"
+
+      assert Permits.clean_name("Design Build Austin Inc(MAIN)") == "Design Build Austin"
+      assert Permits.clean_name("37urban Companies (37urban Partners LLC)") == "37urban Companies"
+      assert Permits.clean_name("Window Nation LLC**Main**") == "Window Nation"
+    end
+
+    test "a contractor's key doesn't move when the display name changes" do
+      [row] =
+        Permits.parse("austin", "roofing", [
+          %{"contractor_company_name" => "Quick Roofing LLC", "permits" => "1"}
+        ])
+
+      # The key the first run saved, so the next run knows them.
+      assert row.source_ref == "austin:quick-roofing"
+
+      [row] =
+        Permits.parse("austin", "roofing", [
+          %{"contractor_company_name" => "GDM LLC dba Big Tex Construction", "permits" => "1"}
+        ])
+
+      assert row.name == "Big Tex Construction"
+      assert row.source_ref == "austin:gdm-dba-big-tex-construction"
+    end
+
+    test "San Antonio's 30-character cut is undone, and only names that hit it" do
+      rows =
+        Permits.parse("san_antonio", "roofing", [
+          %{"contact" => "ANA GARCIA, GARCIA'S REMODELING & CONSTRUC", "permits" => 3},
+          %{"contact" => "BOB SMITH, IRC ROOFING & CONSTRUCTION, LL", "permits" => 9},
+          %{"contact" => "TOM LEE, III, VINTAGE RECONSTRUCTION, INC", "permits" => 2}
+        ])
+        |> Map.new(&{&1.name, &1.raw})
+
+      assert rows["Garcia's Remodeling"]["name_truncated"]
+      assert rows["IRC Roofing & Construction"]["name_truncated"]
+      assert rows["Vintage Reconstruction"]
+      refute rows["Vintage Reconstruction"]["name_truncated"]
+    end
+
+    test "a suffix alone, or a person as their own company, is no contractor" do
+      assert [] ==
+               Permits.parse("san_antonio", "roofing", [
+                 %{"contact" => "MIKE HOWELL, JR", "permits" => 2},
+                 %{"contact" => "ANN ROE, INC", "permits" => 4}
+               ])
+
+      assert [] ==
+               Permits.parse("austin", "windows", [
+                 %{
+                   "contractor_company_name" => "Manohar Bashyam",
+                   "contractor_full_name" => "MANOHAR BASHYAM",
+                   "permits" => "1"
+                 }
+               ])
+    end
+
+    test "trades the first run let through are left out" do
+      names = [
+        "True Air",
+        "ATX Clima LLC",
+        "Mister Sparky Austin",
+        "Dobbs Tennis Courts, Inc.",
+        "Temperature Pro West Austin",
+        "Indoor Comfort Experts A/C",
+        "Austin Facility Services",
+        "Camacho Flooring",
+        "Clean Tag Permits",
+        "210 Realty, LLC",
+        "Frosty Mist LLC",
+        "Infinity Replacement, LLC"
+      ]
+
+      records =
+        Enum.map(names, &%{"contractor_company_name" => &1, "permits" => "1"}) ++
+          [%{"contractor_company_name" => "Fresh Coat Roofing", "permits" => "1"}]
+
+      assert ["Fresh Coat Roofing"] ==
+               "austin" |> Permits.parse("roofing", records) |> Enum.map(& &1.name)
     end
   end
 
@@ -154,6 +255,30 @@ defmodule ColdForge.Sourcing.PermitsTest do
       ]
 
       assert FindWebsite.pick_match(org(%{}), rows) == nil
+    end
+
+    test "the same name in another state is another business" do
+      rows = [
+        %{name: "Kanga Roof", phone: nil, region: "AZ", website: "https://tucson.test"},
+        %{name: "Kanga Roof", phone: nil, region: "TX", website: "https://kangaroof.test"}
+      ]
+
+      assert %{website: "https://kangaroof.test"} =
+               FindWebsite.pick_match(org(%{phone: nil, region: "TX"}), rows)
+    end
+
+    test "a name the city cut short takes the listing's, minus its advertising" do
+      cut = org(%{name: "Garcia's Remodeling", raw: %{"name_truncated" => true}})
+
+      match = %{
+        name: "Garcia's Remodeling & Construction: San Antonio Remodeler",
+        website: "https://garcias.test"
+      }
+
+      assert FindWebsite.with_name(cut, match).rename == "Garcia's Remodeling & Construction"
+
+      # A whole name stays as the city wrote it.
+      refute Map.has_key?(FindWebsite.with_name(org(%{raw: %{}}), match), :rename)
     end
 
     test "a one-word name doesn't match every business that starts with it" do

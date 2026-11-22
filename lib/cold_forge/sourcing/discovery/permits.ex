@@ -58,11 +58,19 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
 
   # National chains and other trades that pull window or roof permits: not an
   # owner-operated exterior shop, and not who ExteriorPro is for.
-  @not_a_fit ~W(
+  # Added 2026-11-22 after the first run let through "True Air", "ATX Clima",
+  # "Mister Sparky", "Dobbs Tennis Courts", realty firms and a flooring store:
+  # their permits mention a roof or a window, their trade isn't one.
+  @not_a_fit ~W[
     renewal.by.andersen \bpella\b home.depot \blowe'?s\b power.home window.nation
-    solar sunrun \btesla\b plumb electric mechanical \bhvac\b air.condition heating
-    cooling \bpools?\b \bpest\b landscap fire.protection sprinkler
-  )
+    infinity.replacement solar sunrun \btesla\b plumb electric \belec\b sparky
+    mechanical \bhvac\b air.condition \bair\b \ba/?c\b clima temperature
+    heating \bheat\b cooling \bpools?\b \bpest\b landscap fire.protection sprinkler
+    \bmist\b water.services pipework \bpipe tennis foundation.(repair|special)
+    realty \bproperties\b investments? capital.group \bsells\b flooring \bbath\b
+    fabrication environmental facilit(y|ies) network.services \bpermits?\b petro
+    appliance consulting
+  ]
 
   # What the city puts where a contractor should be when there isn't one.
   @not_a_contractor ~W(owner home.?owner self n/?a none tbd unknown)
@@ -159,12 +167,19 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
     |> Enum.sort_by(& &1.raw["permits"], :desc)
   end
 
+  # San Antonio's export cuts the company at 30 characters: "Garcia's
+  # Remodeling & Construc", "IRC Roofing & Construction, Ll".
+  @san_antonio_name_limit 30
+
   defp contractor("austin", record) do
+    raw = basic_clean(record["contractor_company_name"])
     company = clean_name(record["contractor_company_name"])
 
-    if fit?(company) do
+    # A person's own name in the company field is a homeowner pulling their
+    # own permit, as often as not, and there's no business to look up.
+    if fit?(company) and not person?(raw, record["contractor_full_name"]) do
       %{
-        key: normalize(company),
+        key: normalize(raw),
         company: company,
         person: titleize(record["contractor_full_name"]),
         phone: phone(record["contractor_phone"]),
@@ -178,12 +193,18 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
   defp contractor("san_antonio", record) do
     case String.split(to_string(record["contact"]), ",", parts: 2) do
       [person, company] ->
-        company = clean_name(company)
+        raw = basic_clean(company)
+        # Exactly at the limit: a name that ran into it. "III, VINTAGE
+        # RECONSTRUCTION, INC" is longer only because the split put the
+        # person's suffix in front of it.
+        truncated = String.length(String.trim(company)) == @san_antonio_name_limit
+        company = company |> strip_name_suffix() |> clean_name() |> untruncate(truncated)
 
         if fit?(company) do
           %{
-            key: normalize(company),
+            key: normalize(raw),
             company: company,
+            truncated: truncated,
             person: titleize(person),
             phone: nil,
             town: nil,
@@ -198,11 +219,41 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
     end
   end
 
+  # "MIKE HOWELL, JR, HOWELL ENTERPRISES" splits after the name, leaving the
+  # suffix at the front of the company.
+  defp strip_name_suffix(company),
+    do: String.replace(company, ~r/^\s*(jr|sr|ii|iii|iv)\.?\s*,\s*/i, "")
+
+  # A cut-off name loses its last, partial word and whatever it leaves dangling.
+  defp untruncate(nil, _truncated), do: nil
+  defp untruncate(name, false), do: name
+
+  defp untruncate(name, true) do
+    name
+    |> String.split(" ")
+    |> Enum.drop(-1)
+    |> Enum.join(" ")
+    |> String.replace(~r/[\s,&]+$|\s+(and|of|the)$/i, "")
+    |> String.trim()
+    |> case do
+      "" -> name
+      shorter -> shorter
+    end
+  end
+
+  defp person?(nil, _full_name), do: false
+  defp person?(_company, nil), do: false
+
+  defp person?(company, full_name),
+    do: normalize(company) == normalize(full_name) and String.contains?(normalize(company), "-")
+
   defp to_org(city_key, city, segment, key, rows) do
     busiest = Enum.max_by(rows, & &1.permits)
     phone = rows |> Enum.map(& &1.phone) |> most_common()
     person = rows |> Enum.map(& &1.person) |> most_common()
     last = rows |> Enum.map(& &1.last) |> Enum.reject(&is_nil/1) |> Enum.max(Date, fn -> nil end)
+
+    truncated = Enum.any?(rows, &Map.get(&1, :truncated, false))
 
     %{
       name: busiest.company,
@@ -214,12 +265,14 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
       provider: "permits",
       source_ref: "#{city_key}:#{key}",
       source_url: city.page,
-      raw: %{
-        "permit_city" => city.name,
-        "permits" => Enum.sum(Enum.map(rows, & &1.permits)),
-        "last_issued" => last && Date.to_iso8601(last),
-        "contact_name" => person
-      }
+      raw:
+        %{
+          "permit_city" => city.name,
+          "permits" => Enum.sum(Enum.map(rows, & &1.permits)),
+          "last_issued" => last && Date.to_iso8601(last),
+          "contact_name" => person
+        }
+        |> then(&if(truncated, do: Map.put(&1, "name_truncated", true), else: &1))
     }
   end
 
@@ -227,45 +280,125 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
   defp fit?(""), do: false
 
   defp fit?(company) do
+    not junk_name?(company) and trade_fits?(company)
+  end
+
+  # What's left when the city put only a suffix where the company goes: "JR",
+  # "INC".
+  defp junk_name?(name), do: String.match?(name, ~r/^(jr|sr|ii|iii|iv|inc|llc|co)\.?$/i)
+
+  defp trade_fits?(company) do
     not_a_fit = Regex.compile!(Enum.join(@not_a_fit, "|"), "i")
     not_a_contractor = Regex.compile!("^(" <> Enum.join(@not_a_contractor, "|") <> ")\\b", "i")
     not Regex.match?(not_a_fit, company) and not Regex.match?(not_a_contractor, company)
   end
 
   @doc """
-  A company name as the city wrote it, minus its own bookkeeping: "**Main**",
-  "*MAIN*" and "(d/b/a or registered trade name)".
+  A company name as an email would write it: the city's bookkeeping removed
+  ("**Main**", "(MAIN)", "(d/b/a or registered trade name)"), the trading name
+  when it gives both ("GDM LLC dba Big Tex Construction" is Big Tex
+  Construction), no "LLC" or "Inc." on the end, and normal capitals for a name
+  written in capitals, keeping initials like "DV" and "IRC".
   """
-  def clean_name(nil), do: nil
-
   def clean_name(name) do
+    case basic_clean(name) do
+      nil ->
+        nil
+
+      basic ->
+        basic
+        |> trading_name()
+        |> String.replace(~r/\((main|[^)]*\b(llc|inc|partners?)\b[^)]*)\)/i, "")
+        |> squeeze()
+        |> strip_legal()
+        |> case do
+          "" -> nil
+          display -> if shouting?(basic), do: title_case(display), else: display
+        end
+    end
+  end
+
+  @doc """
+  The city's own bookkeeping off a name, and nothing else. A contractor's key
+  is made from this, so it doesn't move when the display rules change: a new
+  rule must not make every known contractor look new on the next run.
+  """
+  def basic_clean(nil), do: nil
+
+  def basic_clean(name) do
     name
     |> String.replace(~r/\*+\s*main\s*\*+/i, "")
     |> String.replace(~r/\(d\/b\/a[^)]*\)/i, "")
     |> String.replace(~r/,(?=\S)/, ", ")
+    |> squeeze()
+    |> case do
+      "" -> nil
+      cleaned -> cleaned
+    end
+  end
+
+  defp squeeze(name) do
+    name
     |> String.replace(~r/[\s\x{00A0}]+/u, " ")
     |> String.trim()
     |> String.trim(",")
     |> String.trim()
-    |> case do
-      "" -> nil
-      cleaned -> if shouting?(cleaned), do: title_case(cleaned), else: cleaned
+  end
+
+  defp trading_name(name) do
+    case Regex.run(~r/\b(?:dba|d\/b\/a)\b[:.]?\s*(.+)$/i, name) do
+      [_, trading] -> if String.trim(trading) == "", do: name, else: trading
+      nil -> name
     end
+  end
+
+  # "Quick Roofing LLC on Austin's permit list" reads as a form letter.
+  # "Company" stays: "Gary Werner" alone reads as a person.
+  @legal ~r/(^|[,\s]+)(l\.?l\.?c\.?|inc\.?|incorporated|corp\.?|corporation|ltd\.?|l\.?p\.?|llp|pllc|co\.?)$/i
+
+  defp strip_legal(name) do
+    stripped = name |> String.replace(@legal, "") |> squeeze()
+    if stripped == name, do: name, else: strip_legal(stripped)
   end
 
   # "QUICK ROOFING LLC" reads as shouting in an email's greeting line.
   defp shouting?(name), do: name == String.upcase(name) and name =~ ~r/[A-Z]{3}/
 
-  @abbreviations ~w(LLC LP LLP PLLC II III IV USA TX)
+  @abbreviations ~w(LLC LP LLP PLLC II III IV USA TX ATX)
+
+  # Short words that are words, not initials: "TOP ROOFING" is Top Roofing,
+  # while "DV ROOFING" and "IRC ROOFING" keep their initials.
+  @short_words ~w(a an and the of on in at by for to or & all one two six ten top pro max
+                  big old new man son sons ace sky sun bay air art red oak elm fix way bar
+                  box cat dog fox hat hot ice key lab map oil owl pen pet pin rod row run saw
+                  sea set tex tin tip van war web win zen eco gem hub jet kid mid ray rex rio
+                  guy bob joe tom sam ted tim ben dan don lee rob jim jon kim roy amy ana ava
+                  eva mia sue god usa)
 
   defp title_case(name) do
     name
     |> String.split(" ")
     |> Enum.map_join(" ", fn word ->
-      if String.trim(word, ",") in @abbreviations,
-        do: word,
-        else: word |> String.downcase() |> capitalize_parts()
+      bare = String.trim(word, ",")
+      letters = String.replace(bare, ~r/[^A-Za-z]/, "")
+
+      cond do
+        bare in @abbreviations -> word
+        initials?(letters) -> word
+        true -> word |> String.downcase() |> capitalize_parts()
+      end
     end)
+  end
+
+  # Two or three letters that aren't a word, or a run of consonants: "DV",
+  # "IRC", "BLDT".
+  defp initials?(""), do: false
+
+  defp initials?(letters) do
+    down = String.downcase(letters)
+
+    (String.length(letters) <= 3 and down not in @short_words) or
+      (String.length(letters) <= 4 and not String.match?(down, ~r/[aeiouy]/))
   end
 
   # "SOUKUP ROOFING,LLC" and "A-1 GUTTERS" keep their joins.
