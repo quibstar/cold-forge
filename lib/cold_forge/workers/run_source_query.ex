@@ -24,7 +24,7 @@ defmodule ColdForge.Workers.RunSourceQuery do
   require Logger
 
   alias ColdForge.Sourcing
-  alias ColdForge.Sourcing.Discovery.{Overpass, Places}
+  alias ColdForge.Sourcing.Discovery.{Overpass, Permits, Places}
 
   # Enough to exhaust a provider's paging without looping forever if one
   # always hands back a token.
@@ -50,6 +50,10 @@ defmodule ColdForge.Workers.RunSourceQuery do
           do: 0,
           else:
             counts.orgs |> Enum.filter(&(&1.status == "discovered")) |> Sourcing.enqueue_crawls()
+
+      # Permit rows never come with a website; look one up for each, which
+      # queues its crawl when found.
+      if source.provider == "permits", do: Sourcing.enqueue_website_lookups(counts.orgs)
 
       Logger.info(
         "sourcing: #{source.name} / #{phrase || segment} / #{locality} — " <>
@@ -85,6 +89,8 @@ defmodule ColdForge.Workers.RunSourceQuery do
       {:error, reason} -> {:error, {:transport, reason}}
     end
   end
+
+  defp discover("permits", segment, _phrase, city), do: Permits.fetch(city, segment)
 
   defp discover(provider, _segment, _phrase, _locality),
     do: {:error, {:unsupported_provider, provider}}

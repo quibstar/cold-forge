@@ -15,7 +15,7 @@ defmodule ColdForge.Sourcing.Source do
   use ColdForge.Schema
   import Ecto.Changeset
 
-  alias ColdForge.Sourcing.Discovery.{Overpass, Places}
+  alias ColdForge.Sourcing.Discovery.{Overpass, Permits, Places}
   alias ColdForge.Sourcing.Towns
 
   # Google's published list price for a Text Search that asks for a website or
@@ -25,7 +25,7 @@ defmodule ColdForge.Sourcing.Source do
   # Cloud console for the rate actually being charged.
   @usd_per_1000_requests 35
 
-  @providers ~w(places overpass)
+  @providers ~w(places overpass permits)
 
   # Prospects to call and email, or places to put up flyers (supply houses,
   # lumber yards). A flyers search's results can't be added as prospects, and
@@ -52,6 +52,9 @@ defmodule ColdForge.Sourcing.Source do
     belongs_to :project, ColdForge.Outreach.Project
     # The campaign (in the screens' sense) this search fills. Optional.
     belongs_to :market, ColdForge.Markets.Market
+    # The drip that "Add all and start" puts new finds with an email address
+    # into. Optional: without one, Add all only makes them prospects.
+    belongs_to :campaign, ColdForge.Outreach.Campaign
     has_many :orgs, ColdForge.Sourcing.Org, foreign_key: :source_id
 
     timestamps(type: :utc_datetime)
@@ -66,6 +69,7 @@ defmodule ColdForge.Sourcing.Source do
   @doc "The segments a provider can search for."
   def segments_for("places"), do: Enum.sort(Places.segments())
   def segments_for("overpass"), do: Enum.sort(Overpass.segments())
+  def segments_for("permits"), do: Enum.sort(Permits.segments())
   def segments_for(_provider), do: []
 
   @doc """
@@ -76,6 +80,7 @@ defmodule ColdForge.Sourcing.Source do
   """
   def locality_example("places"), do: "Michigan\nToledo, OH\nSouth Bend, IN"
   def locality_example("overpass"), do: "US-MI\nUS-OH"
+  def locality_example("permits"), do: "austin\nsan_antonio"
   def locality_example(_provider), do: ""
 
   @doc "What a locality looks like for this provider, for the form's hint."
@@ -83,6 +88,12 @@ defmodule ColdForge.Sourcing.Source do
     do: ~s(One per line: a town like "Grand Rapids, MI", or a whole state like "Michigan")
 
   def locality_hint("overpass"), do: ~s(One per line, as state codes like "US-MI")
+
+  def locality_hint("permits"),
+    do:
+      "One city per line. The cities with permit data: " <>
+        Enum.join(Enum.sort(Permits.cities()), ", ")
+
   def locality_hint(_provider), do: "One per line"
 
   @doc false
@@ -99,7 +110,8 @@ defmodule ColdForge.Sourcing.Source do
       :localities_text,
       :active,
       :notes,
-      :purpose
+      :purpose,
+      :campaign_id
     ])
     |> parse_segments()
     |> parse_localities()
@@ -118,6 +130,7 @@ defmodule ColdForge.Sourcing.Source do
     |> unique_constraint(:name, message: "there is already a source with that name")
     |> foreign_key_constraint(:project_id)
     |> foreign_key_constraint(:market_id)
+    |> foreign_key_constraint(:campaign_id)
   end
 
   # The textarea is the source of truth when it was edited, so what the
@@ -155,7 +168,7 @@ defmodule ColdForge.Sourcing.Source do
       text ->
         normalize =
           case get_field(changeset, :provider) do
-            "overpass" -> &normalize_segment/1
+            provider when provider in ["overpass", "permits"] -> &normalize_segment/1
             _places -> &Places.canonical/1
           end
 
@@ -194,6 +207,7 @@ defmodule ColdForge.Sourcing.Source do
   defp validate_segments_known(changeset) do
     case get_field(changeset, :provider) do
       "overpass" -> validate_segments_in(changeset, "overpass")
+      "permits" -> validate_segments_in(changeset, "permits")
       _places -> changeset
     end
   end
@@ -221,6 +235,20 @@ defmodule ColdForge.Sourcing.Source do
     case get_field(changeset, :provider) do
       "overpass" ->
         changeset
+
+      "permits" ->
+        case Enum.reject(get_field(changeset, :localities) || [], &(&1 in Permits.cities())) do
+          [] ->
+            changeset
+
+          bad ->
+            add_error(
+              changeset,
+              :localities_text,
+              "no permit data for #{Enum.join(bad, ", ")}. Cities: " <>
+                Enum.join(Enum.sort(Permits.cities()), ", ")
+            )
+        end
 
       _places ->
         bad =
@@ -251,7 +279,8 @@ defmodule ColdForge.Sourcing.Source do
   OpenStreetMap queries a whole region at once and has no phrases, so its
   entries carry `nil` for the phrase and the locality as written.
   """
-  def queries(%__MODULE__{provider: "overpass", segments: segments, localities: localities}) do
+  def queries(%__MODULE__{provider: provider, segments: segments, localities: localities})
+      when provider in ["overpass", "permits"] do
     for segment <- segments, locality <- localities, do: {segment, nil, locality}
   end
 
@@ -275,6 +304,24 @@ defmodule ColdForge.Sourcing.Source do
   Each search is at least one request and at most three — Places pages 20 at a
   time up to 60 — so both ends are given. Small towns mostly stop at one page.
   """
+  # A permit feed is free to read; the cost is the website lookups after it,
+  # one Places request per contractor without a site, which can't be known
+  # until the feed has been read.
+  def plan(%__MODULE__{provider: "permits"} = source) do
+    searches = length(queries(source))
+
+    %{
+      trades: Enum.map(source.segments, &{&1, []}),
+      states: [],
+      towns: length(source.localities),
+      searches: searches,
+      min_requests: searches,
+      max_requests: searches,
+      min_cost: 0,
+      max_cost: 0
+    }
+  end
+
   def plan(%__MODULE__{provider: "overpass"} = source) do
     searches = length(queries(source))
 

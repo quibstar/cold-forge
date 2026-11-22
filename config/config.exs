@@ -83,7 +83,11 @@ config :cold_forge, Oban,
     {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
     {Oban.Plugins.Cron,
      crontab: [
-       {"*/5 * * * *", ColdForge.Workers.CampaignScheduler}
+       {"*/5 * * * *", ColdForge.Workers.CampaignScheduler},
+       # Permit sources: found Monday 6am Central, digest Tuesday 7am Central
+       # once the website lookups and crawls are done.
+       {"0 11 * * 1", ColdForge.Workers.RunPermitSources},
+       {"0 12 * * 2", ColdForge.Workers.PermitDigest}
      ]}
   ]
 

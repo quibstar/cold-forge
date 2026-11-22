@@ -50,6 +50,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> assign(:page_subtitle, nil)
     |> assign(:breadcrumbs, [{"Sourcing", socket.assigns.base <> "/sourcing"}])
     |> assign(:market_options, ColdForge.Markets.options(project_id))
+    |> assign(:campaign_options, campaign_options(project_id))
     |> assign(:source, %Source{project_id: project_id})
     |> reset_picker()
     |> assign_form(
@@ -65,6 +66,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     |> assign(:page_subtitle, "What it looks for, and where.")
     |> assign(:breadcrumbs, [{"Sourcing", socket.assigns.base <> "/sourcing"}])
     |> assign(:market_options, ColdForge.Markets.options(source.project_id))
+    |> assign(:campaign_options, campaign_options(source.project_id))
     |> assign(:source, source)
     |> reset_picker()
     |> assign_form(
@@ -361,6 +363,18 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     end
   end
 
+  def handle_event("add_all_enroll", _params, socket) do
+    source = socket.assigns.source
+
+    case Sourcing.promote_all_and_enroll(source) do
+      {:ok, totals} ->
+        {:noreply, socket |> put_flash(:info, add_all_enroll_message(totals)) |> load_results()}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, describe(reason))}
+    end
+  end
+
   def handle_event("reject", %{"id" => id}, socket) do
     {:ok, _} = id |> Sourcing.get_org!() |> Sourcing.reject(:out_of_segment)
     {:noreply, socket |> put_flash(:info, "Left off the list.") |> load_results()}
@@ -417,6 +431,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   defp describe(:flyer_source),
     do:
       "this search is for flyer locations, so its places go on the Flyers tab, not the prospect list."
+
+  defp describe(:no_campaign),
+    do: "this search has no drip set. Pick one under Drip for new finds on its settings."
 
   defp describe(other), do: inspect(other)
 
@@ -533,7 +550,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
             options={[
               {"Google Places — the widest coverage, and the only one that returns websites",
                "places"},
-              {"OpenStreetMap — free, but thin", "overpass"}
+              {"OpenStreetMap — free, but thin", "overpass"},
+              {"City permits — contractors who pulled roofing, siding, window or gutter permits in the last 90 days",
+               "permits"}
             ]}
           />
 
@@ -549,6 +568,14 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
               ", ",
               &humanize/1
             )}. Add other wordings of one trade with <code>|</code>, like <code>deck builder | deck contractor</code>.
+          </p>
+          <p :if={@form[:provider].value == "permits"} class="text-xs opacity-60 -mt-3">
+            Separate them with commas. Permits know: {Enum.map_join(
+              Source.segments_for("permits"),
+              ", ",
+              &humanize/1
+            )}. Each contractor's website is looked up on Google Places (one request each,
+            about 3.5 cents) so their site can be checked for an email address.
           </p>
           <p :if={@form[:provider].value == "overpass"} class="text-xs opacity-60 -mt-3">
             Separate them with commas. OpenStreetMap only knows: {Enum.map_join(
@@ -579,6 +606,18 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
           />
 
           <.plan_summary plan={@plan} id="source-plan" />
+
+          <.input
+            field={@form[:campaign_id]}
+            type="select"
+            label="Drip for new finds"
+            prompt="None: Add all only makes them prospects"
+            options={@campaign_options}
+          />
+          <p class="text-xs opacity-60 -mt-3">
+            With a drip set, the email tab's button adds everyone with an address and starts
+            them on it. People already on your list are left in whatever drip they're in.
+          </p>
 
           <.input field={@form[:notes]} type="textarea" label="Notes" rows="2" />
           <.input field={@form[:active]} type="checkbox" label="Active" />
@@ -680,6 +719,23 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
       class="flex flex-wrap items-center gap-3 mb-3"
     >
       <button
+        :if={@source.campaign}
+        type="button"
+        id="add-all-enroll"
+        class="btn btn-sm btn-primary"
+        phx-click="add_all_enroll"
+        data-confirm={"Add #{@addable.email} with an email address to #{@source.project.name} and start them on #{@source.campaign.name}?"}
+      >
+        <.icon name="hero-envelope" class="size-4" />
+        Add all {@addable.email} and start {@source.campaign.name}
+      </button>
+      <span :if={@source.campaign} class="text-xs opacity-60">
+        {if @source.campaign.status == "active",
+          do: "The drip is running, so the first email goes out in its next sending window.",
+          else: "The drip is a #{@source.campaign.status}, so nothing sends until it's started."}
+      </span>
+      <button
+        :if={is_nil(@source.campaign)}
         type="button"
         id="add-all-email"
         class="btn btn-sm btn-primary"
@@ -689,7 +745,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
       >
         <.icon name="hero-envelope" class="size-4" /> Add all {@addable.email} for email drip
       </button>
-      <span class="text-xs opacity-60">They become prospects you can add to a campaign.</span>
+      <span :if={is_nil(@source.campaign)} class="text-xs opacity-60">
+        They become prospects you can add to a campaign.
+      </span>
     </div>
 
     <div
@@ -1144,6 +1202,26 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   defp money(amount), do: "$" <> Integer.to_string(round(amount))
 
   # No apostrophes: they render as entities and read badly in a flash.
+  defp add_all_enroll_message(%{added: added, existing: existing, enrolled: enrolled} = totals)
+       when is_integer(added) and is_integer(enrolled) and is_integer(existing) do
+    not_started = added - enrolled
+
+    [
+      "Added #{added} and started #{enrolled} on #{totals.campaign.name}.",
+      existing > 0 && "#{existing} were already on your list and were left in their drips.",
+      totals.failed > 0 && "#{totals.failed} couldn't be added.",
+      not_started > 0 && "#{not_started} weren't started: suppressed or not mailable."
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(" ")
+  end
+
+  defp campaign_options(project_id) do
+    project_id
+    |> ColdForge.Outreach.list_campaigns()
+    |> Enum.map(&{"#{&1.name} (#{&1.status})", &1.id})
+  end
+
   defp add_all_message(kind, %{added: added, existing: existing, failed: failed}, source) do
     where_to =
       if kind == "email",
