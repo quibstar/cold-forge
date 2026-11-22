@@ -435,6 +435,7 @@ defmodule ColdForge.Sourcing do
     |> Ecto.Changeset.change(%{
       website: Org.normalize_website(website),
       phone: org.phone || match[:phone],
+      name: match[:rename] || org.name,
       status: "discovered"
     })
     |> Repo.update()

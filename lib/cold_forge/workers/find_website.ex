@@ -48,7 +48,7 @@ defmodule ColdForge.Workers.FindWebsite do
             :ok
 
           match ->
-            {:ok, org} = Sourcing.record_website(org, match)
+            {:ok, org} = Sourcing.record_website(org, with_name(org, match))
             Sourcing.enqueue_crawls([org])
             :ok
         end
@@ -71,10 +71,32 @@ defmodule ColdForge.Workers.FindWebsite do
 
     rows
     |> Enum.filter(&(is_binary(&1[:website]) and &1[:website] != ""))
+    # Same name, another state: "Tony's Roofing" in Tucson, "Arki Design" in
+    # Australia. Both happened on the first run.
+    |> Enum.filter(&(is_nil(&1[:region]) or is_nil(org.region) or &1[:region] == org.region))
     |> Enum.find(fn row ->
       (digits != "" and digits(row[:phone]) == digits) or same_name?(name, row[:name])
     end)
   end
+
+  @doc """
+  The listing's own name, for a row the city cut short ("Garcia's Remodeling
+  & Construc"), when the listing is plainly the same business. Anything after
+  a colon or a dash is the listing's advertising, not its name.
+  """
+  def with_name(%Org{raw: %{"name_truncated" => true}} = org, match) do
+    listed =
+      (match[:name] || "")
+      |> String.split(~r/\s[:|\-–]\s|:\s/, parts: 2)
+      |> hd()
+      |> Permits.clean_name()
+
+    if listed && same_name?(Permits.normalize(org.name), listed),
+      do: Map.put(match, :rename, listed),
+      else: match
+  end
+
+  def with_name(_org, match), do: match
 
   defp same_name?(_name, nil), do: false
   defp same_name?("", _other), do: false
