@@ -141,6 +141,9 @@ defmodule ColdForge.Sourcing.PermitsTest do
       assert Permits.clean_name("Design Build Austin Inc(MAIN)") == "Design Build Austin"
       assert Permits.clean_name("37urban Companies (37urban Partners LLC)") == "37urban Companies"
       assert Permits.clean_name("Window Nation LLC**Main**") == "Window Nation"
+      assert Permits.clean_name("SHC Remodeling, LLC **MAIN GC**") == "SHC Remodeling"
+      assert Permits.clean_name("SAN JUAN PHC AGENCY") == "San Juan PHC Agency"
+      assert Permits.clean_name("ROOFING SERVICES NOW") == "Roofing Services Now"
     end
 
     test "a contractor's key doesn't move when the display name changes" do
@@ -206,7 +209,8 @@ defmodule ColdForge.Sourcing.PermitsTest do
         "Clean Tag Permits",
         "210 Realty, LLC",
         "Frosty Mist LLC",
-        "Infinity Replacement, LLC"
+        "Infinity Replacement, LLC",
+        "SHC Remodeling, LLC, DBA Window World **MAIN GC**"
       ]
 
       records =

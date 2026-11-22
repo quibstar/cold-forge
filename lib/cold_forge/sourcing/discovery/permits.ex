@@ -62,7 +62,7 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
   # "Mister Sparky", "Dobbs Tennis Courts", realty firms and a flooring store:
   # their permits mention a roof or a window, their trade isn't one.
   @not_a_fit ~W[
-    renewal.by.andersen \bpella\b home.depot \blowe'?s\b power.home window.nation
+    renewal.by.andersen \bpella\b home.depot \blowe'?s\b power.home window.nation window.world
     infinity.replacement solar sunrun \btesla\b plumb electric \belec\b sparky
     mechanical \bhvac\b air.condition \bair\b \ba/?c\b clima temperature
     heating \bheat\b cooling \bpools?\b \bpest\b landscap fire.protection sprinkler
@@ -327,7 +327,7 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
 
   def basic_clean(name) do
     name
-    |> String.replace(~r/\*+\s*main\s*\*+/i, "")
+    |> String.replace(~r/\*+[^*]*\*+/, "")
     |> String.replace(~r/\(d\/b\/a[^)]*\)/i, "")
     |> String.replace(~r/,(?=\S)/, ", ")
     |> squeeze()
@@ -373,7 +373,7 @@ defmodule ColdForge.Sourcing.Discovery.Permits do
                   box cat dog fox hat hot ice key lab map oil owl pen pet pin rod row run saw
                   sea set tex tin tip van war web win zen eco gem hub jet kid mid ray rex rio
                   guy bob joe tom sam ted tim ben dan don lee rob jim jon kim roy amy ana ava
-                  eva mia sue god usa)
+                  eva mia sue god usa san now los las del hub)
 
   defp title_case(name) do
     name
