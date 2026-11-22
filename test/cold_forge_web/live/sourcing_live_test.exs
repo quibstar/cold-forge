@@ -377,6 +377,23 @@ defmodule ColdForgeWeb.AdminLive.SourcingTest do
       refute "Not Crawled Yet" in companies
     end
 
+    test "with a drip set, one button adds them and starts the drip",
+         %{conn: conn, project: project} do
+      campaign = campaign_fixture(project, %{name: "Permit contractors - Texas"})
+      step_fixture(campaign)
+      source = source_fixture(project, %{campaign_id: campaign.id})
+      org_fixture(source, %{name: "Has An Address"}) |> with_address()
+
+      {:ok, live, html} = live(conn, ~p"/admin/p/#{project.id}/sourcing/#{source.id}")
+      assert html =~ "Add all 1 and start Permit contractors - Texas"
+      assert html =~ "nothing sends until it&#39;s started"
+      refute has_element?(live, "#add-all-email")
+
+      html = live |> element("#add-all-enroll") |> render_click()
+      assert html =~ "Added 1 and started 1 on Permit contractors - Texas."
+      assert [_] = Repo.all(ColdForge.Outreach.Enrollment)
+    end
+
     test "two listings sharing an address become one prospect, not two",
          %{conn: conn, project: project} do
       source = source_fixture(project)

@@ -16,7 +16,7 @@ defmodule ColdForge.Sourcing do
   alias ColdForge.Outreach.Prospect
   alias ColdForge.Repo
   alias ColdForge.Sourcing.{Org, Source}
-  alias ColdForge.Workers.{CrawlOrg, RunSource}
+  alias ColdForge.Workers.{CrawlOrg, FindWebsite, RunSource}
 
   ## Sources — saved searches
 
@@ -36,7 +36,7 @@ defmodule ColdForge.Sourcing do
   defp maybe_project(query, nil), do: query
   defp maybe_project(query, project_id), do: where(query, [s], s.project_id == ^project_id)
 
-  def get_source!(id), do: Source |> Repo.get!(id) |> Repo.preload(:project)
+  def get_source!(id), do: Source |> Repo.get!(id) |> Repo.preload([:project, :campaign])
 
   def change_source(%Source{} = source, attrs \\ %{}), do: Source.changeset(source, attrs)
 
@@ -414,6 +414,32 @@ defmodule ColdForge.Sourcing do
     |> Enum.count(fn changeset -> match?({:ok, _}, Oban.insert(changeset)) end)
   end
 
+  @doc """
+  Queues a website lookup for each organisation a registry listed without one
+  (`ColdForge.Workers.FindWebsite`). Returns how many were queued.
+  """
+  @spec enqueue_website_lookups([Org.t()]) :: non_neg_integer()
+  def enqueue_website_lookups(orgs) when is_list(orgs) do
+    orgs
+    |> Enum.filter(&(&1.status == "needs_website"))
+    |> Enum.map(&FindWebsite.new(%{org_id: &1.id}))
+    |> Enum.count(fn changeset -> match?({:ok, _}, Oban.insert(changeset)) end)
+  end
+
+  @doc """
+  Records the website a lookup found, ready for the crawl. Keeps the phone the
+  registry gave, and takes the lookup's only when there wasn't one.
+  """
+  def record_website(%Org{} = org, %{website: website} = match) do
+    org
+    |> Ecto.Changeset.change(%{
+      website: Org.normalize_website(website),
+      phone: org.phone || match[:phone],
+      status: "discovered"
+    })
+    |> Repo.update()
+  end
+
   @doc "Records what the crawl found on an organisation's own site."
   def record_found(%Org{} = org, candidate, result) do
     org
@@ -534,7 +560,8 @@ defmodule ColdForge.Sourcing do
       website: org.website,
       industry: org.segment,
       source: org.email_source_url || org.source_url,
-      notes: promote_notes(org)
+      notes: promote_notes(org),
+      custom_fields: custom_fields(org)
     }
 
     Repo.transaction(fn ->
@@ -610,6 +637,43 @@ defmodule ColdForge.Sourcing do
     {:ok, totals}
   end
 
+  @doc """
+  "Add all and start": adds every organisation with an email address, then
+  enrolls the new prospects in the source's drip (`source.campaign_id`).
+
+  Only prospects this made are enrolled. One that was already on the list is
+  linked as usual and left where it is: it may be partway through another
+  drip, and two drips at once is twice the email.
+
+  A draft drip takes the enrollments and sends nothing until it's started.
+  """
+  def promote_all_and_enroll(%Source{campaign_id: nil}), do: {:error, :no_campaign}
+  def promote_all_and_enroll(%Source{purpose: "flyers"}), do: {:error, :flyer_source}
+
+  def promote_all_and_enroll(%Source{} = source) do
+    campaign = Outreach.get_campaign!(source.campaign_id)
+
+    {totals, created} =
+      source
+      |> addable(:email)
+      |> Repo.all()
+      |> Enum.reduce({%{added: 0, existing: 0, failed: 0}, []}, fn org, {acc, ids} ->
+        case promote_or_link(org, source.project_id) do
+          {:ok, {_prospect, %Org{promotion: "linked"}}} ->
+            {Map.update!(acc, :existing, &(&1 + 1)), ids}
+
+          {:ok, {prospect, _org}} ->
+            {Map.update!(acc, :added, &(&1 + 1)), [prospect.id | ids]}
+
+          {:error, _} ->
+            {Map.update!(acc, :failed, &(&1 + 1)), ids}
+        end
+      end)
+
+    {:ok, %{enrolled: enrolled}} = Outreach.enroll_prospects(campaign, created)
+    {:ok, Map.merge(totals, %{enrolled: enrolled, campaign: campaign})}
+  end
+
   defp addable(%Source{id: source_id}, :email) do
     Org
     |> where([o], o.source_id == ^source_id and o.status == "fetched")
@@ -663,9 +727,24 @@ defmodule ColdForge.Sourcing do
   defp phone_digits(nil), do: ""
   defp phone_digits(phone), do: String.replace(phone, ~r/\D/, "")
 
+  # A permit row's facts, as merge fields: "{{permit_city}}" in a drip's copy.
+  defp custom_fields(%Org{provider: "permits", raw: raw}) do
+    %{
+      "permit_city" => raw["permit_city"],
+      "permit_count" => raw["permits"] && to_string(raw["permits"])
+    }
+    |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+    |> Map.new()
+  end
+
+  defp custom_fields(_org), do: %{}
+
   defp promote_notes(%Org{} = org) do
     [
       "Discovered via #{org.provider}",
+      org.provider == "permits" &&
+        "#{org.raw["permits"]} #{org.segment} permits in #{org.raw["permit_city"]} in 90 days, " <>
+          "latest #{org.raw["last_issued"]}, listed contact #{org.raw["contact_name"] || "none"}",
       org.email_presentation && "address published as #{org.email_presentation}",
       org.has_contact_form && "site also has a contact form"
     ]

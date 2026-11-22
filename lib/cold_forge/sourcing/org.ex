@@ -12,7 +12,7 @@ defmodule ColdForge.Sourcing.Org do
 
   @segments ~w(roofing siding windows gutters shelter rescue humane_society breeder)
   @statuses ~w(discovered needs_website fetched promoted rejected)
-  @providers ~w(overpass irs_bmf license_csv places manual)
+  @providers ~w(overpass irs_bmf license_csv places permits manual)
 
   @reject_reasons ~w(
     no_website unreachable no_address_published no_solicitation
