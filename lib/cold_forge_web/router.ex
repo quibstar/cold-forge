@@ -125,6 +125,7 @@ defmodule ColdForgeWeb.Router do
 
       live "/suppressions", AdminLive.Suppressions, :index
       live "/guide", AdminLive.Guide, :index
+      live "/report", AdminLive.Report, :index
 
       # A project's front page is its campaigns: Michigan, Grand Rapids, Dog
       # breeders, Texas. What every campaign shares — surveys, the flyer and

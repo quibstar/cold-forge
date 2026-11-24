@@ -109,6 +109,13 @@ defmodule ColdForgeWeb.Layouts do
               Dashboard
             </.nav_link>
             <.nav_link
+              navigate={~p"/admin/report"}
+              icon="hero-clipboard-document-check"
+              active={nav_active(@current_path, "/admin/report")}
+            >
+              Daily report
+            </.nav_link>
+            <.nav_link
               navigate={~p"/admin/projects"}
               icon="hero-squares-2x2"
               active={nav_active(@current_path, "/admin/projects")}

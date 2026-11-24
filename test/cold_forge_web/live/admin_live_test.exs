@@ -464,4 +464,16 @@ defmodule ColdForgeWeb.AdminLiveTest do
       refute html =~ "Northside Siding"
     end
   end
+
+  test "the daily report shows each project's drips and sending addresses", %{
+    conn: conn,
+    campaign: campaign
+  } do
+    {:ok, _} = Outreach.activate_campaign(Outreach.get_campaign!(campaign.id))
+
+    {:ok, view, html} = live(conn, ~p"/admin/report")
+    assert html =~ "Daily report"
+    assert has_element?(view, "#addresses", "exteriorpro.io")
+    assert has_element?(view, "section", campaign.name)
+  end
 end
