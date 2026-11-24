@@ -193,6 +193,19 @@ defmodule ColdForgeWeb.AdminLive.Campaigns do
             </p>
           </div>
 
+          <div>
+            <.input
+              field={@form[:from_email]}
+              type="email"
+              label="Send from (optional)"
+              placeholder={@current_project.from_email}
+            />
+            <p class="text-xs text-base-content/50 mt-1">
+              Leave blank to use the project's address ({@current_project.from_email}).
+              Any other address must be verified in SES first.
+            </p>
+          </div>
+
           <details class="text-sm">
             <summary class="cursor-pointer text-base-content/60">
               Sending pace — the defaults are sensible, change them if you need

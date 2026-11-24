@@ -225,6 +225,29 @@ defmodule ColdForge.ReportsTest do
     assert [%{sent: 2}] = report.addresses
   end
 
+  test "a drip with its own from address counts under that address, not the project's" do
+    drip = setup_drip()
+
+    # Same project, so the two drips differ only by the address they send from.
+    campaign =
+      campaign_fixture(drip.project, %{name: "Moved", from_email: "kris@get.exteriorpro.io"})
+
+    step_fixture(campaign, %{"subject" => "One"})
+    {:ok, campaign} = Outreach.activate_campaign(Outreach.get_campaign!(campaign.id))
+    step = hd(Outreach.get_campaign!(campaign.id).steps)
+    moved = %{project: drip.project, campaign: campaign, step: step}
+
+    send!(drip, yesterday())
+    for _ <- 1..3, do: send!(moved, yesterday())
+    send!(moved, yesterday(), stopped: "bounced")
+
+    addresses = Reports.daily().addresses |> Map.new(&{&1.address, &1})
+
+    assert %{sent: 1, bounced: 0} = addresses["exteriorpro.io"]
+    assert %{sent: 4, bounced: 1} = addresses["get.exteriorpro.io"]
+    assert addresses["get.exteriorpro.io"].projects == [drip.project.name]
+  end
+
   test "range/2 is inclusive and puts backwards dates in order" do
     r = Reports.range(~D[2026-11-30], ~D[2026-11-01])
     assert {r.first, r.last} == {~D[2026-11-01], ~D[2026-11-30]}

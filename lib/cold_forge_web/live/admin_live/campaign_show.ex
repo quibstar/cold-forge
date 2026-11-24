@@ -13,7 +13,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   import ColdForgeWeb.EmailPreview
 
   alias ColdForge.{Outreach, Sending}
-  alias ColdForge.Outreach.{Prospect, CampaignStep}
+  alias ColdForge.Outreach.{Campaign, Prospect, CampaignStep}
 
   @impl true
   def mount(%{"project_id" => project_id, "id" => id}, _session, socket) do
@@ -29,6 +29,8 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
 
     socket
     |> assign(:campaign, campaign)
+    |> assign(:from_form, to_form(Outreach.change_campaign(campaign)))
+    |> assign(:from_address, Campaign.sending_address(campaign, socket.assigns.current_project))
     |> assign(:enrollments, Outreach.list_enrollments(campaign.id))
     |> assign(:people, Outreach.count_enrollments_by_status(campaign.id))
     |> assign(:stats, Outreach.campaign_stats(campaign.id))
@@ -183,7 +185,8 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
         body,
         socket.assigns.preview_prospect,
         socket.assigns.current_project,
-        branded: socket.assigns.campaign.branded
+        branded: socket.assigns.campaign.branded,
+        campaign: socket.assigns.campaign
       )
 
     case result do
@@ -249,6 +252,17 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
   def handle_event("pause", _params, socket) do
     {:ok, _} = Outreach.pause_campaign(socket.assigns.campaign)
     {:noreply, socket |> put_flash(:info, "Paused.") |> load()}
+  end
+
+  def handle_event("save_from", %{"campaign" => %{"from_email" => from_email}}, socket) do
+    case Outreach.update_campaign(socket.assigns.campaign, %{from_email: from_email}) do
+      {:ok, _campaign} ->
+        socket = load(socket)
+        {:noreply, put_flash(socket, :info, "Sending from #{socket.assigns.from_address}.")}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :from_form, to_form(changeset))}
+    end
   end
 
   def handle_event("toggle_branding", _params, socket) do
@@ -435,6 +449,44 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
               up to {@campaign.max_daily_cap}. Drops back to {@campaign.daily_cap} while bounces are over 5%.
             </p>
 
+            <div id="sending-from" class="mt-2">
+              <div class="text-xs text-base-content/40">From</div>
+              <div class="text-sm truncate">
+                {@current_project.from_name} &lt;{@from_address}&gt;
+              </div>
+              <div :if={is_nil(@campaign.from_email)} class="text-xs text-base-content/50">
+                the project's address
+              </div>
+            </div>
+
+            <%!-- Its own form rather than a whole edit page: moving a drip to a
+            new address while it warms up is the one setting changed after the
+            drip is running. --%>
+            <.form
+              for={@from_form}
+              id="campaign-from-form"
+              phx-submit="save_from"
+              class="mt-1"
+            >
+              <div class="flex items-start gap-2">
+                <div class="flex-1 min-w-0">
+                  <.input
+                    field={@from_form[:from_email]}
+                    type="email"
+                    label="Send from"
+                    placeholder={@current_project.from_email}
+                  />
+                </div>
+                <button type="submit" class="btn btn-sm btn-outline mt-6" phx-disable-with="Saving…">
+                  Save
+                </button>
+              </div>
+              <p class="text-xs text-base-content/50 mt-1">
+                Leave blank to use the project's address ({@current_project.from_email}).
+                Any other address must be verified in SES first.
+              </p>
+            </.form>
+
             <div :if={@campaign.merge_defaults not in [nil, %{}]} class="mt-2">
               <div class="text-xs text-base-content/40">Default values</div>
               <div
@@ -503,6 +555,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
           branded={@campaign.branded}
           prospect={@preview_prospect}
           project={@current_project}
+          campaign={@campaign}
           question={ColdForge.Survey.email_question(@preview_step.survey_id)}
           full_page_url={
             ~p"/admin/p/#{@project_id}/campaigns/#{@campaign_id}/emails/#{@preview_step.id}/preview"
@@ -667,6 +720,7 @@ defmodule ColdForgeWeb.AdminLive.CampaignShow do
         branded={@campaign.branded}
         prospect={@preview_prospect}
         project={@current_project}
+        campaign={@campaign}
         question={ColdForge.Survey.email_question(preview_survey_id(@form))}
         full_page_url={full_page_url(assigns)}
       />

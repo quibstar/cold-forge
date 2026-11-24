@@ -4,6 +4,7 @@ defmodule ColdForge.SendingTest do
   send it, and honour the unsubscribe that comes back.
   """
   use ColdForge.DataCase, async: true
+  use Oban.Testing, repo: ColdForge.Repo
 
   import ColdForge.OutreachFixtures
   import Swoosh.TestAssertions
@@ -104,6 +105,66 @@ defmodule ColdForge.SendingTest do
       prospect = prospect_fixture(ctx.project)
 
       assert {:error, :project_inactive} = Sending.deliver_step(prospect, ctx.step, project)
+    end
+  end
+
+  describe "the from address" do
+    test "is the project's when the campaign has none of its own", ctx do
+      prospect = prospect_fixture(ctx.project)
+
+      {:ok, message} =
+        Sending.deliver_step(prospect, ctx.step, ctx.project, campaign: ctx.campaign)
+
+      assert message.rfc_message_id == "#{message.id}@exteriorpro.io"
+
+      assert_email_sent(fn email ->
+        assert email.from == {"Kris Utter", "kris@exteriorpro.io"}
+      end)
+    end
+
+    test "is the campaign's own when it has one, and the Message-ID follows it", ctx do
+      {:ok, campaign} =
+        Outreach.update_campaign(ctx.campaign, %{from_email: "kris@get.exteriorpro.io"})
+
+      prospect = prospect_fixture(ctx.project)
+
+      {:ok, message} = Sending.deliver_step(prospect, ctx.step, ctx.project, campaign: campaign)
+
+      assert message.rfc_message_id == "#{message.id}@get.exteriorpro.io"
+
+      assert_email_sent(fn email ->
+        assert email.from == {"Kris Utter", "kris@get.exteriorpro.io"}
+        assert {"Message-ID", "<#{message.id}@get.exteriorpro.io>"} in email.headers
+      end)
+    end
+
+    test "is the campaign's when a drip sends through the worker", ctx do
+      {:ok, _} = Outreach.update_campaign(ctx.campaign, %{from_email: "kris@get.exteriorpro.io"})
+      prospect = prospect_fixture(ctx.project)
+      {:ok, _} = Outreach.send_campaign(Outreach.get_campaign!(ctx.campaign.id), [prospect.id])
+      [enrollment] = Outreach.list_enrollments(ctx.campaign.id)
+
+      :ok = perform_job(ColdForge.Workers.SendMessage, %{enrollment_id: enrollment.id})
+
+      assert_email_sent(fn email ->
+        assert email.from == {"Kris Utter", "kris@get.exteriorpro.io"}
+      end)
+    end
+
+    test "a test send goes out from the campaign's address", ctx do
+      {:ok, campaign} =
+        Outreach.update_campaign(ctx.campaign, %{from_email: "kris@get.exteriorpro.io"})
+
+      prospect = prospect_fixture(ctx.project)
+
+      :ok =
+        Sending.deliver_test("me@example.com", "Hi", "Body", prospect, ctx.project,
+          campaign: campaign
+        )
+
+      assert_email_sent(fn email ->
+        assert email.from == {"Kris Utter", "kris@get.exteriorpro.io"}
+      end)
     end
   end
 

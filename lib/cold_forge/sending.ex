@@ -11,7 +11,7 @@ defmodule ColdForge.Sending do
 
   alias ColdForge.Mailer
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.{Enrollment, Message, Project, Prospect, CampaignStep}
+  alias ColdForge.Outreach.{Campaign, Enrollment, Message, Project, Prospect, CampaignStep}
   alias ColdForge.Repo
   alias ColdForge.Sending.Renderer
 
@@ -33,6 +33,7 @@ defmodule ColdForge.Sending do
     branded? = Keyword.get(opts, :branded, false)
     question = opts[:question]
     campaign = opts[:campaign]
+    from = sender(campaign, project)
 
     with :ok <- check_sendable(prospect, project) do
       base_url = base_url()
@@ -67,11 +68,11 @@ defmodule ColdForge.Sending do
           message
           |> Ecto.Changeset.change(
             body: final_body,
-            rfc_message_id: rfc_message_id(message, project)
+            rfc_message_id: rfc_message_id(message, from)
           )
           |> Repo.update!()
 
-        case deliver(message, prospect, project, final_body, base_url, branded?) do
+        case deliver(message, prospect, project, from, final_body, base_url, branded?) do
           {:ok, provider_id} ->
             mark_sent(message, provider_id)
 
@@ -99,11 +100,11 @@ defmodule ColdForge.Sending do
     end
   end
 
-  defp deliver(message, prospect, project, body, base_url, branded?) do
+  defp deliver(message, prospect, project, from, body, base_url, branded?) do
     email =
       Swoosh.Email.new()
       |> Swoosh.Email.to({Prospect.display_name(prospect), prospect.email})
-      |> Swoosh.Email.from({project.from_name, project.from_email})
+      |> Swoosh.Email.from(from)
       |> Swoosh.Email.subject(message.subject)
       |> Swoosh.Email.text_body(body)
       |> Swoosh.Email.html_body(Renderer.to_html(body, message, base_url, project, branded?))
@@ -123,13 +124,18 @@ defmodule ColdForge.Sending do
     end
   end
 
+  # The From a send carries: the project's name, at the campaign's own address
+  # when it has one. A campaign moving to a new address keeps its name.
+  defp sender(campaign, %Project{} = project),
+    do: {project.from_name, Campaign.sending_address(campaign, project)}
+
   # Domain-qualified with the sending address's own domain: a Message-ID whose
   # right-hand side doesn't resolve to the sender is a spam signal, and the
   # local part is the message's id so a reply is traceable without a lookup
   # table.
-  defp rfc_message_id(message, project) do
+  defp rfc_message_id(message, {_name, from_email}) do
     domain =
-      case String.split(project.from_email, "@") do
+      case String.split(from_email, "@") do
         [_local, domain] -> domain
         _ -> "cold-forge.invalid"
       end
@@ -177,6 +183,9 @@ defmodule ColdForge.Sending do
   something the prospect did, and counting it would corrupt the numbers you use
   to judge the campaign. Link tokens are the preview placeholders, so clicking
   one in a test goes nowhere — that's the tradeoff for not polluting stats.
+
+  Pass `campaign:` and it goes out from the address that campaign sends from,
+  so a test is also a check that the address works.
   """
   def deliver_test(
         to_email,
@@ -192,7 +201,7 @@ defmodule ColdForge.Sending do
     email =
       Swoosh.Email.new()
       |> Swoosh.Email.to(to_email)
-      |> Swoosh.Email.from({project.from_name, project.from_email})
+      |> Swoosh.Email.from(sender(opts[:campaign], project))
       |> Swoosh.Email.subject("[test] " <> preview.subject)
       |> Swoosh.Email.text_body(preview.text)
       |> Swoosh.Email.html_body(preview.html)

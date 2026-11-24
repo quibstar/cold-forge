@@ -33,6 +33,10 @@ defmodule ColdForge.Outreach.Campaign do
     # already sent on, up to `max_daily_cap`. Zero keeps it flat.
     field :ramp_per_day, :integer, default: 0
     field :max_daily_cap, :integer
+    # Sends as this address instead of the project's, so a project can move to
+    # a new address one drip at a time while it warms up. Nil uses the
+    # project's. It has to be a verified identity at the provider.
+    field :from_email, :string
 
     belongs_to :project, ColdForge.Outreach.Project
     # The campaign (in the screens' sense) this sequence belongs to. Optional:
@@ -45,6 +49,15 @@ defmodule ColdForge.Outreach.Campaign do
   end
 
   def statuses, do: @statuses
+
+  @doc """
+  The address this campaign's mail goes out from: its own if it has one,
+  otherwise the project's.
+  """
+  def sending_address(%__MODULE__{from_email: email}, _project) when email not in [nil, ""],
+    do: email
+
+  def sending_address(_campaign, %{from_email: email}), do: email
 
   @doc false
   def changeset(campaign, attrs) do
@@ -63,8 +76,10 @@ defmodule ColdForge.Outreach.Campaign do
       :send_days,
       :daily_cap,
       :ramp_per_day,
-      :max_daily_cap
+      :max_daily_cap,
+      :from_email
     ])
+    |> trim_change(:from_email)
     |> validate_required([:project_id, :name])
     |> validate_inclusion(:status, @statuses)
     |> validate_number(:send_window_start, greater_than_or_equal_to: 0, less_than_or_equal_to: 23)
@@ -74,8 +89,20 @@ defmodule ColdForge.Outreach.Campaign do
     |> validate_ramp_ceiling()
     |> validate_window()
     |> validate_send_days()
+    |> validate_format(:from_email, ~r/^[^@,;\s]+@[^@,;\s]+\.[^@,;\s]+$/,
+      message: "must be a valid email"
+    )
     |> foreign_key_constraint(:project_id)
     |> foreign_key_constraint(:market_id)
+  end
+
+  # `cast` already turns a blank field into nil, which clears the override;
+  # this keeps a pasted address's stray spaces from failing the format check.
+  defp trim_change(changeset, field) do
+    case get_change(changeset, field) do
+      value when is_binary(value) -> put_change(changeset, field, String.trim(value))
+      _ -> changeset
+    end
   end
 
   defp validate_ramp_ceiling(changeset) do
