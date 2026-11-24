@@ -365,10 +365,13 @@ defmodule ColdForge.Reports do
 
       days = by_day |> Enum.filter(fn {_d, n} -> n > 0 end) |> Enum.sort_by(&elem(&1, 0), Date)
 
+      # Against the median of the previous five sending days, so a light
+      # Saturday doesn't make Monday look like a spike.
       jump =
         case Enum.reverse(days) do
-          [{d1, n1}, {_d0, n0} | _] when n0 > 0 ->
-            if in_window.(d1), do: (n1 - n0) / n0, else: nil
+          [{d1, n1} | earlier] when earlier != [] ->
+            base = earlier |> Enum.take(5) |> Enum.map(&elem(&1, 1)) |> median()
+            if in_window.(d1) and base > 0, do: (n1 - base) / base, else: nil
 
           _ ->
             nil
@@ -414,6 +417,16 @@ defmodule ColdForge.Reports do
       }
     end)
     |> Enum.sort_by(& &1.address)
+  end
+
+  defp median(ns) do
+    sorted = Enum.sort(ns)
+    len = length(sorted)
+    mid = div(len, 2)
+
+    if rem(len, 2) == 1,
+      do: Enum.at(sorted, mid),
+      else: (Enum.at(sorted, mid - 1) + Enum.at(sorted, mid)) / 2
   end
 
   @doc false
@@ -473,10 +486,14 @@ defmodule ColdForge.Reports do
           join: s in CampaignStep,
           on: s.id == m.campaign_step_id,
           where: e.campaign_id in ^ids and not is_nil(m.sent_at),
-          select: {e.campaign_id, s.position, m.prospect_id, m.sent_at}
+          select: {e.campaign_id, s.position, s.subject, m.subject, m.prospect_id, m.sent_at}
       )
-      |> Enum.filter(fn {cid, pos, _, _} -> pos == first_step[cid] end)
-      |> Enum.map(fn {cid, _, pid, at} -> {letter_of[cid], pid, at} end)
+      # Only the current opener: a first email sent under an older subject
+      # was a different test.
+      |> Enum.filter(fn {cid, pos, template, subject, _, _} ->
+        pos == first_step[cid] and subject_matches?(template, subject)
+      end)
+      |> Enum.map(fn {cid, _, _, _, pid, at} -> {letter_of[cid], pid, at} end)
 
     starts =
       sends
@@ -557,6 +574,21 @@ defmodule ColdForge.Reports do
       verdict: verdict(variants, today)
     }
   end
+
+  @doc """
+  Whether a sent subject came from a step's subject template, merge fields
+  and all: "how Acme tracks jobs" matches "how {{company}} tracks jobs".
+  """
+  def subject_matches?(template, subject) when is_binary(template) and is_binary(subject) do
+    pattern =
+      ~r/\{\{[^}]*\}\}/
+      |> Regex.split(String.trim(template))
+      |> Enum.map_join(".*", &Regex.escape/1)
+
+    Regex.match?(Regex.compile!("^" <> pattern <> "$", "is"), String.trim(subject))
+  end
+
+  def subject_matches?(_template, _subject), do: false
 
   defp verdict(variants, today) do
     reached = Enum.map(variants, & &1.reached_min_on)
