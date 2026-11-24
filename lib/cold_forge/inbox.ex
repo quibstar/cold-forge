@@ -50,7 +50,10 @@ defmodule ColdForge.Inbox do
     end
   end
 
-  @doc "The project a stranger's mail was addressed to, by its from address."
+  @doc """
+  The project a stranger's mail was addressed to, by its from address — the
+  project's own, or one of its campaigns' when a campaign sends from another.
+  """
   def project_for_recipients(recipients) do
     addresses = recipients |> List.wrap() |> Enum.map(&normalize/1) |> Enum.reject(&is_nil/1)
 
@@ -61,7 +64,13 @@ defmodule ColdForge.Inbox do
         from p in ColdForge.Outreach.Project,
           where: fragment("lower(?)", p.from_email) in ^addresses,
           limit: 1
-      )
+      ) ||
+        Repo.one(
+          from p in ColdForge.Outreach.Project,
+            join: c in assoc(p, :campaigns),
+            where: fragment("lower(?)", c.from_email) in ^addresses,
+            limit: 1
+        )
     end
   end
 

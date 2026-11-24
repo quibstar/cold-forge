@@ -106,6 +106,52 @@ defmodule ColdForge.InboxTest do
     end
   end
 
+  describe "a drip with its own from address" do
+    setup ctx do
+      other = project_fixture(from_email: "hello@hello.furizzma.com")
+
+      campaign =
+        campaign_fixture(ctx.project, %{
+          name: "New address",
+          from_email: "kris@get.exteriorpro.io"
+        })
+
+      step_fixture(campaign, %{"subject" => "Hello again", "body" => "Hi {{first_name}}"})
+      campaign = Outreach.get_campaign!(campaign.id)
+
+      prospect = prospect_fixture(ctx.project, email: "dana@northside.com", first_name: "Dana")
+      {:ok, _} = Outreach.send_campaign(campaign, [prospect.id])
+      [enrollment] = Outreach.list_enrollments(campaign.id)
+      :ok = perform_job(SendMessage, %{enrollment_id: enrollment.id})
+
+      message =
+        Enum.find(Outreach.list_messages(ctx.project.id), &(&1.prospect_id == prospect.id))
+
+      %{other: other, own: campaign, own_prospect: prospect, own_message: message}
+    end
+
+    test "a reply to it matches the exact send", ctx do
+      assert String.ends_with?(ctx.own_message.rfc_message_id, "@get.exteriorpro.io")
+
+      {:ok, reply} =
+        Inbox.receive_email(%{
+          from: "dana@northside.com",
+          subject: "Re: Hello again",
+          in_reply_to: "<#{ctx.own_message.rfc_message_id}>"
+        })
+
+      assert reply.matched_by == "exact"
+      assert reply.message_id == ctx.own_message.id
+      assert reply.prospect_id == ctx.own_prospect.id
+    end
+
+    test "mail to it belongs to the drip's project", ctx do
+      assert Inbox.project_for_recipients(["Kris <KRIS@get.exteriorpro.io>"]).id == ctx.project.id
+      assert Inbox.project_for_recipients(["hello@hello.furizzma.com"]).id == ctx.other.id
+      assert Inbox.project_for_recipients(["nobody@get.exteriorpro.io"]) == nil
+    end
+  end
+
   describe "what a reply does" do
     test "stops the campaign and marks the prospect", ctx do
       {:ok, _} =

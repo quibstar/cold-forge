@@ -159,6 +159,50 @@ defmodule ColdForgeWeb.AdminLiveTest do
       refute html =~ "/c/preview"
       assert html =~ "Unsubscribe"
     end
+
+    test "a drip can send from its own address, and blank goes back to the project's", ctx do
+      path = ~p"/admin/p/#{ctx.project.id}/campaigns/#{ctx.campaign.id}"
+      {:ok, view, html} = live(ctx.conn, path)
+
+      assert html =~ "Leave blank to use the project&#39;s address (kris@exteriorpro.io)"
+      assert view |> element("#sending-from") |> render() =~ "kris@exteriorpro.io"
+
+      html =
+        view
+        |> form("#campaign-from-form", campaign: %{from_email: "not an address"})
+        |> render_submit()
+
+      assert html =~ "must be a valid email"
+      assert Outreach.get_campaign!(ctx.campaign.id).from_email == nil
+
+      view
+      |> form("#campaign-from-form", campaign: %{from_email: "kris@get.exteriorpro.io"})
+      |> render_submit()
+
+      assert Outreach.get_campaign!(ctx.campaign.id).from_email == "kris@get.exteriorpro.io"
+      assert view |> element("#sending-from") |> render() =~ "kris@get.exteriorpro.io"
+
+      # The preview shows the address it will really go out from.
+      {:ok, _view, html} = live(ctx.conn, path <> "/emails/#{ctx.step.id}")
+      assert html =~ "From Kris Utter &lt;kris@get.exteriorpro.io&gt;"
+
+      view |> form("#campaign-from-form", campaign: %{from_email: ""}) |> render_submit()
+      assert Outreach.get_campaign!(ctx.campaign.id).from_email == nil
+    end
+
+    test "a new sequence can be given its own address", ctx do
+      {:ok, view, html} = live(ctx.conn, ~p"/admin/p/#{ctx.project.id}/campaigns/new")
+      assert html =~ "Send from (optional)"
+
+      view
+      |> form("#campaign-form",
+        campaign: %{name: "Warm-up", from_email: "kris@get.exteriorpro.io"}
+      )
+      |> render_submit()
+
+      campaign = Enum.find(Outreach.list_campaigns(ctx.project.id), &(&1.name == "Warm-up"))
+      assert campaign.from_email == "kris@get.exteriorpro.io"
+    end
   end
 
   describe "email preview" do

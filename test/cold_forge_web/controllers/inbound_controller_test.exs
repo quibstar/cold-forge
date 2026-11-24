@@ -211,6 +211,18 @@ defmodule ColdForgeWeb.InboundControllerTest do
       assert_enqueued(worker: ForwardReply, args: %{project_id: ctx.project.id, prospect_id: nil})
     end
 
+    test "mail from a stranger to a drip's own address goes to the drip's project", ctx do
+      campaign_fixture(ctx.project, %{name: "New address", from_email: "kris@get.exteriorpro.io"})
+
+      post(ctx.conn, ~p"/inbound/#{@token}", %{
+        "from" => "newperson@elsewhere.com",
+        "to" => "kris@get.exteriorpro.io",
+        "subject" => "Saw your email"
+      })
+
+      assert_enqueued(worker: ForwardReply, args: %{project_id: ctx.project.id, prospect_id: nil})
+    end
+
     test "mail to an address no project sends from is not", ctx do
       post(ctx.conn, ~p"/inbound/#{@token}", %{
         "from" => "newperson@elsewhere.com",

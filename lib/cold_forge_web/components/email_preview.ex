@@ -8,7 +8,7 @@ defmodule ColdForgeWeb.EmailPreview do
   """
   use ColdForgeWeb, :html
 
-  alias ColdForge.Outreach.Prospect
+  alias ColdForge.Outreach.{Campaign, Prospect}
   alias ColdForge.Sending.Renderer
 
   @doc """
@@ -29,6 +29,11 @@ defmodule ColdForgeWeb.EmailPreview do
   attr :branded, :boolean, default: false
   attr :prospect, :map, required: true
   attr :project, :map, required: true
+
+  attr :campaign, :map,
+    default: nil,
+    doc: "the campaign it's sent in, whose own from address wins over the project's"
+
   attr :question, :map, default: nil
 
   attr :full_page_url, :string,
@@ -54,7 +59,10 @@ defmodule ColdForgeWeb.EmailPreview do
         question: assigns.question
       )
 
-    assigns = assign(assigns, :preview, preview)
+    assigns =
+      assigns
+      |> assign(:preview, preview)
+      |> assign(:from_email, Campaign.sending_address(assigns.campaign, assigns.project))
 
     ~H"""
     <div class={[@variant == :card && "card bg-base-100 shadow-sm", @class]}>
@@ -109,7 +117,7 @@ defmodule ColdForgeWeb.EmailPreview do
         <div class="border border-base-300 rounded-lg overflow-hidden">
           <div class="px-4 py-2 bg-base-200 text-sm border-b border-base-300">
             <div class="text-xs text-base-content/50">
-              From {@project.from_name} &lt;{@project.from_email}&gt;
+              From {@project.from_name} &lt;{@from_email}&gt;
             </div>
             <div class="font-medium truncate">{@preview.subject}</div>
           </div>

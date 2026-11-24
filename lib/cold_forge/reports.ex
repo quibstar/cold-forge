@@ -241,6 +241,7 @@ defmodule ColdForge.Reports do
           company: p.company,
           email: p.email,
           project_id: p.project_id,
+          campaign_id: c.id,
           campaign: c.name
         }
     )
@@ -280,17 +281,44 @@ defmodule ColdForge.Reports do
 
   ## Sending addresses
 
-  @doc "The address a project sends from, by domain: hello.furizzma.com."
-  def address(%Project{from_email: email}) do
+  @doc """
+  The address a project, or a drip with its own, sends from, by domain:
+  hello.furizzma.com.
+  """
+  def address(%{from_email: email}) do
     case String.split(email || "", "@") do
       [_, domain] -> String.downcase(domain)
       _ -> "unknown"
     end
   end
 
+  # Health is per sending address, and a drip with its own from address sends
+  # from that one, not its project's — so its sends, bounces and replies count
+  # there.
   defp addresses(projects, window, replies) do
-    address_of = Map.new(projects, &{&1.id, address(&1)})
-    project_ids = Map.keys(address_of)
+    project_address = Map.new(projects, &{&1.id, address(&1)})
+    project_ids = Map.keys(project_address)
+
+    own_address =
+      Repo.all(
+        from c in Campaign,
+          where: c.project_id in ^project_ids and not is_nil(c.from_email),
+          select: {c.id, c.project_id, c.from_email}
+      )
+
+    campaign_address =
+      Map.new(own_address, fn {id, _, email} -> {id, address(%{from_email: email})} end)
+
+    address_of = fn project_id, campaign_id ->
+      Map.get(campaign_address, campaign_id) || project_address[project_id]
+    end
+
+    # Which projects send from each address, by default or through a drip.
+    projects_at =
+      Enum.map(projects, &{project_address[&1.id], &1.id}) ++
+        Enum.map(own_address, fn {id, pid, _} -> {campaign_address[id], pid} end)
+
+    names = Map.new(projects, &{&1.id, &1.name})
     # Health checks look at the 7 days (and the two sending days) ending on the
     # window's last day, whatever the window is; totals cover the window.
     since = utc_start(Enum.min([window.first, Date.add(window.last, -13)], Date))
@@ -300,16 +328,20 @@ defmodule ColdForge.Reports do
     daily =
       Repo.all(
         from m in Message,
+          left_join: e in Enrollment,
+          on: e.id == m.enrollment_id,
           where: m.project_id in ^project_ids and m.sent_at >= ^since and m.sent_at < ^window.to,
           group_by: [
             m.project_id,
+            e.campaign_id,
             fragment("(timezone('America/New_York', timezone('UTC', ?)))::date", m.sent_at)
           ],
           select:
-            {m.project_id,
+            {m.project_id, e.campaign_id,
              fragment("(timezone('America/New_York', timezone('UTC', ?)))::date", m.sent_at),
              count(m.id)}
       )
+      |> Enum.map(fn {pid, cid, d, n} -> {address_of.(pid, cid), d, n} end)
 
     stops =
       Repo.all(
@@ -319,21 +351,20 @@ defmodule ColdForge.Reports do
           where:
             c.project_id in ^project_ids and e.stopped_reason in ["bounced", "complained"] and
               e.updated_at >= ^stops_from and e.updated_at < ^window.to,
-          select: {c.project_id, e.stopped_reason, e.updated_at}
+          select: {c.project_id, c.id, e.stopped_reason, e.updated_at}
       )
+      |> Enum.map(fn {pid, cid, reason, at} -> {address_of.(pid, cid), reason, at} end)
 
     trouble_replies =
       Enum.filter(replies, &Regex.match?(@inbox_trouble, &1.body || ""))
 
-    projects
-    |> Enum.group_by(&address_of[&1.id])
-    |> Enum.map(fn {addr, ps} ->
-      ids = MapSet.new(ps, & &1.id)
-
+    projects_at
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Enum.map(fn {addr, pids} ->
       by_day =
         daily
-        |> Enum.filter(fn {pid, _d, _n} -> pid in ids end)
-        |> Enum.reduce(%{}, fn {_pid, d, n}, acc -> Map.update(acc, d, n, &(&1 + n)) end)
+        |> Enum.filter(fn {a, _d, _n} -> a == addr end)
+        |> Enum.reduce(%{}, fn {_a, d, n}, acc -> Map.update(acc, d, n, &(&1 + n)) end)
 
       in_window = fn d -> Date.compare(d, window.first) != :lt end
 
@@ -349,7 +380,7 @@ defmodule ColdForge.Reports do
         |> Enum.map(&elem(&1, 1))
         |> Enum.sum()
 
-      my_stops = Enum.filter(stops, fn {pid, _, _} -> pid in ids end)
+      my_stops = Enum.filter(stops, fn {a, _, _} -> a == addr end)
 
       count_stops = fn reason, pred ->
         Enum.count(my_stops, fn {_, r, at} -> r == reason and pred.(at) end)
@@ -380,7 +411,7 @@ defmodule ColdForge.Reports do
       week_rate = if week_sent > 0, do: week_bounced / week_sent, else: 0.0
 
       trouble =
-        Enum.filter(trouble_replies, fn r -> address_of[r.project_id] == addr end)
+        Enum.filter(trouble_replies, fn r -> address_of.(r.project_id, r.campaign_id) == addr end)
 
       warnings =
         Enum.reject(
@@ -397,7 +428,7 @@ defmodule ColdForge.Reports do
 
       %{
         address: addr,
-        projects: Enum.map(ps, & &1.name),
+        projects: pids |> Enum.uniq() |> Enum.map(&names[&1]) |> Enum.sort(),
         sent: sent,
         bounced: bounced,
         rate: if(sent > 0, do: bounced / sent, else: 0.0),

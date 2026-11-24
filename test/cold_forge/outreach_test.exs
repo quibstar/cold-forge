@@ -8,6 +8,7 @@ defmodule ColdForge.OutreachTest do
   import ColdForge.OutreachFixtures
 
   alias ColdForge.Outreach
+  alias ColdForge.Outreach.Campaign
 
   setup do
     project = project_fixture()
@@ -223,6 +224,37 @@ defmodule ColdForge.OutreachTest do
 
     test "an empty logo URL is allowed", ctx do
       assert {:ok, _} = Outreach.update_project(ctx.project, %{logo_url: ""})
+    end
+  end
+
+  describe "a campaign's own from address" do
+    test "is optional, and the project's is used without one", ctx do
+      assert ctx.campaign.from_email == nil
+      assert Campaign.sending_address(ctx.campaign, ctx.project) == "kris@exteriorpro.io"
+    end
+
+    test "wins over the project's when set", ctx do
+      assert {:ok, campaign} =
+               Outreach.update_campaign(ctx.campaign, %{from_email: " kris@get.exteriorpro.io "})
+
+      assert campaign.from_email == "kris@get.exteriorpro.io"
+      assert Campaign.sending_address(campaign, ctx.project) == "kris@get.exteriorpro.io"
+    end
+
+    test "clearing it goes back to the project's", ctx do
+      {:ok, campaign} =
+        Outreach.update_campaign(ctx.campaign, %{from_email: "kris@get.exteriorpro.io"})
+
+      assert {:ok, campaign} = Outreach.update_campaign(campaign, %{"from_email" => "  "})
+      assert campaign.from_email == nil
+      assert Campaign.sending_address(campaign, ctx.project) == "kris@exteriorpro.io"
+    end
+
+    test "must be an email address", ctx do
+      for bad <- ["kris", "kris@exteriorpro", "a@b.io, c@d.io", "kris @get.exteriorpro.io"] do
+        assert {:error, changeset} = Outreach.update_campaign(ctx.campaign, %{from_email: bad})
+        assert "must be a valid email" in errors_on(changeset).from_email
+      end
     end
   end
 
