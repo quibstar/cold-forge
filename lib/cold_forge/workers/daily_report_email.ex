@@ -37,7 +37,11 @@ defmodule ColdForge.Workers.DailyReportEmail do
 
   @doc false
   def subject(report, actions) do
-    status = if actions != [] and report.hot == [], do: "#{report.status}, #{length(actions)} drip(s) slowed", else: report.status
+    status =
+      if actions != [] and report.hot == [],
+        do: "#{report.status}, #{length(actions)} drip(s) slowed",
+        else: report.status
+
     "Cold email #{Reports.window_label(report.window)}: #{status}"
   end
 

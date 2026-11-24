@@ -59,6 +59,15 @@ defmodule ColdForge.Reports do
     %{first: first, last: last, from: utc_start(first), to: utc_start(Date.add(last, 1))}
   end
 
+  @doc """
+  The window from `first` through `last`, both Eastern dates, inclusive.
+  Swaps them if they're backwards.
+  """
+  def range(%Date{} = first, %Date{} = last) do
+    [first, last] = Enum.sort([first, last], Date)
+    %{first: first, last: last, from: utc_start(first), to: utc_start(Date.add(last, 1))}
+  end
+
   defp utc_start(date) do
     date |> DateTime.new!(~T[00:00:00], @tz) |> DateTime.shift_zone!("Etc/UTC")
   end
@@ -67,23 +76,49 @@ defmodule ColdForge.Reports do
 
   ## The report
 
-  @doc "Everything the page and the morning email show."
+  @doc """
+  The morning review: the last sending day before `today`, with the drips
+  that the bounce rule would slow.
+  """
   def daily(today \\ local_today()) do
-    window = window(today)
-    projects = Repo.all(from p in Project, where: p.active, order_by: p.name)
+    report(window(today), today: today, slow: true)
+  end
+
+  @doc """
+  The report for any window from `range/2`. Options: `:project_id` to show one
+  project, `:slow` to include the bounce-rule list (the morning job's), and
+  `:today` for the opener test's clock.
+
+  Drips show if they're active or sent anything in the window, so a drip
+  paused since still shows for last month.
+  """
+  def report(window, opts \\ []) do
+    today = Keyword.get(opts, :today, local_today())
+    project_id = Keyword.get(opts, :project_id)
+
+    projects =
+      Repo.all(from p in Project, where: p.active, order_by: p.name)
+      |> Enum.filter(&(is_nil(project_id) or &1.id == project_id))
 
     campaigns =
       Repo.all(
         from c in Campaign,
-          where: c.status == "active" and c.project_id in ^Enum.map(projects, & &1.id),
+          where: c.status != "draft" and c.project_id in ^Enum.map(projects, & &1.id),
           order_by: c.name
       )
 
-    rows = campaign_rows(campaigns, window)
-    replies = replies(window)
+    rows =
+      campaigns
+      |> campaign_rows(window)
+      |> Enum.filter(fn r ->
+        r.campaign.status == "active" or r.sent + r.bounced + r.replies + r.unsubscribed > 0
+      end)
+
+    project_ids = MapSet.new(projects, & &1.id)
+    replies = window |> replies() |> Enum.filter(&(&1.project_id in project_ids))
     addresses = addresses(projects, window, replies)
     tests = opener_tests(projects, today)
-    slow = Enum.filter(rows, &slow?/1)
+    slow = if opts[:slow], do: Enum.filter(rows, &slow?/1), else: []
 
     by_project = Enum.group_by(rows, & &1.campaign.project_id)
 
@@ -256,8 +291,11 @@ defmodule ColdForge.Reports do
   defp addresses(projects, window, replies) do
     address_of = Map.new(projects, &{&1.id, address(&1)})
     project_ids = Map.keys(address_of)
-    since = utc_start(Date.add(window.last, -13))
+    # Health checks look at the 7 days (and the two sending days) ending on the
+    # window's last day, whatever the window is; totals cover the window.
+    since = utc_start(Enum.min([window.first, Date.add(window.last, -13)], Date))
     week_from = utc_start(Date.add(window.last, -6))
+    stops_from = Enum.min([window.from, week_from], DateTime)
 
     daily =
       Repo.all(
@@ -280,7 +318,7 @@ defmodule ColdForge.Reports do
           on: c.id == e.campaign_id,
           where:
             c.project_id in ^project_ids and e.stopped_reason in ["bounced", "complained"] and
-              e.updated_at >= ^week_from and e.updated_at < ^window.to,
+              e.updated_at >= ^stops_from and e.updated_at < ^window.to,
           select: {c.project_id, e.stopped_reason, e.updated_at}
       )
 
@@ -318,11 +356,12 @@ defmodule ColdForge.Reports do
       end
 
       in_win = fn at -> DateTime.compare(at, window.from) != :lt end
-      always = fn _ -> true end
+      in_week = fn at -> DateTime.compare(at, week_from) != :lt end
 
-      week_bounced = count_stops.("bounced", always)
+      week_bounced = count_stops.("bounced", in_week)
+      bounced = count_stops.("bounced", in_win)
       complaints = count_stops.("complained", in_win)
-      week_complaints = count_stops.("complained", always)
+      week_complaints = count_stops.("complained", in_week)
 
       days = by_day |> Enum.filter(fn {_d, n} -> n > 0 end) |> Enum.sort_by(&elem(&1, 0), Date)
 
@@ -357,13 +396,19 @@ defmodule ColdForge.Reports do
         address: addr,
         projects: Enum.map(ps, & &1.name),
         sent: sent,
-        bounced: count_stops.("bounced", in_win),
+        bounced: bounced,
+        rate: if(sent > 0, do: bounced / sent, else: 0.0),
         complaints: complaints,
         week_sent: week_sent,
         week_bounced: week_bounced,
         week_complaints: week_complaints,
         week_rate: week_rate,
-        days: Enum.take(days, -8),
+        # One day: the trend leading up to it. A range: the range.
+        days:
+          if(window.first == window.last,
+            do: Enum.take(days, -8),
+            else: Enum.filter(days, fn {d, _} -> in_window.(d) end)
+          ),
         jump: jump,
         warnings: warnings
       }
