@@ -30,7 +30,21 @@ defmodule ColdForge.Sourcing.Discovery.Places do
   when you ask for fields. Google charges at the highest SKU any requested
   field belongs to, so `field_mask/0` is the cost control, not a detail — it
   asks for id, displayName, formattedAddress, websiteUri,
-  nationalPhoneNumber and businessStatus, and nothing else.
+  nationalPhoneNumber, businessStatus, primaryType and types, and nothing
+  else. websiteUri and nationalPhoneNumber already put every request on the
+  Enterprise SKU; the two type fields are Pro, so they cost nothing more.
+
+  ## What a search is allowed to return
+
+  Google answers "animal shelter in Coral Gables, FL" with the shelters and
+  then whatever else is nearby and vaguely related: the groomer, the boarding
+  kennel, the vet, a fire-rescue station. Stamping all of them with the
+  segment searched for is how a pet-branding studio and a fire department
+  each got a pitch about their adoptable animals. So a result has to look
+  like the kind of place that was asked for (`wrong_kind?/3`) and sit in the
+  state the town is in (`outside_region?/2`), or it is dropped here, before
+  it can become a prospect. Neither is used for anything else and neither is
+  stored.
 
   Needs `GOOGLE_PLACES_API_KEY` and an IP-restricted key: a referrer-restricted
   key cannot be used server side, since there is no referrer to match.
@@ -48,7 +62,26 @@ defmodule ColdForge.Sourcing.Discovery.Places do
     places.websiteUri
     places.nationalPhoneNumber
     places.businessStatus
+    places.primaryType
+    places.types
   )
+
+  # Google's own types that are never the organisation an animal-welfare
+  # search is for. There is no animal_shelter type to require instead, so this
+  # rules out rather than in.
+  @not_animal_welfare ~w(
+    pet_store pet_care pet_boarding_service veterinary_care dog_park
+    fire_station church place_of_worship gift_shop
+  )
+
+  # A breeder search turns up the same neighbours, less the pet store and the
+  # kennel: plenty of breeders are filed as one or the other.
+  @not_breeder ~w(veterinary_care dog_park fire_station church place_of_worship gift_shop)
+
+  # Words in a name that settle it either way. A rescue that Google files as
+  # pet_care is still a rescue; a "fire rescue" is never an animal one.
+  @welfare_name ~r/rescue|shelter|humane|spca|adopt|sanctuary/i
+  @not_welfare_name ~r/fire[\s-]+(rescue|department|dept)|search\s+(and|&)\s+rescue|social services|homeless|ministr/i
 
   # The search phrases that find each segment. Google matches on its own
   # categories plus the business's own description, which is how it finds the
@@ -219,7 +252,7 @@ defmodule ColdForge.Sourcing.Discovery.Places do
     with {:ok, key} <- api_key(),
          {:ok, body} <- search_body(segment, locality, opts),
          {:ok, %{status: 200, body: response}} <- post(body, key, opts) do
-      parse(response, segment)
+      parse(response, segment, locality: locality)
     else
       {:ok, %{status: status, body: body}} -> {:error, {:http, status, message(body)}}
       {:error, %{reason: reason}} -> {:error, {:transport, reason}}
@@ -256,31 +289,101 @@ defmodule ColdForge.Sourcing.Discovery.Places do
   Turns a Places searchText response into rows for `Sourcing.Org`.
 
   Pure, so it is tested against a saved response. Permanently closed places are
-  dropped, and so is anything without a usable name.
+  dropped, and so is anything without a usable name, anything that is plainly
+  not the kind of place searched for, and — given `locality: "Town, ST"` —
+  anything in another state.
   """
-  @spec parse(String.t() | map(), String.t()) ::
+  @spec parse(String.t() | map(), String.t(), keyword()) ::
           {:ok, [map()], String.t() | nil} | {:error, term()}
-  def parse(json, segment) when is_binary(json) do
+  def parse(body, segment, opts \\ [])
+
+  def parse(json, segment, opts) when is_binary(json) do
     case Jason.decode(json) do
-      {:ok, decoded} -> parse(decoded, segment)
+      {:ok, decoded} -> parse(decoded, segment, opts)
       {:error, reason} -> {:error, {:invalid_json, reason}}
     end
   end
 
-  def parse(%{} = body, segment) do
+  def parse(%{} = body, segment, opts) do
     places = Map.get(body, "places") || []
+    region = locality_region(Keyword.get(opts, :locality))
 
     rows =
       places
-      |> Enum.map(&place_to_attrs(&1, segment))
+      |> Enum.map(&place_to_attrs(&1, segment, region))
       |> Enum.reject(&is_nil/1)
 
     {:ok, rows, Map.get(body, "nextPageToken")}
   end
 
-  def parse(_other, _segment), do: {:error, :unexpected_shape}
+  def parse(_other, _segment, _opts), do: {:error, :unexpected_shape}
 
-  defp place_to_attrs(%{"id" => id} = place, segment) do
+  @doc """
+  True when Google's own type or the name says this result is not the kind of
+  place `segment` searched for.
+
+  Only the animal-welfare and breeder segments are checked. Those are the
+  searches Google pads with neighbours, and the ones whose email says "your
+  adoptable animals" to whoever it reaches.
+  """
+  def wrong_kind?(segment, name, primary_type) do
+    name = to_string(name)
+
+    case kind(segment) do
+      :animal_welfare ->
+        name =~ @not_welfare_name or
+          (primary_type in @not_animal_welfare and not (name =~ @welfare_name))
+
+      :breeder ->
+        name =~ @not_welfare_name or primary_type in @not_breeder
+
+      :other ->
+        false
+    end
+  end
+
+  defp kind(segment) do
+    segment = to_string(segment)
+
+    cond do
+      segment =~ ~r/shelter|rescue|humane/ -> :animal_welfare
+      segment =~ ~r/breeder/ -> :breeder
+      true -> :other
+    end
+  end
+
+  @doc """
+  True when a result's state is known and isn't the searched town's.
+
+  A drip says "I came across you while looking for shelters in Florida", so a
+  Virginia county that Google offered for a Florida town has to go. A result
+  with no readable state is kept: nothing says it is wrong.
+  """
+  def outside_region?(_place_region, nil), do: false
+  def outside_region?(nil, _wanted), do: false
+  def outside_region?(place_region, wanted), do: place_region != wanted
+
+  @doc """
+  The state a search locality is in: `"Coral Gables, FL"` → `"FL"`, and a bare
+  state, `"Florida"` or `"FL"`, → `"FL"`. Anything else is nil, and nil checks
+  nothing.
+  """
+  def locality_region(locality) when is_binary(locality) do
+    case ColdForge.Sourcing.Towns.state_code(locality) do
+      nil ->
+        case Regex.run(~r/,\s*([A-Za-z]{2})\s*$/, locality) do
+          [_, code] -> String.upcase(code)
+          _ -> nil
+        end
+
+      code ->
+        code
+    end
+  end
+
+  def locality_region(_), do: nil
+
+  defp place_to_attrs(%{"id" => id} = place, segment, region) do
     name = get_in(place, ["displayName", "text"]) |> presence()
     status = Map.get(place, "businessStatus")
 
@@ -290,6 +393,12 @@ defmodule ColdForge.Sourcing.Discovery.Places do
 
       # A shut business in a drip campaign is a bounce and a wasted touch.
       status in ["CLOSED_PERMANENTLY"] ->
+        nil
+
+      wrong_kind?(segment, name, Map.get(place, "primaryType")) ->
+        nil
+
+      outside_region?(split_address(Map.get(place, "formattedAddress")).region, region) ->
         nil
 
       true ->
@@ -320,7 +429,7 @@ defmodule ColdForge.Sourcing.Discovery.Places do
     end
   end
 
-  defp place_to_attrs(_place, _segment), do: nil
+  defp place_to_attrs(_place, _segment, _region), do: nil
 
   @doc """
   Google's one-line address in its parts:

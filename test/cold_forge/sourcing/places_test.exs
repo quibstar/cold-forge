@@ -106,7 +106,8 @@ defmodule ColdForge.Sourcing.Discovery.PlacesTest do
     test "asks for exactly the fields we use and nothing billable beyond them" do
       mask = Places.field_mask()
 
-      for field <- ~w(places.id places.displayName places.websiteUri places.nationalPhoneNumber) do
+      for field <- ~w(places.id places.displayName places.websiteUri places.nationalPhoneNumber
+                      places.primaryType places.types) do
         assert mask =~ field
       end
 
@@ -184,6 +185,117 @@ defmodule ColdForge.Sourcing.Discovery.PlacesTest do
 
     test "malformed json is an error" do
       assert {:error, {:invalid_json, _}} = Places.parse("{nope", "roofing")
+    end
+  end
+
+  # Every name and type here is one that came back from an "animal shelter"
+  # search and was emailed as a shelter before this check existed.
+  @neighbours """
+  {
+    "places": [
+      {"id": "ChIJshelter", "displayName": {"text": "Polk County Animal Shelter"},
+       "formattedAddress": "5850 Brannen Rd S, Lakeland, FL 33813, USA",
+       "businessStatus": "OPERATIONAL", "primaryType": "local_government_office"},
+      {"id": "ChIJrescuecare", "displayName": {"text": "Lone Star Pawz Animal Rescue"},
+       "formattedAddress": "1 Main St, Pearland, TX 77581, USA",
+       "businessStatus": "OPERATIONAL", "primaryType": "pet_care"},
+      {"id": "ChIJnotype", "displayName": {"text": "Muttville"},
+       "formattedAddress": "255 Alabama St, San Francisco, CA 94103, USA",
+       "businessStatus": "OPERATIONAL"},
+      {"id": "ChIJgroomer", "displayName": {"text": "Pawradise Estero"},
+       "formattedAddress": "1 Main St, Estero, FL 33928, USA",
+       "businessStatus": "OPERATIONAL", "primaryType": "pet_care"},
+      {"id": "ChIJkennel", "displayName": {"text": "A to Z Dog Ranch, LLC"},
+       "formattedAddress": "1 Main St, Conroe, TX 77301, USA",
+       "businessStatus": "OPERATIONAL", "primaryType": "pet_boarding_service"},
+      {"id": "ChIJvet", "displayName": {"text": "Animal Care Hospital"},
+       "formattedAddress": "1 Main St, Erie, PA 16501, USA",
+       "businessStatus": "OPERATIONAL", "primaryType": "veterinary_care"},
+      {"id": "ChIJgifts", "displayName": {"text": "Purr Haus"},
+       "formattedAddress": "1 Main St, Allentown, PA 18101, USA",
+       "businessStatus": "OPERATIONAL", "primaryType": "gift_shop"},
+      {"id": "ChIJfire", "displayName": {"text": "Key Biscayne Fire Rescue Department"},
+       "formattedAddress": "560 Crandon Blvd, Key Biscayne, FL 33149, USA",
+       "businessStatus": "OPERATIONAL"},
+      {"id": "ChIJsar", "displayName": {"text": "Peace River K9 Search and Rescue, Inc."},
+       "formattedAddress": "1 Main St, Arcadia, FL 34266, USA",
+       "businessStatus": "OPERATIONAL", "primaryType": "non_profit_organization"},
+      {"id": "ChIJhomeless", "displayName": {"text": "Open Arms Shelter & Social Services"},
+       "formattedAddress": "1 Main St, Yonkers, NY 10701, USA",
+       "businessStatus": "OPERATIONAL"}
+    ]
+  }
+  """
+
+  defp refs(segment, opts \\ []) do
+    {:ok, rows, _} = Places.parse(@neighbours, segment, opts)
+    rows |> Enum.map(& &1.source_ref) |> Enum.sort()
+  end
+
+  describe "a shelter search keeps shelters" do
+    test "drops the groomer, kennel, vet, gift shop, fire department, search team and homeless shelter" do
+      assert refs("shelter") == ["ChIJnotype", "ChIJrescuecare", "ChIJshelter"]
+      assert refs("rescue") == refs("shelter")
+      assert refs("humane_society") == refs("shelter")
+    end
+
+    test "a rescue that Google files as pet care is still a rescue" do
+      assert "ChIJrescuecare" in refs("shelter")
+    end
+
+    test "a place Google gives no type is judged by its name alone" do
+      assert "ChIJnotype" in refs("shelter")
+      refute "ChIJfire" in refs("shelter")
+    end
+
+    test "trades are not filtered by kind" do
+      assert length(refs("roofing")) == 10
+    end
+
+    test "a breeder search drops the vet and the gift shop but keeps kennels" do
+      breeder = refs("dog breeder")
+
+      assert "ChIJkennel" in breeder
+      refute "ChIJvet" in breeder
+      refute "ChIJgifts" in breeder
+      refute "ChIJfire" in breeder
+    end
+  end
+
+  describe "a search keeps to its town's state" do
+    test "drops a result from another state" do
+      assert refs("roofing", locality: "Lakeland, FL") ==
+               ["ChIJfire", "ChIJgroomer", "ChIJsar", "ChIJshelter"]
+    end
+
+    test "a bare state works the same as a town in it" do
+      assert refs("roofing", locality: "Florida") == refs("roofing", locality: "Lakeland, FL")
+      assert refs("roofing", locality: "FL") == refs("roofing", locality: "Florida")
+    end
+
+    test "a locality with no state checks nothing" do
+      assert length(refs("roofing", locality: "Coral Gables")) == 10
+    end
+
+    test "a result with no readable state is kept" do
+      {:ok, rows, _} =
+        Places.parse(
+          %{"places" => [%{"id" => "x", "displayName" => %{"text" => "Somewhere Rescue"}}]},
+          "shelter",
+          locality: "Lakeland, FL"
+        )
+
+      assert [%{source_ref: "x"}] = rows
+    end
+  end
+
+  describe "locality_region/1" do
+    test "reads the state from a town, a state name or a code" do
+      assert Places.locality_region("Coral Gables, FL") == "FL"
+      assert Places.locality_region("Florida") == "FL"
+      assert Places.locality_region("ny") == "NY"
+      assert Places.locality_region("Coral Gables") == nil
+      assert Places.locality_region(nil) == nil
     end
   end
 
