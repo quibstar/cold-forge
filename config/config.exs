@@ -87,7 +87,10 @@ config :cold_forge, Oban,
        # Permit sources: found Monday 6am Central, digest Tuesday 7am Central
        # once the website lookups and crawls are done.
        {"0 11 * * 1", ColdForge.Workers.RunPermitSources},
-       {"0 12 * * 2", ColdForge.Workers.PermitDigest}
+       {"0 12 * * 2", ColdForge.Workers.PermitDigest},
+       # The daily review and its email: 8am Eastern in winter, 9am in
+       # summer (cron here is UTC). Weekdays, after the night's replies.
+       {"0 13 * * 1-5", ColdForge.Workers.DailyReview}
      ]}
   ]
 
