@@ -230,4 +230,31 @@ defmodule ColdForge.ReportsTest do
     assert {r.first, r.last} == {~D[2026-11-01], ~D[2026-11-30]}
     assert r.to == ~U[2026-12-01 05:00:00Z]
   end
+
+  test "subject_matches? fills merge fields with anything" do
+    assert Reports.subject_matches?("how {{company}} tracks jobs", "how Acme Roofing tracks jobs")
+    assert Reports.subject_matches?("did the crew ever use it?", "did the crew ever use it?")
+    refute Reports.subject_matches?("how {{company}} tracks jobs", "Acme Roofing's CRM")
+    refute Reports.subject_matches?(nil, "x")
+  end
+
+  test "a light weekend day doesn't make Monday a spike" do
+    drip = setup_drip()
+    w = Reports.window()
+    # Five ordinary days of 10, then one stray send, before the window.
+    for back <- 2..6,
+        _ <- 1..10,
+        do:
+          send!(
+            drip,
+            DateTime.add(Reports.range(w.first, w.first).from, -back * 86_400 + 4 * 3600)
+            |> DateTime.truncate(:second)
+          )
+
+    send!(drip, DateTime.add(w.from, -86_400 + 4 * 3600) |> DateTime.truncate(:second))
+    for _ <- 1..12, do: send!(drip, yesterday())
+
+    [address] = Reports.report(w, project_id: drip.project.id).addresses
+    assert address.warnings == []
+  end
 end
