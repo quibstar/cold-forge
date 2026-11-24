@@ -476,4 +476,29 @@ defmodule ColdForgeWeb.AdminLiveTest do
     assert has_element?(view, "#addresses", "exteriorpro.io")
     assert has_element?(view, "section", campaign.name)
   end
+
+  test "the report's period and project filters change the URL and the window", %{
+    conn: conn,
+    project: project
+  } do
+    other = project_fixture(name: "Furizzma", from_email: "hello@hello.furizzma.com")
+    {:ok, view, _html} = live(conn, ~p"/admin/report")
+
+    view
+    |> element("#report-filters")
+    |> render_change(%{"range" => "last_month", "project" => project.id})
+
+    assert_patch(view, ~p"/admin/report?#{%{"project" => project.id, "range" => "last_month"}}")
+    refute has_element?(view, "#addresses", "hello.furizzma.com")
+
+    {:ok, view, _html} =
+      live(
+        conn,
+        ~p"/admin/report?#{%{"range" => "custom", "from" => "2026-10-01", "to" => "2026-10-31"}}"
+      )
+
+    assert has_element?(view, "input[name=from][value='2026-10-01']")
+    assert has_element?(view, "#addresses", "hello.furizzma.com")
+    assert other.id
+  end
 end

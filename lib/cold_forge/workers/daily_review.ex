@@ -25,8 +25,11 @@ defmodule ColdForge.Workers.DailyReview do
         campaign = Outreach.get_campaign!(row.campaign.id)
 
         case Reports.slow_campaign(campaign, Reports.slow_reason(row)) do
-          {:ok, sentence} -> sentence
-          {:error, _} -> "Tried to slow #{campaign.name} but the change didn't save. Check it by hand."
+          {:ok, sentence} ->
+            sentence
+
+          {:error, _} ->
+            "Tried to slow #{campaign.name} but the change didn't save. Check it by hand."
         end
       end
 

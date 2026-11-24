@@ -208,4 +208,26 @@ defmodule ColdForge.ReportsTest do
     assert {b.letter, b.sends, b.unsubscribed} == {"B", 1, 1}
     assert test.verdict =~ "Too early"
   end
+
+  test "a range report covers every day in it, and slowing only shows for the morning view" do
+    drip = setup_drip()
+    w = Reports.window()
+    week = Reports.range(Date.add(w.last, -6), w.last)
+
+    send!(drip, yesterday())
+    send!(drip, DateTime.add(yesterday(), -3 * 86_400))
+    send!(drip, DateTime.add(yesterday(), -20 * 86_400))
+
+    report = Reports.report(week, project_id: drip.project.id)
+    assert [%{rows: [row]}] = report.projects
+    assert row.sent == 2
+    assert report.slow == []
+    assert [%{sent: 2}] = report.addresses
+  end
+
+  test "range/2 is inclusive and puts backwards dates in order" do
+    r = Reports.range(~D[2026-11-30], ~D[2026-11-01])
+    assert {r.first, r.last} == {~D[2026-11-01], ~D[2026-11-30]}
+    assert r.to == ~U[2026-12-01 05:00:00Z]
+  end
 end
