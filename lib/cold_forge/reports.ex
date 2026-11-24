@@ -389,7 +389,7 @@ defmodule ColdForge.Reports do
               "7-day bounce rate is #{pct(week_rate)}, over #{pct(@address_bounce_rate)}",
             complaints > 0 && "#{complaints} spam complaint(s)",
             jump && jump > @address_jump &&
-              "daily sends jumped #{pct(jump)} from the previous sending day",
+              "daily sends jumped #{pct(jump)} over a typical recent day (median of the last 5 sending days)",
             trouble != [] && "#{length(trouble)} reply(ies) mention spam or junk folders"
           ],
           &(&1 in [nil, false])
