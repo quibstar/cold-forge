@@ -86,6 +86,66 @@ defmodule ColdForge.InboxTest do
       assert reply.prospect_id == ctx.prospect.id
     end
 
+    test "a reply from another address is matched by our unsubscribe link quoted in it", ctx do
+      body = """
+      We don't work with animals.
+
+      On Wed, Kris wrote:
+      > Not interested? Unsubscribe: #{ColdForgeWeb.Endpoint.url()}/u/#{ctx.prospect.unsubscribe_token}
+      """
+
+      {:ok, reply} =
+        Inbox.receive_email(%{
+          from: "someone.else@aol.example",
+          subject: "Re: Quick question",
+          body: body
+        })
+
+      assert reply.matched_by == "link"
+      assert reply.prospect_id == ctx.prospect.id
+      assert Outreach.get_prospect!(ctx.prospect.id).status == "replied"
+    end
+
+    test "a quoted tracked link names the exact send", ctx do
+      link =
+        ColdForge.Repo.insert!(%ColdForge.Tracking.TrackedLink{
+          message_id: ctx.message.id,
+          destination_url: "https://exteriorpro.io/demo",
+          token: "tok#{System.unique_integer([:positive])}xyz"
+        })
+
+      {:ok, reply} =
+        Inbox.receive_email(%{
+          from: "someone.else@aol.example",
+          body: "> Here's how it works: #{ColdForgeWeb.Endpoint.url()}/c/#{link.token}"
+        })
+
+      assert reply.matched_by == "link"
+      assert reply.message_id == ctx.message.id
+      assert reply.prospect_id == ctx.prospect.id
+    end
+
+    test "a project's own link host counts as ours", ctx do
+      {:ok, _} = Outreach.update_project(ctx.project, %{"link_host" => "hello.furizzma.com"})
+
+      {:ok, reply} =
+        Inbox.receive_email(%{
+          from: "someone.else@aol.example",
+          body: "> https://hello.furizzma.com/u/#{ctx.prospect.unsubscribe_token}"
+        })
+
+      assert reply.matched_by == "link"
+      assert reply.prospect_id == ctx.prospect.id
+    end
+
+    test "the same token on someone else's site is not ours", ctx do
+      assert {:error, :no_match} =
+               Inbox.receive_email(%{
+                 from: "someone.else@aol.example",
+                 body: "https://example.com/u/#{ctx.prospect.unsubscribe_token}"
+               })
+    end
+
     test "mail from a stranger is ignored, not an error" do
       assert {:error, :no_match} =
                Inbox.receive_email(%{from: "nobody@elsewhere.com", subject: "hi"})

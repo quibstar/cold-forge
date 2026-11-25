@@ -6,7 +6,12 @@ defmodule ColdForge.Inbox do
 
     1. `In-Reply-To` / `References` against the Message-ID we set on the send.
        Exact — it names one email to one person.
-    2. The From address against a prospect. Weaker: it says who wrote, not what
+    2. Our own links quoted in the reply: the unsubscribe link (`/u/…`) names
+       the prospect, a tracked link (`/c/…`) names the send. For when an email
+       app drops the threading headers and the answer comes from another
+       address than the one we wrote to (an office address forwarded to
+       someone's own AOL account, as Pinellas Animal Foundation's was).
+    3. The From address against a prospect. Weaker: it says who wrote, not what
        they were answering, and the same person may be in several campaigns.
 
   A matched reply stops that person's campaigns, for the same reason answering
@@ -21,7 +26,8 @@ defmodule ColdForge.Inbox do
   import Ecto.Query, warn: false
 
   alias ColdForge.Outreach
-  alias ColdForge.Outreach.{Message, Prospect}
+  alias ColdForge.Outreach.{Message, Project, Prospect}
+  alias ColdForge.Tracking.TrackedLink
   alias ColdForge.Inbox.Reply
   alias ColdForge.Repo
 
@@ -171,11 +177,58 @@ defmodule ColdForge.Inbox do
         {prospect, message, "exact"}
 
       nil ->
-        case match_by_address(from) do
-          nil -> nil
-          prospect -> {prospect, nil, "address"}
+        case match_by_quoted_link(params[:body]) do
+          {prospect, message} ->
+            {prospect, message, "link"}
+
+          nil ->
+            case match_by_address(from) do
+              nil -> nil
+              prospect -> {prospect, nil, "address"}
+            end
         end
     end
+  end
+
+  # Only links on our own hosts count: the app's, and each project's link host.
+  # A token is random, so this is belt and braces, not the matching itself.
+  @quoted_link ~r<https?://([A-Za-z0-9.-]+)(?::\d+)?/(u|c)/([A-Za-z0-9_-]{8,})>
+
+  defp match_by_quoted_link(body) when is_binary(body) do
+    hosts = our_hosts()
+
+    @quoted_link
+    |> Regex.scan(body, capture: :all_but_first)
+    |> Enum.filter(fn [host, _kind, _token] -> String.downcase(host) in hosts end)
+    |> Enum.find_value(fn [_host, kind, token] -> by_token(kind, token) end)
+  end
+
+  defp match_by_quoted_link(_body), do: nil
+
+  defp by_token("u", token) do
+    case Repo.get_by(Prospect, unsubscribe_token: token) do
+      nil -> nil
+      prospect -> {prospect, nil}
+    end
+  end
+
+  defp by_token("c", token) do
+    case Repo.one(from l in TrackedLink, where: l.token == ^token, preload: [message: :prospect]) do
+      %TrackedLink{message: %Message{prospect: %Prospect{} = prospect} = message} ->
+        {prospect, message}
+
+      _ ->
+        nil
+    end
+  end
+
+  defp our_hosts do
+    app = URI.parse(ColdForgeWeb.Endpoint.url()).host
+
+    link_hosts =
+      Repo.all(from p in Project, where: not is_nil(p.link_host), select: p.link_host)
+
+    Enum.map([app | link_hosts], &String.downcase/1)
   end
 
   # `References` carries the whole thread, so a reply to a reply still names our

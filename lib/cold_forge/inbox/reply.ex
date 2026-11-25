@@ -9,7 +9,7 @@ defmodule ColdForge.Inbox.Reply do
   use ColdForge.Schema
   import Ecto.Changeset
 
-  @matched_by ~w(exact address)
+  @matched_by ~w(exact link address)
 
   schema "replies" do
     field :from_email, :string
