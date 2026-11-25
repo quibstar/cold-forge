@@ -16,7 +16,7 @@ defmodule ColdForge.Sourcing.Org do
 
   @reject_reasons ~w(
     no_website unreachable no_address_published no_solicitation
-    out_of_segment duplicate suppressed
+    out_of_segment duplicate suppressed undeliverable_email
   )
 
   schema "sourcing_orgs" do
@@ -48,6 +48,8 @@ defmodule ColdForge.Sourcing.Org do
     field :notice_text, :string
     field :has_contact_form, :boolean, default: false
     field :fetched_at, :utc_datetime
+    field :email_verdict, :string
+    field :email_checked_at, :utc_datetime
 
     # Whether promoting this row created its prospect or linked it to one that
     # was already there. Null on rows promoted before it was recorded.
@@ -111,7 +113,9 @@ defmodule ColdForge.Sourcing.Org do
       :has_contact_form,
       :fetched_at,
       :status,
-      :reject_reason
+      :reject_reason,
+      :email_verdict,
+      :email_checked_at
     ])
     |> validate_inclusion(:status, @statuses)
     |> validate_inclusion(:reject_reason, @reject_reasons)
