@@ -380,6 +380,11 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
     {:noreply, socket |> put_flash(:info, "Left off the list.") |> load_results()}
   end
 
+  def handle_event("clear_review", %{"id" => id}, socket) do
+    {:ok, org} = id |> Sourcing.get_org!() |> Sourcing.clear_review()
+    {:noreply, socket |> put_flash(:info, "#{org.name} moved to Email.") |> load_results()}
+  end
+
   def handle_event("recrawl", %{"id" => id}, socket) do
     org = Sourcing.get_org!(id)
     Sourcing.enqueue_crawls([org])
@@ -815,6 +820,9 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                     see the page
                   </.link>
                 </div>
+                <div :if={org.review_note} class="text-xs text-warning mt-1">
+                  <.icon name="hero-question-mark-circle" class="size-3" /> {org.review_note}
+                </div>
                 <div :if={!org.email && org.has_contact_form} class="text-xs text-base-content/50">
                   contact form only
                 </div>
@@ -859,6 +867,15 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
                   phx-value-org_id={org.id}
                 >
                   {if org.email, do: "Add", else: "Call list"}
+                </button>
+                <button
+                  :if={Sourcing.view_of(org) == "review"}
+                  type="button"
+                  class="btn btn-xs btn-ghost"
+                  phx-click="clear_review"
+                  phx-value-id={org.id}
+                >
+                  Looks right
                 </button>
                 <button
                   :if={org.status != "promoted"}
@@ -919,6 +936,7 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
   end
 
   defp label_for("email"), do: "Email"
+  defp label_for("review"), do: "Check first"
   defp label_for("phone"), do: "Phone only"
   defp label_for("no_number"), do: "Need a number"
   defp label_for("checking"), do: "Checking website"

@@ -49,6 +49,9 @@ defmodule ColdForge.Sourcing.Org do
     field :has_contact_form, :boolean, default: false
     field :fetched_at, :utc_datetime
     field :email_verdict, :string
+    # Why this place is held for a person to check before it can join a drip
+    # (`ColdForge.Sourcing.KindCheck`). Nil: nothing to check.
+    field :review_note, :string
     field :email_checked_at, :utc_datetime
 
     # Whether promoting this row created its prospect or linked it to one that
@@ -115,7 +118,8 @@ defmodule ColdForge.Sourcing.Org do
       :status,
       :reject_reason,
       :email_verdict,
-      :email_checked_at
+      :email_checked_at,
+      :review_note
     ])
     |> validate_inclusion(:status, @statuses)
     |> validate_inclusion(:reject_reason, @reject_reasons)
