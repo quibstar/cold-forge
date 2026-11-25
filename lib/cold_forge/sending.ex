@@ -36,7 +36,7 @@ defmodule ColdForge.Sending do
     from = sender(campaign, project)
 
     with :ok <- check_sendable(prospect, project) do
-      base_url = base_url()
+      base_url = base_url(project)
       rendered = Renderer.render_step(step, prospect, project, campaign)
 
       Repo.transaction(fn ->
@@ -196,7 +196,12 @@ defmodule ColdForge.Sending do
         opts \\ []
       ) do
     branded? = Keyword.get(opts, :branded, false)
-    preview = Renderer.preview_message(subject, body, prospect, project, branded: branded?)
+
+    preview =
+      Renderer.preview_message(subject, body, prospect, project,
+        branded: branded?,
+        base_url: base_url(project)
+      )
 
     email =
       Swoosh.Email.new()
@@ -252,11 +257,15 @@ defmodule ColdForge.Sending do
   @doc """
   The public origin used to build tracked links.
 
-  Read from the endpoint rather than hardcoded, because these URLs are baked
-  into mail that outlives any given deploy — a wrong value here is a dead link
-  in somebody's inbox.
+  A project's own `link_host` when it has one, so each brand's emails link to
+  that brand's domain; otherwise the endpoint's host. Never hardcoded: these
+  URLs are baked into mail that outlives any given deploy, and a wrong value
+  here is a dead link in somebody's inbox.
   """
-  def base_url do
-    ColdForgeWeb.Endpoint.url()
-  end
+  def base_url(project \\ nil)
+
+  def base_url(%Project{link_host: host}) when is_binary(host) and host != "",
+    do: "https://" <> host
+
+  def base_url(_project), do: ColdForgeWeb.Endpoint.url()
 end

@@ -19,6 +19,11 @@ defmodule ColdForge.Outreach.Project do
     field :phone, :string
     field :landing_url, :string
     field :postal_address, :string
+    # The host this project's emails link to: unsubscribe, click tracking and
+    # open tracking. Matching the sending address keeps a brand's emails from
+    # carrying another brand's domain. Nil uses the app's own host. The name
+    # must already resolve to Cold Forge (DNS + Caddy), or every link is dead.
+    field :link_host, :string
     # Values every campaign in this project falls back to. The broadest level of
     # the chain; a campaign or a prospect overrides them.
     field :merge_defaults, :map, default: %{}
@@ -53,6 +58,7 @@ defmodule ColdForge.Outreach.Project do
       :phone,
       :landing_url,
       :postal_address,
+      :link_host,
       :merge_defaults,
       :merge_defaults_text,
       :signature,
@@ -69,6 +75,12 @@ defmodule ColdForge.Outreach.Project do
     )
     |> validate_format(:from_email, ~r/^[^@,;\s]+@[^@,;\s]+\.[^@,;\s]+$/,
       message: "must be a valid email"
+    )
+    |> update_change(:link_host, &normalize_host/1)
+    |> validate_format(
+      :link_host,
+      ~r/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/,
+      message: "must be a host name like get.exteriorpro.io"
     )
     |> validate_format(:forward_replies_to, ~r/^[^@,;\s]+@[^@,;\s]+\.[^@,;\s]+$/,
       message: "must be a valid email"
@@ -137,5 +149,20 @@ defmodule ColdForge.Outreach.Project do
           [{field, "must be a full URL starting with http:// or https://"}]
       end
     end)
+  end
+
+  # Accepts a pasted URL ("https://get.exteriorpro.io/") and keeps the host.
+  defp normalize_host(nil), do: nil
+
+  defp normalize_host(host) do
+    host
+    |> String.trim()
+    |> String.downcase()
+    |> String.replace(~r{^https?://}, "")
+    |> String.trim_trailing("/")
+    |> case do
+      "" -> nil
+      h -> h
+    end
   end
 end
