@@ -16,7 +16,7 @@ defmodule ColdForge.Sourcing do
   alias ColdForge.Outreach.Prospect
   alias ColdForge.Repo
   alias ColdForge.Verification
-  alias ColdForge.Sourcing.{Org, Source}
+  alias ColdForge.Sourcing.{KindCheck, Org, Source}
   alias ColdForge.Workers.{CrawlOrg, FindWebsite, RunSource}
 
   ## Sources — saved searches
@@ -288,13 +288,20 @@ defmodule ColdForge.Sourcing do
   # than by the crawler's internal status. "Rejected" used to be one tab, and
   # it was almost entirely shops whose website simply didn't list an email —
   # call-list material, filed under a name that said they'd been thrown out.
-  @views ~w(email phone no_number checking left_off added)
+  @views ~w(email review phone no_number checking left_off added)
 
   @doc "The review tabs, in order."
   def views, do: @views
 
   defp maybe_view(query, nil), do: query
-  defp maybe_view(query, "email"), do: where(query, [o], o.status == "fetched")
+
+  defp maybe_view(query, "email"),
+    do: where(query, [o], o.status == "fetched" and is_nil(o.review_note))
+
+  # Found an address, but the site reads like something other than what the
+  # search was for. Held out of "Add all" until somebody looks.
+  defp maybe_view(query, "review"),
+    do: where(query, [o], o.status == "fetched" and not is_nil(o.review_note))
 
   # A phone tab has to mean "you can phone these". It used to mean "no email
   # address was found", which is a different set: the IRS file and the licence
@@ -377,6 +384,7 @@ defmodule ColdForge.Sourcing do
       )
 
   @doc "Which review tab an organisation is in."
+  def view_of(%Org{status: "fetched", review_note: note}) when is_binary(note), do: "review"
   def view_of(%Org{status: "fetched"}), do: "email"
   def view_of(%Org{status: "needs_website", phone: p}) when p in [nil, ""], do: "no_number"
   def view_of(%Org{status: "needs_website"}), do: "phone"
@@ -451,10 +459,17 @@ defmodule ColdForge.Sourcing do
   address. When the check can't run — no key, Reoon down — the address is
   recorded unchecked rather than holding up the search.
   """
-  def record_found(%Org{} = org, candidate, result) do
+  def record_found(%Org{} = org, candidate, result, opts \\ []) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
+    review_note =
+      case KindCheck.check(org.segment, Keyword.get(opts, :pages, [])) do
+        {:hold, note} -> note
+        :ok -> nil
+      end
+
     attrs = %{
+      review_note: review_note,
       email: candidate.email,
       email_source_url: candidate.source_url,
       email_presentation: to_string(candidate.presentation),
@@ -476,6 +491,14 @@ defmodule ColdForge.Sourcing do
       :unchecked ->
         org |> Org.crawl_changeset(Map.put(attrs, :status, "fetched")) |> Repo.update()
     end
+  end
+
+  @doc """
+  Clears a place held for review: somebody looked and it's what the search was
+  for, so it goes back with the others and "Add all" can take it.
+  """
+  def clear_review(%Org{} = org) do
+    org |> Org.crawl_changeset(%{review_note: nil}) |> Repo.update()
   end
 
   @doc """
@@ -717,6 +740,7 @@ defmodule ColdForge.Sourcing do
   defp addable(%Source{id: source_id}, :email) do
     Org
     |> where([o], o.source_id == ^source_id and o.status == "fetched")
+    |> where([o], is_nil(o.review_note))
     |> where([o], not o.no_solicitation and not is_nil(o.email) and o.email != "")
   end
 
