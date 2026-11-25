@@ -286,7 +286,9 @@ defmodule ColdForge.Sourcing.Extractor do
   ## Shaping
 
   defp candidate(email, url, presentation, context) do
-    email = email |> String.trim() |> String.downcase()
+    # Page text carries encoded links: "%20david@…" is the regex catching a
+    # percent-encoded space along with the address.
+    email = email |> ColdForge.Outreach.Prospect.clean_email() |> String.downcase()
 
     %{
       email: email,

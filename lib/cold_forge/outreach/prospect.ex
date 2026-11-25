@@ -65,7 +65,7 @@ defmodule ColdForge.Outreach.Prospect do
     ])
     |> validate_required([:project_id])
     |> validate_reachable()
-    |> update_change(:email, &String.trim/1)
+    |> update_change(:email, &clean_email/1)
     |> validate_format(:email, ~r/^[^@,;\s]+@[^@,;\s]+\.[^@,;\s]+$/,
       message: "must be a valid email"
     )
@@ -190,6 +190,35 @@ defmodule ColdForge.Outreach.Prospect do
   end
 
   defp blank?(value), do: value in [nil, ""] or (is_binary(value) and String.trim(value) == "")
+
+  @doc """
+  An address as it should be stored, with the debris of wherever it was copied
+  from taken off.
+
+  Scraped and imported addresses carry the encoding of the page or link they
+  came out of: `%20david@…` is a space before the address, percent-encoded in
+  a site's `mailto:` link and then hidden by Cloudflare's email protection,
+  which kept the encoding when it decoded. It bounced. Also strips a `mailto:` prefix and the brackets,
+  quotes and trailing punctuation an address picks up in prose. Anything still
+  malformed afterwards is left for the format check to refuse.
+  """
+  def clean_email(nil), do: nil
+
+  def clean_email(email) when is_binary(email) do
+    email
+    |> String.trim()
+    |> String.replace(~r/^mailto:/i, "")
+    |> percent_decode()
+    |> String.replace(~r/^[\s<("'\[]+|[\s>)"'\].,;:]+$/, "")
+  end
+
+  # Only well-formed %XX escapes are decoded; a stray "%" that isn't one is
+  # left in place, and the format check refuses the address.
+  defp percent_decode(text) do
+    Regex.replace(~r/%([0-9A-Fa-f]{2})/, text, fn _, hex ->
+      <<String.to_integer(hex, 16)>>
+    end)
+  end
 
   defp put_unsubscribe_token(changeset) do
     case get_field(changeset, :unsubscribe_token) do
