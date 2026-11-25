@@ -61,6 +61,16 @@ defmodule ColdForge.Sourcing.ExtractorTest do
       assert c.email == "adoptions@hs.example"
     end
 
+    # Real: a Texas roofer's site protected "%20david@…" — its mailto had a
+    # percent-encoded space, and Cloudflare kept it. Sent as is, it bounced.
+    test "an encoded space inside the protected address is taken off" do
+      hex = cfemail("%20david@roofer.example", 0x3C)
+      html = page(~s|<a href="/cdn-cgi/l/email-protection##{hex}">Email</a>|)
+
+      assert %{candidates: [c]} = Extractor.extract(html, "https://roofer.example")
+      assert c.email == "david@roofer.example"
+    end
+
     test "garbage hex yields nothing rather than a junk address" do
       html = page(~s|<span data-cfemail="zzzz">x</span>|)
       assert %{candidates: []} = Extractor.extract(html, "https://rescue.test")
