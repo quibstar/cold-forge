@@ -303,7 +303,7 @@ defmodule ColdForge.Sending.Renderer do
   destination is the useful version anyway: it answers "where does this go?"
   """
   def preview_message(subject, body, %Prospect{} = prospect, %Project{} = project, opts \\ []) do
-    base_url = opts[:base_url] || ColdForgeWeb.Endpoint.url()
+    base_url = opts[:base_url] || ColdForge.Sending.base_url(project)
     branded? = Keyword.get(opts, :branded, false)
     question = opts[:question]
     campaign = opts[:campaign]

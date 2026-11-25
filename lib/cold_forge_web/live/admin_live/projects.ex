@@ -279,6 +279,17 @@ defmodule ColdForgeWeb.AdminLive.Projects do
             commercial mail.
           </p>
 
+          <.input
+            field={@form[:link_host]}
+            label="Link domain"
+            placeholder="get.exteriorpro.io"
+          />
+          <p class="text-xs text-base-content/50 -mt-2">
+            Where this project's unsubscribe, click and open links point. Usually the
+            sending address's domain. Leave blank for this app's own address. It has to
+            already point at Cold Forge, or every link in the email is dead.
+          </p>
+
           <.input field={@form[:timezone]} label="Timezone" placeholder="America/New_York" />
 
           <%!-- The broadest level of the merge chain. A campaign default beats
