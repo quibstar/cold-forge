@@ -28,6 +28,10 @@ defmodule ColdForge.Outreach.Prospect do
     field :status, :string, default: "new"
     field :unsubscribed_at, :utc_datetime
     field :bounced_at, :utc_datetime
+    # What Reoon said about the address (`ColdForge.Verification`). Set by the
+    # check, never by a form.
+    field :email_verdict, :string
+    field :email_checked_at, :utc_datetime
     field :replied_at, :utc_datetime
     field :unsubscribe_token, :string
     # Calling state, denormalised so the call queue is one indexed query.

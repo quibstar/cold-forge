@@ -892,6 +892,10 @@ defmodule ColdForgeWeb.AdminLive.Sourcing do
 
   defp no_address_note(%{status: "needs_website"}), do: "no website"
   defp no_address_note(%{reject_reason: "no_address_published"}), do: "no email on their website"
+
+  defp no_address_note(%{reject_reason: "undeliverable_email", email: email}),
+    do: "#{email} doesn't exist (checked)"
+
   defp no_address_note(%{reject_reason: nil}), do: "—"
   defp no_address_note(%{reject_reason: reason}), do: humanize(reason)
 

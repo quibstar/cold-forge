@@ -53,3 +53,7 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# Reoon calls are stubbed with Req.Test in the verification tests; no key by
+# default, so the contact finder records addresses unchecked.
+config :cold_forge, reoon_req_options: [plug: {Req.Test, ColdForge.Verification.Reoon}]

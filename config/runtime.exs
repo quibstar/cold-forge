@@ -58,6 +58,12 @@ if google_places_key = System.get_env("GOOGLE_PLACES_API_KEY") do
   config :cold_forge, google_places_api_key: google_places_key
 end
 
+# Reoon Email Verifier, for checking an address before it's sent to. Without
+# it the contact finder records addresses unchecked, as before.
+if reoon_key = System.get_env("REOON_API_KEY") do
+  config :cold_forge, reoon_api_key: reoon_key
+end
+
 if System.get_env("PHX_SERVER") do
   config :cold_forge, ColdForgeWeb.Endpoint, server: true
 end

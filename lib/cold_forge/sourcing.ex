@@ -15,6 +15,7 @@ defmodule ColdForge.Sourcing do
   alias ColdForge.Outreach
   alias ColdForge.Outreach.Prospect
   alias ColdForge.Repo
+  alias ColdForge.Verification
   alias ColdForge.Sourcing.{Org, Source}
   alias ColdForge.Workers.{CrawlOrg, FindWebsite, RunSource}
 
@@ -281,7 +282,7 @@ defmodule ColdForge.Sourcing do
   # website had no address on it, couldn't be read at all, or it has no
   # website. Every other reason — a no-solicitation notice, "not a fit" — is a
   # real decision to leave it alone.
-  @phone_reasons ~w(no_address_published unreachable no_website)
+  @phone_reasons ~w(no_address_published unreachable no_website undeliverable_email)
 
   # What the review page shows, by what can be done with each place rather
   # than by the crawler's internal status. "Rejected" used to be one tab, and
@@ -441,19 +442,40 @@ defmodule ColdForge.Sourcing do
     |> Repo.update()
   end
 
-  @doc "Records what the crawl found on an organisation's own site."
+  @doc """
+  Records what the crawl found on an organisation's own site.
+
+  The address is checked with Reoon first (`ColdForge.Verification`). One the
+  mail server says doesn't exist is kept for the record but files the place as
+  `undeliverable_email`, which puts it on the call list like a site with no
+  address. When the check can't run — no key, Reoon down — the address is
+  recorded unchecked rather than holding up the search.
+  """
   def record_found(%Org{} = org, candidate, result) do
-    org
-    |> Org.crawl_changeset(%{
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    attrs = %{
       email: candidate.email,
       email_source_url: candidate.source_url,
       email_presentation: to_string(candidate.presentation),
       has_contact_form: result.has_contact_form,
       no_solicitation: false,
-      fetched_at: DateTime.utc_now() |> DateTime.truncate(:second),
-      status: "fetched"
-    })
-    |> Repo.update()
+      fetched_at: now
+    }
+
+    case Verification.check(candidate.email) do
+      {:ok, verdict} ->
+        attrs = Map.merge(attrs, %{email_verdict: verdict, email_checked_at: now})
+
+        if Verification.undeliverable?(verdict) do
+          reject(org, :undeliverable_email, attrs)
+        else
+          org |> Org.crawl_changeset(Map.put(attrs, :status, "fetched")) |> Repo.update()
+        end
+
+      :unchecked ->
+        org |> Org.crawl_changeset(Map.put(attrs, :status, "fetched")) |> Repo.update()
+    end
   end
 
   @doc """
@@ -545,6 +567,18 @@ defmodule ColdForge.Sourcing do
     end
   end
 
+  defp carry_verdict(prospect, %Org{email_verdict: nil}, _), do: {:ok, prospect}
+  defp carry_verdict(prospect, _org, true), do: {:ok, prospect}
+
+  defp carry_verdict(prospect, %Org{} = org, false) do
+    prospect
+    |> Ecto.Changeset.change(
+      email_verdict: org.email_verdict,
+      email_checked_at: org.email_checked_at
+    )
+    |> Repo.update()
+  end
+
   # Supply houses and lumber yards found for flyers are not customers. Checked
   # here, not only by hiding buttons, so no path can turn one into a prospect.
   defp flyer_org?(%Org{source_id: nil}), do: false
@@ -553,9 +587,13 @@ defmodule ColdForge.Sourcing do
     do: Repo.exists?(from s in Source, where: s.id == ^source_id and s.purpose == "flyers")
 
   defp do_promote(%Org{} = org, project_id) do
+    # An address Reoon said doesn't exist never reaches a send list: the place
+    # becomes a phone-only prospect, which is why it was on the call list.
+    undeliverable? = Verification.undeliverable?(org.email_verdict)
+
     attrs = %{
       project_id: project_id,
-      email: org.email,
+      email: if(undeliverable?, do: nil, else: org.email),
       company: org.name,
       phone: org.phone,
       website: org.website,
@@ -567,6 +605,7 @@ defmodule ColdForge.Sourcing do
 
     Repo.transaction(fn ->
       with {:ok, prospect} <- Outreach.create_prospect(attrs),
+           {:ok, prospect} <- carry_verdict(prospect, org, undeliverable?),
            {:ok, org} <-
              org
              |> Ecto.Changeset.change(%{
